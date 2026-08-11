@@ -1,11 +1,29 @@
-export default function Page() {
+import { createClient } from "@/lib/supabase/server";
+import { CrudTable, type Field } from "@/components/crud-table";
+import { createInsumo, updateInsumo, deleteInsumo } from "./actions";
+
+const fields: Field[] = [
+  { key: "codigo", label: "Código" },
+  { key: "categoria", label: "Categoría" },
+  { key: "descripcion", label: "Insumo o servicio", required: true },
+  { key: "unidad", label: "Unidad" },
+  { key: "costo", label: "Costo de referencia", type: "number" },
+  { key: "estado", label: "Estado", type: "select", options: ["Activo", "Inactivo"] },
+  { key: "notas", label: "Observaciones", type: "textarea" },
+];
+
+export default async function Page() {
+  const supabase = await createClient();
+  const { data: rows } = await supabase.from("insumos").select("*").order("descripcion");
+
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-semibold text-emerald-900">Gestión · Banco de insumos</h1>
-      <p className="mt-2 text-sm text-neutral-500">
-        Módulo pendiente de construir. Estructura de ruta lista, en espera de las
-        respuestas de la Solicitud de Información y del proyecto de Supabase.
-      </p>
-    </div>
+    <CrudTable
+      title="Banco de insumos"
+      fields={fields}
+      rows={rows ?? []}
+      onCreate={createInsumo}
+      onUpdate={updateInsumo}
+      onDelete={deleteInsumo}
+    />
   );
 }

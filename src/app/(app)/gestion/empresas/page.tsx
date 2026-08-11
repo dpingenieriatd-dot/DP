@@ -1,11 +1,26 @@
-export default function Page() {
+import { createClient } from "@/lib/supabase/server";
+import { CrudTable, type Field } from "@/components/crud-table";
+import { createEmpresa, updateEmpresa, deleteEmpresa } from "./actions";
+
+const fields: Field[] = [
+  { key: "nombre", label: "Nombre", required: true },
+  { key: "ciudad", label: "Ciudad" },
+  { key: "estado", label: "Estado", type: "select", options: ["Activo", "Inactivo"] },
+  { key: "notas", label: "Observaciones", type: "textarea" },
+];
+
+export default async function Page() {
+  const supabase = await createClient();
+  const { data: rows } = await supabase.from("empresas_atendidas").select("*").order("nombre");
+
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-semibold text-emerald-900">Gestión · Empresas atendidas</h1>
-      <p className="mt-2 text-sm text-neutral-500">
-        Módulo pendiente de construir. Estructura de ruta lista, en espera de las
-        respuestas de la Solicitud de Información y del proyecto de Supabase.
-      </p>
-    </div>
+    <CrudTable
+      title="Empresas atendidas"
+      fields={fields}
+      rows={rows ?? []}
+      onCreate={createEmpresa}
+      onUpdate={updateEmpresa}
+      onDelete={deleteEmpresa}
+    />
   );
 }

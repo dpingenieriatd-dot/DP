@@ -1,11 +1,32 @@
-export default function Page() {
+import { createClient } from "@/lib/supabase/server";
+import { TaskBoard } from "./board";
+
+export default async function Page() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const [{ data: tareas }, { data: profiles }, { data: timerActivo }] = await Promise.all([
+    supabase.from("tareas").select("*").order("created_at", { ascending: false }),
+    supabase.from("profiles").select("id, full_name, email"),
+    user
+      ? supabase
+          .from("registros_tiempo")
+          .select("id, tarea_id, inicio")
+          .eq("usuario_id", user.id)
+          .is("fin", null)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-semibold text-emerald-900">Seguimiento · Banco de tareas</h1>
-      <p className="mt-2 text-sm text-neutral-500">
-        Módulo pendiente de construir. Estructura de ruta lista, en espera de las
-        respuestas de la Solicitud de Información y del proyecto de Supabase.
-      </p>
-    </div>
+    <TaskBoard
+      tareas={tareas ?? []}
+      profiles={profiles ?? []}
+      currentUserId={user?.id ?? null}
+      timerActivo={timerActivo ?? null}
+    />
   );
 }

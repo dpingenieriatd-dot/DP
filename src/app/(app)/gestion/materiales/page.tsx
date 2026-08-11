@@ -1,11 +1,30 @@
-export default function Page() {
+import { createClient } from "@/lib/supabase/server";
+import { CrudTable, type Field } from "@/components/crud-table";
+import { createMaterial, updateMaterial, deleteMaterial } from "./actions";
+
+const fields: Field[] = [
+  { key: "codigo", label: "Código" },
+  { key: "nombre", label: "Nombre", required: true },
+  { key: "categoria", label: "Categoría" },
+  { key: "custodio", label: "Custodio" },
+  { key: "valor_reposicion", label: "Valor de reposición", type: "number" },
+  { key: "vida_util_jornadas", label: "Vida útil (jornadas)", type: "number" },
+  { key: "estado", label: "Estado", type: "select", options: ["Activo", "Inactivo"] },
+  { key: "notas", label: "Observaciones", type: "textarea" },
+];
+
+export default async function Page() {
+  const supabase = await createClient();
+  const { data: rows } = await supabase.from("materiales").select("*").order("nombre");
+
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-semibold text-emerald-900">Gestión · Materiales de trabajo</h1>
-      <p className="mt-2 text-sm text-neutral-500">
-        Módulo pendiente de construir. Estructura de ruta lista, en espera de las
-        respuestas de la Solicitud de Información y del proyecto de Supabase.
-      </p>
-    </div>
+    <CrudTable
+      title="Materiales de trabajo"
+      fields={fields}
+      rows={rows ?? []}
+      onCreate={createMaterial}
+      onUpdate={updateMaterial}
+      onDelete={deleteMaterial}
+    />
   );
 }

@@ -1,11 +1,32 @@
-export default function Page() {
+import { createClient } from "@/lib/supabase/server";
+import { CrudTable, type Field } from "@/components/crud-table";
+import { createProfesional, updateProfesional, deleteProfesional } from "./actions";
+
+const fields: Field[] = [
+  { key: "documento", label: "Documento" },
+  { key: "nombre", label: "Nombre", required: true },
+  { key: "ciudad", label: "Ciudad" },
+  { key: "perfil", label: "Perfil" },
+  { key: "especialidad", label: "Especialidad" },
+  { key: "tarifa_hora", label: "Tarifa por hora", type: "number" },
+  { key: "jornada", label: "Valor jornada", type: "number" },
+  { key: "tipo_vinculo", label: "Tipo de vínculo", type: "select", options: ["Empleado", "Contratista", "Freelance"] },
+  { key: "estado", label: "Estado", type: "select", options: ["Activo", "Inactivo"] },
+  { key: "notas", label: "Observaciones", type: "textarea" },
+];
+
+export default async function Page() {
+  const supabase = await createClient();
+  const { data: rows } = await supabase.from("profesionales").select("*").order("nombre");
+
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-semibold text-emerald-900">Gestión · Profesionales</h1>
-      <p className="mt-2 text-sm text-neutral-500">
-        Módulo pendiente de construir. Estructura de ruta lista, en espera de las
-        respuestas de la Solicitud de Información y del proyecto de Supabase.
-      </p>
-    </div>
+    <CrudTable
+      title="Profesionales"
+      fields={fields}
+      rows={rows ?? []}
+      onCreate={createProfesional}
+      onUpdate={updateProfesional}
+      onDelete={deleteProfesional}
+    />
   );
 }
