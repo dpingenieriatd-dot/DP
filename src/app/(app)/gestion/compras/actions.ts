@@ -15,7 +15,7 @@ function fromForm(formData: FormData) {
     cantidad: formData.get("cantidad") || 1,
     valor_unitario: formData.get("valor_unitario") || 0,
     valor_pagado: formData.get("valor_pagado") || 0,
-    estado_pago: formData.get("estado_pago") || "Pendiente",
+    estado_pago: formData.get("estado_pago") || "Cotizado",
     referencia: formData.get("referencia") || null,
     categoria: formData.get("categoria") || null,
     notas: formData.get("notas") || null,

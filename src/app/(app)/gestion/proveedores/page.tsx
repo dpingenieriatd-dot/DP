@@ -3,7 +3,9 @@ import { CrudTable, type Field } from "@/components/crud-table";
 import { createProveedor, updateProveedor, deleteProveedor } from "./actions";
 
 const fields: Field[] = [
+  { key: "codigo", label: "Código" },
   { key: "nombre", label: "Nombre / razón social", required: true },
+  { key: "tipo", label: "Tipo" },
   { key: "nit", label: "NIT" },
   { key: "contacto", label: "Contacto" },
   { key: "telefono", label: "Teléfono" },

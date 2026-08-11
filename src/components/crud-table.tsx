@@ -7,7 +7,13 @@ export type Field = {
   label: string;
   type?: "text" | "number" | "textarea" | "select" | "email";
   options?: string[];
+  /** Para selects relacionales (value = id real, label = lo que se ve). Tiene prioridad sobre `options`. */
+  optionEntries?: { value: string; label: string }[];
   required?: boolean;
+  /** Cómo mostrar el valor en la tabla (por defecto, el valor crudo). Útil para mostrar el nombre en vez del id de una FK. */
+  display?: (value: Row[string], row: Row) => string;
+  /** Columna calculada que solo se muestra en la tabla, sin campo propio en el formulario de crear/editar. */
+  tableOnly?: boolean;
 };
 
 export type Row = Record<string, string | number | boolean | null>;
@@ -107,7 +113,7 @@ export function CrudTable({
               <tr key={String(row[idKey])} className="border-t border-neutral-100 hover:bg-neutral-50">
                 {fields.map((f) => (
                   <td key={f.key} className="px-4 py-2.5">
-                    {String(row[f.key] ?? "—")}
+                    {f.display ? f.display(row[f.key], row) : String(row[f.key] ?? "—")}
                   </td>
                 ))}
                 <td className="whitespace-nowrap px-4 py-2.5 text-right">
@@ -166,7 +172,7 @@ export function CrudTable({
             </h2>
 
             <div className="grid grid-cols-2 gap-3">
-              {fields.map((f) => (
+              {fields.filter((f) => !f.tableOnly).map((f) => (
                 <label
                   key={f.key}
                   className={`block text-sm ${f.type === "textarea" ? "col-span-2" : ""}`}
@@ -182,14 +188,25 @@ export function CrudTable({
                   ) : f.type === "select" ? (
                     <select
                       name={f.key}
-                      defaultValue={editing ? String(editing[f.key] ?? "") : f.options?.[0]}
+                      defaultValue={editing ? String(editing[f.key] ?? "") : (f.optionEntries ? "" : f.options?.[0])}
                       className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
                     >
-                      {f.options?.map((o) => (
-                        <option key={o} value={o}>
-                          {o}
-                        </option>
-                      ))}
+                      {f.optionEntries ? (
+                        <>
+                          <option value="">Seleccione…</option>
+                          {f.optionEntries.map((o) => (
+                            <option key={o.value} value={o.value}>
+                              {o.label}
+                            </option>
+                          ))}
+                        </>
+                      ) : (
+                        f.options?.map((o) => (
+                          <option key={o} value={o}>
+                            {o}
+                          </option>
+                        ))
+                      )}
                     </select>
                   ) : (
                     <input

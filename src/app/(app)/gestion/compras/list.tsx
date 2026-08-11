@@ -186,10 +186,11 @@ export function ComprasList({
                 <input type="number" step="0.01" name="valor_unitario" defaultValue={editing?.valor_unitario ?? ""} required className="in" />
               </Campo>
               <Campo label="Estado del pago">
-                <select name="estado_pago" defaultValue={editing?.estado_pago ?? "Pendiente"} className="in">
-                  <option>Pendiente</option>
-                  <option>Parcial</option>
+                <select name="estado_pago" defaultValue={editing?.estado_pago ?? "Cotizado"} className="in">
+                  <option>Cotizado</option>
+                  <option>Aprobado</option>
                   <option>Pagado</option>
+                  <option>Rechazado</option>
                 </select>
               </Campo>
               <Campo label="Valor pagado">

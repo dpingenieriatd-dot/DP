@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { CrudTable, type Field } from "@/components/crud-table";
 import { createMaterial, updateMaterial, deleteMaterial } from "./actions";
 
+const money = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
+
 const fields: Field[] = [
   { key: "codigo", label: "Código" },
   { key: "nombre", label: "Nombre", required: true },
@@ -9,7 +11,16 @@ const fields: Field[] = [
   { key: "custodio", label: "Custodio" },
   { key: "valor_reposicion", label: "Valor de reposición", type: "number" },
   { key: "vida_util_jornadas", label: "Vida útil (jornadas)", type: "number" },
-  { key: "estado", label: "Estado", type: "select", options: ["Activo", "Inactivo"] },
+  {
+    key: "costo_jornada",
+    label: "Costo/jornada",
+    tableOnly: true,
+    display: (_v, row) => {
+      const vida = Number(row.vida_util_jornadas || 0);
+      return vida > 0 ? money.format(Number(row.valor_reposicion || 0) / vida) : "—";
+    },
+  },
+  { key: "estado", label: "Estado", type: "select", options: ["Disponible", "En uso", "En mantenimiento", "Dado de baja"] },
   { key: "notas", label: "Observaciones", type: "textarea" },
 ];
 

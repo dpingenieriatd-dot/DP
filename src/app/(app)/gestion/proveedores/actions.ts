@@ -8,7 +8,9 @@ const PATH = "/gestion/proveedores";
 
 function fromForm(formData: FormData) {
   return {
+    codigo: formData.get("codigo") || null,
     nombre: formData.get("nombre") || null,
+    tipo: formData.get("tipo") || null,
     nit: formData.get("nit") || null,
     contacto: formData.get("contacto") || null,
     telefono: formData.get("telefono") || null,

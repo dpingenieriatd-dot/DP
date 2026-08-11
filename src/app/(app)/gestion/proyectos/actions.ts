@@ -12,6 +12,7 @@ export async function crearProyecto(formData: FormData) {
       codigo: formData.get("codigo"),
       nombre: formData.get("nombre"),
       cliente_id: formData.get("cliente_id") || null,
+      empresa_id: formData.get("empresa_id") || null,
       responsable_id: formData.get("responsable_id") || null,
     })
     .select("id")

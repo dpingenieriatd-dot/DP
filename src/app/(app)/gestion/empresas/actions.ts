@@ -9,7 +9,14 @@ const PATH = "/gestion/empresas";
 function fromForm(formData: FormData) {
   return {
     nombre: formData.get("nombre") || null,
+    cliente_id: formData.get("cliente_id") || null,
+    nit: formData.get("nit") || null,
+    sector: formData.get("sector") || null,
+    contacto: formData.get("contacto") || null,
+    correo: formData.get("correo") || null,
+    telefono: formData.get("telefono") || null,
     ciudad: formData.get("ciudad") || null,
+    asesor: formData.get("asesor") || null,
     estado: formData.get("estado") || null,
     notas: formData.get("notas") || null,
   };

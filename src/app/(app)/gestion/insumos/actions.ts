@@ -12,6 +12,7 @@ function fromForm(formData: FormData) {
     categoria: formData.get("categoria") || null,
     descripcion: formData.get("descripcion") || null,
     unidad: formData.get("unidad") || null,
+    servicio: formData.get("servicio") || null,
     costo: formData.get("costo") || null,
     estado: formData.get("estado") || null,
     notas: formData.get("notas") || null,
