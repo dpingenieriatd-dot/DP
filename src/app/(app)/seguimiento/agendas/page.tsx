@@ -1,11 +1,28 @@
-export default function Page() {
+import { createClient } from "@/lib/supabase/server";
+import { semanaActual, toISODate } from "@/lib/week";
+import { AgendaGrid } from "./grid";
+
+export default async function Page() {
+  const supabase = await createClient();
+  const semana = semanaActual();
+  const desde = toISODate(semana[0]);
+  const hasta = toISODate(semana[4]);
+
+  const [{ data: profiles }, { data: bloques }] = await Promise.all([
+    supabase.from("profiles").select("id, full_name, email, capacidad_semanal_horas").order("full_name"),
+    supabase
+      .from("agenda_bloques")
+      .select("*")
+      .gte("dia", desde)
+      .lte("dia", hasta)
+      .order("hora_inicio"),
+  ]);
+
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-semibold text-emerald-900">Seguimiento · Agendas</h1>
-      <p className="mt-2 text-sm text-neutral-500">
-        Módulo pendiente de construir. Estructura de ruta lista, en espera de las
-        respuestas de la Solicitud de Información y del proyecto de Supabase.
-      </p>
-    </div>
+    <AgendaGrid
+      profiles={profiles ?? []}
+      bloques={bloques ?? []}
+      dias={semana.map((d) => toISODate(d))}
+    />
   );
 }
