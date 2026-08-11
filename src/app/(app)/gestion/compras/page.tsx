@@ -1,11 +1,22 @@
-export default function Page() {
+import { createClient } from "@/lib/supabase/server";
+import { ComprasList } from "./list";
+
+export default async function Page() {
+  const supabase = await createClient();
+
+  const [{ data: compras }, { data: proyectos }, { data: proveedores }, { data: insumos }] = await Promise.all([
+    supabase.from("compras").select("*").eq("archivado", false).order("fecha", { ascending: false }),
+    supabase.from("proyectos").select("id, codigo, nombre").eq("archivado", false).order("nombre"),
+    supabase.from("proveedores").select("id, nombre").order("nombre"),
+    supabase.from("insumos").select("id, descripcion, unidad, costo").order("descripcion"),
+  ]);
+
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-semibold text-emerald-900">Gestión · Compras</h1>
-      <p className="mt-2 text-sm text-neutral-500">
-        Módulo pendiente de construir. Estructura de ruta lista, en espera de las
-        respuestas de la Solicitud de Información y del proyecto de Supabase.
-      </p>
-    </div>
+    <ComprasList
+      compras={compras ?? []}
+      proyectos={proyectos ?? []}
+      proveedores={proveedores ?? []}
+      insumos={insumos ?? []}
+    />
   );
 }

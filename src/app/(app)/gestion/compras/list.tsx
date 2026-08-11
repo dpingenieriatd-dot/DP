@@ -1,0 +1,242 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { crearCompra, actualizarCompra, eliminarCompra } from "./actions";
+import { money } from "@/lib/finance";
+
+type Compra = {
+  id: string;
+  proyecto_id: string | null;
+  proveedor_id: string | null;
+  insumo_id: string | null;
+  fecha: string;
+  unidad: string | null;
+  cantidad: number;
+  valor_unitario: number;
+  valor_pagado: number;
+  estado_pago: string;
+  referencia: string | null;
+  categoria: string | null;
+  notas: string | null;
+};
+
+const CATEGORIAS = ["Servicios profesionales", "Materiales e insumos", "Transporte y logística", "Alimentación", "Publicidad y diseño", "Otros"];
+
+export function ComprasList({
+  compras,
+  proyectos,
+  proveedores,
+  insumos,
+}: {
+  compras: Compra[];
+  proyectos: { id: string; codigo: string | null; nombre: string }[];
+  proveedores: { id: string; nombre: string }[];
+  insumos: { id: string; descripcion: string; unidad: string | null; costo: number }[];
+}) {
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Compra | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  const proyectoNombre = (id: string | null) => {
+    const p = proyectos.find((p) => p.id === id);
+    return p ? `${p.codigo ? p.codigo + " · " : ""}${p.nombre}` : "—";
+  };
+  const proveedorNombre = (id: string | null) => proveedores.find((p) => p.id === id)?.nombre ?? "—";
+
+  function submit(formData: FormData) {
+    startTransition(async () => {
+      const r = editing ? await actualizarCompra(editing.id, formData) : await crearCompra(formData);
+      if (r?.error) setError(r.error);
+      else {
+        setOpen(false);
+        setEditing(null);
+      }
+    });
+  }
+
+  return (
+    <div className="p-8">
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-emerald-900">Compras</h1>
+        <button
+          onClick={() => {
+            setEditing(null);
+            setOpen(true);
+          }}
+          className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
+        >
+          + Nueva compra
+        </button>
+      </div>
+
+      <div className="overflow-auto rounded-lg border border-neutral-200 bg-white">
+        <table className="w-full min-w-[1100px] text-sm">
+          <thead>
+            <tr className="bg-neutral-50 text-left text-xs uppercase text-neutral-500">
+              <th className="px-3 py-2">Fecha</th>
+              <th className="px-3 py-2">Proyecto</th>
+              <th className="px-3 py-2">Proveedor</th>
+              <th className="px-3 py-2 text-right">Cantidad</th>
+              <th className="px-3 py-2 text-right">Vr. unitario</th>
+              <th className="px-3 py-2 text-right">Total</th>
+              <th className="px-3 py-2 text-right">Pagado</th>
+              <th className="px-3 py-2">Estado</th>
+              <th className="px-3 py-2" />
+            </tr>
+          </thead>
+          <tbody>
+            {compras.map((c) => (
+              <tr key={c.id} className="border-t border-neutral-100 hover:bg-neutral-50">
+                <td className="px-3 py-2">{c.fecha}</td>
+                <td className="px-3 py-2">{proyectoNombre(c.proyecto_id)}</td>
+                <td className="px-3 py-2">{proveedorNombre(c.proveedor_id)}</td>
+                <td className="px-3 py-2 text-right">{c.cantidad}</td>
+                <td className="px-3 py-2 text-right">{money.format(c.valor_unitario)}</td>
+                <td className="px-3 py-2 text-right font-medium">{money.format(c.cantidad * c.valor_unitario)}</td>
+                <td className="px-3 py-2 text-right">{money.format(c.valor_pagado)}</td>
+                <td className="px-3 py-2">{c.estado_pago}</td>
+                <td className="whitespace-nowrap px-3 py-2 text-right">
+                  {confirmingId === c.id ? (
+                    <span className="inline-flex items-center gap-2 text-xs">
+                      <button onClick={() => startTransition(async () => { await eliminarCompra(c.id); setConfirmingId(null); })} className="font-semibold text-red-600 hover:underline">
+                        Sí
+                      </button>
+                      <button onClick={() => setConfirmingId(null)} className="text-neutral-500 hover:underline">
+                        No
+                      </button>
+                    </span>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => {
+                          setEditing(c);
+                          setOpen(true);
+                        }}
+                        className="mr-2 text-xs font-medium text-emerald-700 hover:underline"
+                      >
+                        Editar
+                      </button>
+                      <button onClick={() => setConfirmingId(c.id)} className="text-xs font-medium text-red-600 hover:underline">
+                        Eliminar
+                      </button>
+                    </>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {compras.length === 0 && (
+              <tr>
+                <td colSpan={9} className="px-3 py-8 text-center text-neutral-400">
+                  No hay compras registradas.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {open && (
+        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpen(false)}>
+          <form action={submit} onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-lg">
+            <h2 className="mb-4 text-lg font-semibold text-emerald-900">{editing ? "Editar" : "Nueva"} compra</h2>
+            <div className="grid grid-cols-3 gap-3">
+              <Campo label="Proyecto">
+                <select name="proyecto_id" defaultValue={editing?.proyecto_id ?? ""} className="in">
+                  <option value="">Seleccione…</option>
+                  {proyectos.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.codigo ? `${p.codigo} · ` : ""}
+                      {p.nombre}
+                    </option>
+                  ))}
+                </select>
+              </Campo>
+              <Campo label="Proveedor">
+                <select name="proveedor_id" defaultValue={editing?.proveedor_id ?? ""} className="in">
+                  <option value="">Seleccione…</option>
+                  {proveedores.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre}
+                    </option>
+                  ))}
+                </select>
+              </Campo>
+              <Campo label="Insumo / servicio">
+                <select name="insumo_id" defaultValue={editing?.insumo_id ?? ""} className="in">
+                  <option value="">Seleccione…</option>
+                  {insumos.map((i) => (
+                    <option key={i.id} value={i.id}>
+                      {i.descripcion}
+                    </option>
+                  ))}
+                </select>
+              </Campo>
+              <Campo label="Fecha">
+                <input type="date" name="fecha" defaultValue={editing?.fecha ?? new Date().toISOString().slice(0, 10)} required className="in" />
+              </Campo>
+              <Campo label="Unidad">
+                <input name="unidad" defaultValue={editing?.unidad ?? ""} className="in" />
+              </Campo>
+              <Campo label="Cantidad">
+                <input type="number" step="0.01" name="cantidad" defaultValue={editing?.cantidad ?? 1} required className="in" />
+              </Campo>
+              <Campo label="Valor unitario">
+                <input type="number" step="0.01" name="valor_unitario" defaultValue={editing?.valor_unitario ?? ""} required className="in" />
+              </Campo>
+              <Campo label="Estado del pago">
+                <select name="estado_pago" defaultValue={editing?.estado_pago ?? "Pendiente"} className="in">
+                  <option>Pendiente</option>
+                  <option>Parcial</option>
+                  <option>Pagado</option>
+                </select>
+              </Campo>
+              <Campo label="Valor pagado">
+                <input type="number" step="0.01" name="valor_pagado" defaultValue={editing?.valor_pagado ?? 0} className="in" />
+              </Campo>
+              <Campo label="Factura / soporte">
+                <input name="referencia" defaultValue={editing?.referencia ?? ""} className="in" />
+              </Campo>
+              <Campo label="Categoría">
+                <select name="categoria" defaultValue={editing?.categoria ?? CATEGORIAS[0]} className="in">
+                  {CATEGORIAS.map((c) => (
+                    <option key={c}>{c}</option>
+                  ))}
+                </select>
+              </Campo>
+              <Campo label="Observaciones" full>
+                <textarea name="notas" defaultValue={editing?.notas ?? ""} className="in" />
+              </Campo>
+            </div>
+            {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  setEditing(null);
+                }}
+                className="rounded-md px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-100"
+              >
+                Cancelar
+              </button>
+              <button type="submit" disabled={pending} className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60">
+                Guardar
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Campo({ label, children, full }: { label: string; children: React.ReactNode; full?: boolean }) {
+  return (
+    <label className={`block text-sm ${full ? "col-span-3" : ""}`}>
+      <span className="mb-1 block text-neutral-600">{label}</span>
+      {children}
+    </label>
+  );
+}

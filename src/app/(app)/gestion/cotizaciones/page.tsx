@@ -1,11 +1,12 @@
-export default function Page() {
-  return (
-    <div className="p-8">
-      <h1 className="text-2xl font-semibold text-emerald-900">Gestión · Cotizaciones</h1>
-      <p className="mt-2 text-sm text-neutral-500">
-        Módulo pendiente de construir. Estructura de ruta lista, en espera de las
-        respuestas de la Solicitud de Información y del proyecto de Supabase.
-      </p>
-    </div>
-  );
+import { createClient } from "@/lib/supabase/server";
+import { CotizacionesList } from "./list";
+
+export default async function Page() {
+  const supabase = await createClient();
+  const [{ data: cotizaciones }, { data: clientes }] = await Promise.all([
+    supabase.from("cotizaciones").select("*").order("created_at", { ascending: false }),
+    supabase.from("clientes").select("id, nombre").order("nombre"),
+  ]);
+
+  return <CotizacionesList cotizaciones={cotizaciones ?? []} clientes={clientes ?? []} />;
 }
