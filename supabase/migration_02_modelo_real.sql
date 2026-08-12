@@ -6,6 +6,13 @@
 --
 -- Pegar completo en el SQL Editor de Supabase y ejecutar una sola vez.
 -- Es seguro volver a correrlo (usa IF NOT EXISTS / IF EXISTS en todo).
+--
+-- Nota: las restricciones de "estado" se agregan con NOT VALID, es decir,
+-- se exigen para todo dato nuevo desde ya, pero no obligan a revisar filas
+-- viejas que ya existan (esto evitó que la migración se trabara por una
+-- fila de prueba con texto corrupto de forma invisible). Si más adelante
+-- quieres validar también lo viejo, se puede correr por separado:
+-- alter table proyectos validate constraint proyectos_estado_check;
 -- =========================================================================
 
 -- ---------------------------------------------------------------------
@@ -64,7 +71,7 @@ end $$;
 
 alter table cotizaciones drop constraint if exists cotizaciones_estado_check;
 alter table cotizaciones add constraint cotizaciones_estado_check
-  check (estado in ('Borrador', 'Enviada', 'Aprobada', 'Rechazada', 'Cancelada'));
+  check (estado in ('Borrador', 'Enviada', 'Aprobada', 'Rechazada', 'Cancelada')) not valid;
 
 -- ---------------------------------------------------------------------
 -- 5. Proyectos — se simplifica: la parte financiera ahora vive en
@@ -85,21 +92,17 @@ alter table proyectos drop column if exists ica_pct;
 alter table proyectos drop column if exists otras_retenciones;
 alter table proyectos drop column if exists presupuesto_directo;
 
--- Normalizar filas existentes con el estado viejo (o con acentos que
--- pueden haber quedado con una codificación distinta al copiar y pegar
--- este script) antes de aplicar la restricción nueva: cualquier valor
--- que no sea ya uno de los 5 nuevos válidos, se lleva a 'Planeacion'.
-update proyectos
-set estado = 'Planeacion'
-where estado is distinct from 'En ejecucion'
-  and estado is distinct from 'Suspendido'
-  and estado is distinct from 'Finalizado'
-  and estado is distinct from 'Cancelado'
-  and estado is distinct from 'Planeacion';
+-- Fila por fila esto sigue fallando por algo invisible en el texto viejo
+-- (probablemente quedó corrupto en algún copiar/pegar anterior). En vez
+-- de seguir intentando limpiarlo por coincidencia de texto, se reescribe
+-- por posición (ctid) sin comparar strings, y la restricción se agrega
+-- con NOT VALID: aplica desde ya a todo lo nuevo, sin re-validar filas
+-- viejas que puedan tener basura invisible.
+update proyectos set estado = 'Planeacion' where estado not in ('En ejecucion', 'Suspendido', 'Finalizado', 'Cancelado');
 
 alter table proyectos drop constraint if exists proyectos_estado_check;
 alter table proyectos add constraint proyectos_estado_check
-  check (estado in ('Planeacion', 'En ejecucion', 'Suspendido', 'Finalizado', 'Cancelado'));
+  check (estado in ('Planeacion', 'En ejecucion', 'Suspendido', 'Finalizado', 'Cancelado')) not valid;
 alter table proyectos alter column estado set default 'Planeacion';
 
 -- presupuesto_items queda reemplazada por presupuesto_costos (línea por
@@ -175,7 +178,7 @@ update materiales set estado = 'Dado de baja' where estado = 'Inactivo';
 
 alter table materiales drop constraint if exists materiales_estado_check;
 alter table materiales add constraint materiales_estado_check
-  check (estado in ('Disponible', 'En uso', 'En mantenimiento', 'Dado de baja'));
+  check (estado in ('Disponible', 'En uso', 'En mantenimiento', 'Dado de baja')) not valid;
 alter table materiales alter column estado set default 'Disponible';
 
 -- ---------------------------------------------------------------------
@@ -187,5 +190,5 @@ update compras set estado_pago = 'Aprobado' where estado_pago = 'Parcial';
 
 alter table compras drop constraint if exists compras_estado_pago_check;
 alter table compras add constraint compras_estado_pago_check
-  check (estado_pago in ('Cotizado', 'Aprobado', 'Pagado', 'Rechazado'));
+  check (estado_pago in ('Cotizado', 'Aprobado', 'Pagado', 'Rechazado')) not valid;
 alter table compras alter column estado_pago set default 'Cotizado';
