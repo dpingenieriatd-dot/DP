@@ -6,8 +6,10 @@ import { LogoutButton } from "@/lib/supabase/logout-button";
 const NAV = [
   {
     section: "Seguimiento",
+    module: "seguimiento" as const,
     items: [
       { href: "/seguimiento/tareas", label: "Banco de tareas" },
+      { href: "/seguimiento/actividades", label: "Actividades" },
       { href: "/seguimiento/agendas", label: "Agendas" },
       { href: "/seguimiento/capacidad", label: "Capacidad del equipo" },
       { href: "/seguimiento/efectividad", label: "Efectividad" },
@@ -15,6 +17,7 @@ const NAV = [
   },
   {
     section: "Gestión",
+    module: "gestion" as const,
     items: [
       { href: "/gestion/cotizaciones", label: "Cotizaciones" },
       { href: "/gestion/proyectos", label: "Proyectos" },
@@ -29,7 +32,13 @@ const NAV = [
     ],
   },
   {
+    section: "Reportes",
+    module: null,
+    items: [{ href: "/reportes", label: "Panel de reportes" }],
+  },
+  {
     section: "Administración",
+    adminOnly: true,
     items: [
       { href: "/admin/usuarios", label: "Usuarios" },
       { href: "/admin/parametros", label: "Parámetros" },
@@ -53,9 +62,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     profile = data;
   }
 
+  const isAdmin = profile?.role === "admin";
+  const modules = profile?.modules ?? [];
+  const visibleNav = NAV.filter((group) => {
+    if (isAdmin) return true;
+    if ("adminOnly" in group && group.adminOnly) return false;
+    if (group.module) return modules.includes(group.module);
+    return modules.length > 0; // Reportes: visible si tiene acceso a algún módulo
+  });
+
   return (
     <div className="grid h-screen grid-cols-[240px_1fr]">
-      <aside className="flex h-screen flex-col overflow-hidden bg-emerald-950 py-5 text-white">
+      <aside className="flex h-screen flex-col overflow-hidden bg-emerald-900 py-5 text-white">
         <div className="border-b border-white/15 px-5 pb-4">
           <div className="mb-3 w-1/2 rounded-md bg-white p-2">
             <Image src="/logo-dp.png" alt="D&P Ingeniería Integral" width={327} height={233} className="h-auto w-full" priority />
@@ -74,7 +92,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           )}
         </div>
         <nav className="mt-2 flex-1 overflow-y-auto">
-          {NAV.map((group) => (
+          <Link
+            href="/"
+            className="block px-5 py-2 text-sm font-semibold text-white/95 hover:bg-white/5"
+          >
+            Inicio
+          </Link>
+          {visibleNav.map((group) => (
             <div key={group.section} className="mb-3">
               <div className="px-5 pb-1 pt-3 text-[11px] uppercase tracking-wide text-white/50">
                 {group.section}

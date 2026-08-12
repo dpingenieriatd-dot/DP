@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { crearCotizacion, actualizarCotizacion, eliminarCotizacion, aprobarYCrearProyecto } from "./actions";
-import { calcularCotizacion, money } from "@/lib/finance";
+import { calcularCotizacion, calcularPresupuesto, money } from "@/lib/finance";
 
 type Cotizacion = {
   id: string;
@@ -20,6 +20,8 @@ type Cotizacion = {
   valor_prof: number | null;
   valor_cotizado: number;
   valor_sugerido: number | null;
+  costos_estimados: number | null;
+  resp_iva: boolean | null;
   estado: string;
 };
 
@@ -53,14 +55,28 @@ export function CotizacionesList({
     valor_unit: editing?.valor_unit ?? 0,
     horas: editing?.horas ?? 0,
     valor_hora: editing?.valor_hora ?? 0,
+    costos: editing?.costos_estimados ?? 0,
+    respIva: editing?.resp_iva ?? true,
   });
   const calc = useMemo(() => calcularCotizacion(preview), [preview]);
+  const rentabilidad = useMemo(
+    () =>
+      calcularPresupuesto({
+        costos: preview.costos,
+        admin_pct: 15,
+        margen_pct: 30,
+        resp_iva: preview.respIva,
+        iva_pct: 19,
+        valor_cotizado: calc.valorCotizado,
+      }),
+    [preview.costos, preview.respIva, calc.valorCotizado]
+  );
 
   const clienteNombre = (id: string | null) => clientes.find((c) => c.id === id)?.nombre ?? "—";
 
   function abrirCrear() {
     setEditing(null);
-    setPreview({ personas: 0, valor_unit: 0, horas: 0, valor_hora: 0 });
+    setPreview({ personas: 0, valor_unit: 0, horas: 0, valor_hora: 0, costos: 0, respIva: true });
     setError(null);
     setOpen(true);
   }
@@ -72,6 +88,8 @@ export function CotizacionesList({
       valor_unit: c.valor_unit ?? 0,
       horas: c.horas ?? 0,
       valor_hora: c.valor_hora ?? 0,
+      costos: c.costos_estimados ?? 0,
+      respIva: c.resp_iva ?? true,
     });
     setError(null);
     setOpen(true);
@@ -115,7 +133,8 @@ export function CotizacionesList({
               <th className="px-3 py-2">Nombre</th>
               <th className="px-3 py-2">Cliente</th>
               <th className="px-3 py-2 text-right">Valor cotizado</th>
-              <th className="px-3 py-2 text-right">Valor sugerido</th>
+              <th className="px-3 py-2 text-right">Precio sugerido</th>
+              <th className="px-3 py-2">Viabilidad</th>
               <th className="px-3 py-2">Estado</th>
               <th className="px-3 py-2" />
             </tr>
@@ -128,6 +147,15 @@ export function CotizacionesList({
                 <td className="px-3 py-2">{clienteNombre(c.cliente_id)}</td>
                 <td className="px-3 py-2 text-right">{money.format(c.valor_cotizado)}</td>
                 <td className="px-3 py-2 text-right">{c.valor_sugerido != null ? money.format(c.valor_sugerido) : "—"}</td>
+                <td className="px-3 py-2">
+                  {c.valor_sugerido == null ? (
+                    <span className="text-xs text-neutral-400">Sin costos estimados</span>
+                  ) : c.valor_cotizado >= c.valor_sugerido ? (
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">Viable</span>
+                  ) : (
+                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">No viable</span>
+                  )}
+                </td>
                 <td className="px-3 py-2">
                   <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${ESTADO_CLASS[c.estado]}`}>{c.estado}</span>
                 </td>
@@ -155,7 +183,7 @@ export function CotizacionesList({
             ))}
             {cotizaciones.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-3 py-8 text-center text-neutral-400">
+                <td colSpan={8} className="px-3 py-8 text-center text-neutral-400">
                   No hay cotizaciones registradas.
                 </td>
               </tr>
@@ -266,17 +294,57 @@ export function CotizacionesList({
               <Campo label="Valor profesional (calculado)">
                 <input value={money.format(calc.valorProf)} readOnly className="in bg-neutral-50" />
               </Campo>
+              <Campo label="Costos estimados (internos)">
+                <input
+                  type="number"
+                  step="0.01"
+                  name="costos_estimados"
+                  value={preview.costos}
+                  onChange={(e) => setPreview((p) => ({ ...p, costos: Number(e.target.value) }))}
+                  className="in"
+                />
+              </Campo>
+              <Campo label="¿Responde por IVA?">
+                <select
+                  name="resp_iva"
+                  value={preview.respIva ? "true" : "false"}
+                  onChange={(e) => setPreview((p) => ({ ...p, respIva: e.target.value === "true" }))}
+                  className="in"
+                >
+                  <option value="true">Sí</option>
+                  <option value="false">No</option>
+                </select>
+              </Campo>
             </div>
 
             <div className="mt-3 rounded-md bg-emerald-50 p-3 text-sm">
               <div className="flex justify-between font-semibold text-emerald-900">
-                <span>Valor cotizado (materiales + profesional)</span>
+                <span>Valor cotizado (lo que se le cobra al cliente)</span>
                 <span>{money.format(calc.valorCotizado)}</span>
               </div>
-              <p className="mt-1 text-xs text-emerald-700">
-                El precio mínimo recomendado (con costos administrativos, margen del 30% e IVA) se calcula al aprobar
-                y crear el presupuesto del proyecto.
-              </p>
+              {preview.costos <= 0 ? (
+                <p className="mt-2 text-xs font-semibold text-amber-700">
+                  ⚠ Sin costos estimados aún — el precio sugerido {editing?.valor_sugerido != null ? "migrado (histórico)" : ""} se
+                  mantiene hasta que cargues costos.
+                </p>
+              ) : (
+                <>
+                  <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-emerald-900 sm:grid-cols-3">
+                    <span>Costos admin. (15%): {money.format(rentabilidad.admin)}</span>
+                    <span>Utilidad esperada (30%): {money.format(rentabilidad.utilidadEsperada)}</span>
+                    <span>IVA: {money.format(rentabilidad.iva)}</span>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between border-t border-emerald-200 pt-2 font-semibold text-emerald-900">
+                    <span>Precio mínimo recomendado</span>
+                    <span>{money.format(rentabilidad.valorSugerido)}</span>
+                  </div>
+                  <p className={`mt-1 text-xs font-semibold ${rentabilidad.viable ? "text-emerald-700" : "text-red-600"}`}>
+                    {rentabilidad.viable
+                      ? "✓ Viable: el valor cotizado cubre costos, margen e IVA."
+                      : `✗ No viable: falta ${money.format(-rentabilidad.margenNeg)} para cubrir costos, margen e IVA.`}
+                  </p>
+                </>
+              )}
             </div>
 
             {error && <p className="mt-3 text-sm text-red-600">{error}</p>}

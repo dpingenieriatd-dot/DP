@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { calcularCotizacion } from "@/lib/finance";
+import { calcularCotizacion, calcularPresupuesto } from "@/lib/finance";
 
 const PATH = "/gestion/cotizaciones";
 
@@ -16,6 +16,33 @@ function inputsFromForm(formData: FormData) {
   };
 }
 
+/**
+ * Corre el mismo motor de rentabilidad que Presupuestos, pero ANTES de
+ * aceptar la cotización — así lo exige la orden de compra ("antes de
+ * aceptarlo, mostrando costos, márgenes y precio recomendado").
+ *
+ * Si todavía no se cargó un costo estimado real (costosEstimados <= 0),
+ * NO se recalcula valor_sugerido/margen: se dejan en null (o, al editar,
+ * se dejan como estaban) para no pisar en $0 un valor histórico migrado
+ * solo porque alguien abrió y guardó la cotización sin llenar ese campo.
+ */
+function rentabilidadFromForm(formData: FormData, valorCotizado: number) {
+  const costosEstimados = Number(formData.get("costos_estimados") || 0);
+  const respIva = formData.get("resp_iva") === "true";
+  if (costosEstimados <= 0) {
+    return { costosEstimados: null, respIva, valorSugerido: undefined, margenNeg: undefined };
+  }
+  const f = calcularPresupuesto({
+    costos: costosEstimados,
+    admin_pct: 15,
+    margen_pct: 30,
+    resp_iva: respIva,
+    iva_pct: 19,
+    valor_cotizado: valorCotizado,
+  });
+  return { costosEstimados, respIva, valorSugerido: f.valorSugerido, margenNeg: f.margenNeg };
+}
+
 export async function crearCotizacion(formData: FormData) {
   const supabase = await createClient();
   const {
@@ -24,6 +51,7 @@ export async function crearCotizacion(formData: FormData) {
 
   const inputs = inputsFromForm(formData);
   const calc = calcularCotizacion(inputs);
+  const rent = rentabilidadFromForm(formData, calc.valorCotizado);
 
   const { error } = await supabase.from("cotizaciones").insert({
     codigo: formData.get("codigo") || null,
@@ -39,6 +67,9 @@ export async function crearCotizacion(formData: FormData) {
     valor_hora: calc.valorHora,
     valor_prof: calc.valorProf,
     valor_cotizado: calc.valorCotizado,
+    costos_estimados: rent.costosEstimados,
+    resp_iva: rent.respIva,
+    ...(rent.valorSugerido !== undefined ? { valor_sugerido: rent.valorSugerido, margen: rent.margenNeg } : {}),
     creado_por: user?.id ?? null,
   });
   if (error) return { error: error.message };
@@ -49,6 +80,7 @@ export async function actualizarCotizacion(id: string, formData: FormData) {
   const supabase = await createClient();
   const inputs = inputsFromForm(formData);
   const calc = calcularCotizacion(inputs);
+  const rent = rentabilidadFromForm(formData, calc.valorCotizado);
 
   const { error } = await supabase
     .from("cotizaciones")
@@ -66,6 +98,9 @@ export async function actualizarCotizacion(id: string, formData: FormData) {
       valor_hora: calc.valorHora,
       valor_prof: calc.valorProf,
       valor_cotizado: calc.valorCotizado,
+      costos_estimados: rent.costosEstimados,
+      resp_iva: rent.respIva,
+      ...(rent.valorSugerido !== undefined ? { valor_sugerido: rent.valorSugerido, margen: rent.margenNeg } : {}),
       estado: formData.get("estado") || "Borrador",
     })
     .eq("id", id);
@@ -113,7 +148,13 @@ export async function aprobarYCrearProyecto(cotizacionId: string) {
     .single();
   if (proyError) return { error: proyError.message };
 
-  const costosSemilla = Number(cot.val_materiales || 0) + Number(cot.valor_prof || 0);
+  // Si ya se estimaron costos internos reales al cotizar, se usan tal cual
+  // (es la fuente más confiable). Si no, se cae al viejo estimado grueso
+  // (materiales + profesional cobrado) para no dejar el presupuesto en cero.
+  const costosSemilla =
+    cot.costos_estimados != null && Number(cot.costos_estimados) > 0
+      ? Number(cot.costos_estimados)
+      : Number(cot.val_materiales || 0) + Number(cot.valor_prof || 0);
   const { error: preError } = await supabase.from("presupuestos").insert({
     proyecto_id: proyecto.id,
     cotizacion_id: cot.id,
@@ -121,6 +162,7 @@ export async function aprobarYCrearProyecto(cotizacionId: string) {
     nombre: cot.nombre,
     empresa_id: cot.empresa_id,
     costos: costosSemilla,
+    resp_iva: cot.resp_iva ?? true,
     valor_cotizado: cot.valor_cotizado,
   });
   if (preError) return { error: preError.message };
