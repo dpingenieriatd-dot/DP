@@ -85,6 +85,10 @@ alter table proyectos drop column if exists ica_pct;
 alter table proyectos drop column if exists otras_retenciones;
 alter table proyectos drop column if exists presupuesto_directo;
 
+-- Normalizar filas existentes con el estado viejo antes de aplicar la
+-- restricción nueva (si no, "check constraint violated" al agregarla).
+update proyectos set estado = 'Planeación' where estado = 'Planeado';
+
 alter table proyectos drop constraint if exists proyectos_estado_check;
 alter table proyectos add constraint proyectos_estado_check
   check (estado in ('Planeación', 'En ejecución', 'Suspendido', 'Finalizado', 'Cancelado'));
@@ -158,6 +162,9 @@ create policy "gestion: acceso por módulo" on presupuesto_costos
 -- ---------------------------------------------------------------------
 -- 6b. Materiales — estados alineados con el Anexo 2.
 -- ---------------------------------------------------------------------
+update materiales set estado = 'Disponible' where estado = 'Activo';
+update materiales set estado = 'Dado de baja' where estado = 'Inactivo';
+
 alter table materiales drop constraint if exists materiales_estado_check;
 alter table materiales add constraint materiales_estado_check
   check (estado in ('Disponible', 'En uso', 'En mantenimiento', 'Dado de baja'));
@@ -167,6 +174,9 @@ alter table materiales alter column estado set default 'Disponible';
 -- 7. Compras — estados alineados con el Anexo 2 (antes eran
 -- Pendiente/Parcial/Pagado; el Anexo usa un flujo de aprobación).
 -- ---------------------------------------------------------------------
+update compras set estado_pago = 'Cotizado' where estado_pago = 'Pendiente';
+update compras set estado_pago = 'Aprobado' where estado_pago = 'Parcial';
+
 alter table compras drop constraint if exists compras_estado_pago_check;
 alter table compras add constraint compras_estado_pago_check
   check (estado_pago in ('Cotizado', 'Aprobado', 'Pagado', 'Rechazado'));
