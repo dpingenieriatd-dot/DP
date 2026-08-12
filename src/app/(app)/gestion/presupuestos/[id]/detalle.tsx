@@ -27,7 +27,7 @@ type Costo = {
   estado: string;
 };
 
-const CATEGORIAS = ["Compras / insumos", "Servicios / profesionales", "Materiales / desgaste", "Transporte / logística", "Viáticos", "Otros costos", "Costos directos"];
+const CATEGORIAS = ["Compras / insumos", "Servicios / profesionales", "Materiales / desgaste", "Transporte / logistica", "Viáticos", "Otros costos", "Costos directos"];
 const ESTADOS = ["Planeado", "Cotizado", "Aprobado", "Pagado"];
 
 export function PresupuestoDetalle({

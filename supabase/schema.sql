@@ -315,7 +315,7 @@ create table if not exists proyectos (
   otras_retenciones numeric not null default 0,
   fecha_inicio date,
   fecha_fin date,
-  estado text not null default 'Planeado' check (estado in ('Planeado', 'En ejecución', 'Finalizado', 'Cancelado')),
+  estado text not null default 'Planeado' check (estado in ('Planeado', 'En ejecucion', 'Finalizado', 'Cancelado')),
   notas text,
   archivado boolean not null default false,
   created_at timestamptz not null default now(),

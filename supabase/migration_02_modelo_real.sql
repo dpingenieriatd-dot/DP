@@ -85,14 +85,22 @@ alter table proyectos drop column if exists ica_pct;
 alter table proyectos drop column if exists otras_retenciones;
 alter table proyectos drop column if exists presupuesto_directo;
 
--- Normalizar filas existentes con el estado viejo antes de aplicar la
--- restricción nueva (si no, "check constraint violated" al agregarla).
-update proyectos set estado = 'Planeación' where estado = 'Planeado';
+-- Normalizar filas existentes con el estado viejo (o con acentos que
+-- pueden haber quedado con una codificación distinta al copiar y pegar
+-- este script) antes de aplicar la restricción nueva: cualquier valor
+-- que no sea ya uno de los 5 nuevos válidos, se lleva a 'Planeacion'.
+update proyectos
+set estado = 'Planeacion'
+where estado is distinct from 'En ejecucion'
+  and estado is distinct from 'Suspendido'
+  and estado is distinct from 'Finalizado'
+  and estado is distinct from 'Cancelado'
+  and estado is distinct from 'Planeacion';
 
 alter table proyectos drop constraint if exists proyectos_estado_check;
 alter table proyectos add constraint proyectos_estado_check
-  check (estado in ('Planeación', 'En ejecución', 'Suspendido', 'Finalizado', 'Cancelado'));
-alter table proyectos alter column estado set default 'Planeación';
+  check (estado in ('Planeacion', 'En ejecucion', 'Suspendido', 'Finalizado', 'Cancelado'));
+alter table proyectos alter column estado set default 'Planeacion';
 
 -- presupuesto_items queda reemplazada por presupuesto_costos (línea por
 -- línea, con presupuestado Y real por separado). No tenía datos reales
@@ -137,7 +145,7 @@ create table if not exists presupuesto_costos (
   presupuesto_id uuid not null references presupuestos(id) on delete cascade,
   categoria text not null default 'Otros costos' check (categoria in (
     'Compras / insumos', 'Servicios / profesionales', 'Materiales / desgaste',
-    'Transporte / logística', 'Viáticos', 'Otros costos', 'Costos directos'
+    'Transporte / logistica', 'Viáticos', 'Otros costos', 'Costos directos'
   )),
   descripcion text,
   proveedor text,

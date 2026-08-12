@@ -93,8 +93,8 @@ export function ProyectoDetalle({
             </Campo>
             <Campo label="Estado">
               <select name="estado" defaultValue={proyecto.estado} className="in">
-                <option>Planeación</option>
-                <option>En ejecución</option>
+                <option>Planeacion</option>
+                <option>En ejecucion</option>
                 <option>Suspendido</option>
                 <option>Finalizado</option>
                 <option>Cancelado</option>
