@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 export type Field = {
   key: string;
   label: string;
-  type?: "text" | "number" | "textarea" | "select" | "email";
+  type?: "text" | "number" | "textarea" | "select" | "email" | "date";
   options?: string[];
   /** Para selects relacionales (value = id real, label = lo que se ve). Tiene prioridad sobre `options`. */
   optionEntries?: { value: string; label: string }[];
@@ -210,7 +210,7 @@ export function CrudTable({
                     </select>
                   ) : (
                     <input
-                      type={f.type === "number" ? "number" : f.type === "email" ? "email" : "text"}
+                      type={f.type === "number" ? "number" : f.type === "email" ? "email" : f.type === "date" ? "date" : "text"}
                       name={f.key}
                       step={f.type === "number" ? "any" : undefined}
                       defaultValue={editing ? String(editing[f.key] ?? "") : ""}
