@@ -38,7 +38,7 @@ export default async function Page() {
   const noCumplidas = items.filter((r) => r.estado === "No cumplido").length;
 
   return (
-    <div>
+    <div className="flex flex-col lg:h-full">
       <div className="px-8 pt-8">
         <p className="text-sm text-neutral-500">Registro histórico de actividades del equipo.</p>
         <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -47,15 +47,17 @@ export default async function Page() {
           <Kpi label="No cumplidas" valor={noCumplidas} />
         </div>
       </div>
-      <CrudTable
-        title="Actividades"
-        fields={fields}
-        rows={items}
-        onCreate={createActividad}
-        onUpdate={updateActividad}
-        onDelete={deleteActividad}
-        emptyLabel="Sin actividades registradas todavía."
-      />
+      <div className="lg:min-h-0 lg:flex-1">
+        <CrudTable
+          title="Actividades"
+          fields={fields}
+          rows={items}
+          onCreate={createActividad}
+          onUpdate={updateActividad}
+          onDelete={deleteActividad}
+          emptyLabel="Sin actividades registradas todavía."
+        />
+      </div>
     </div>
   );
 }
