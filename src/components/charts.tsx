@@ -1,10 +1,41 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { money } from "@/lib/finance";
 
-// Paleta de marca D&P: verde oscuro / verde principal / ámbar / tintes claros.
-const COLORS = ["#27500a", "#639922", "#ba7517", "#a1d56d", "#8e570c", "#d9eac8"];
+// Recharts pinta con hex real, no puede heredar var(--color-emerald-900) del
+// CSS — así que leemos las variables del tema activo (ver /admin/temas) del
+// DOM en vez de hardcodear los hex de un solo tema. No hay evento de cambio
+// para estas variables, así que subscribe es un no-op: alcanza con leerlas
+// una vez en el cliente (getSnapshot) y usar el fallback durante el SSR.
+const FALLBACK_COLORS = ["#27500a", "#639922", "#ba7517", "#a1d56d", "#8e570c", "#d9eac8"];
+const CSS_VARS = ["--color-emerald-900", "--color-emerald-800", "--color-amber-600", "--color-emerald-400", "--color-amber-800", "--color-emerald-200"];
+
+const noopSubscribe = () => () => {};
+
+// useSyncExternalStore exige que getSnapshot devuelva la MISMA referencia si
+// nada cambió (si no, React la trata como un cambio en cada render). Se
+// cachea a nivel de módulo y solo se genera un array nuevo si el hex leído
+// realmente difiere del último — así el tema solo se relee de verdad si
+// cambió entre una carga de página y otra.
+let cachedColors: string[] = FALLBACK_COLORS;
+let cachedKey = "";
+
+function getSnapshot() {
+  const styles = getComputedStyle(document.documentElement);
+  const resolved = CSS_VARS.map((v, i) => styles.getPropertyValue(v).trim() || FALLBACK_COLORS[i]);
+  const key = resolved.join(",");
+  if (key !== cachedKey) {
+    cachedColors = resolved;
+    cachedKey = key;
+  }
+  return cachedColors;
+}
+
+function useThemeColors() {
+  return useSyncExternalStore(noopSubscribe, getSnapshot, () => FALLBACK_COLORS);
+}
 
 /** Version corta para ejes (ej. $15,3M) — el valor completo se sigue viendo en el tooltip. */
 function compactMoney(v: number) {
@@ -16,6 +47,7 @@ function compactMoney(v: number) {
 
 export function PieCard({ title, data }: { title: string; data: { name: string; value: number }[] }) {
   const total = data.reduce((sum, d) => sum + d.value, 0);
+  const colors = useThemeColors();
 
   return (
     <div className="rounded-lg border border-neutral-200 bg-white p-4">
@@ -28,7 +60,7 @@ export function PieCard({ title, data }: { title: string; data: { name: string; 
             <PieChart>
               <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75}>
                 {data.map((_, i) => (
-                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  <Cell key={i} fill={colors[i % colors.length]} />
                 ))}
               </Pie>
               <Tooltip />
@@ -56,6 +88,7 @@ export function BarCard({
   const fmt = (v: number) => (format === "money" ? money.format(v) : String(v));
   const fmtAxis = (v: number) => (format === "money" ? compactMoney(v) : String(v));
   const truncate = (name: string) => (name.length > 20 ? name.slice(0, 19) + "…" : name);
+  const colors = useThemeColors();
 
   return (
     <div className="rounded-lg border border-neutral-200 bg-white p-4">
@@ -77,7 +110,7 @@ export function BarCard({
               />
               <YAxis tick={{ fontSize: 12 }} tickFormatter={fmtAxis} width={70} />
               <Tooltip formatter={(v) => fmt(Number(v))} labelFormatter={(name) => name} />
-              <Bar dataKey="value" name={valueLabel ?? "Valor"} fill="#27500a" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="value" name={valueLabel ?? "Valor"} fill={colors[0]} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

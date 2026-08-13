@@ -40,6 +40,7 @@ const NAV = [
     items: [
       { href: "/admin/usuarios", label: "Usuarios" },
       { href: "/admin/parametros", label: "Parámetros" },
+      { href: "/admin/temas", label: "Temas" },
     ],
   },
 ];

@@ -59,15 +59,89 @@
   --color-neutral-600: #6e6d67;
   --color-neutral-700: #5f5e5a;
 
-  /* Teal de marca — reservado para una futura sección de psicología/
-     salud en el trabajo, todavía no aplicado a ninguna pantalla. */
-  --color-teal-50: #edf7f4;
-  --color-teal-100: #d3ece4;
-  --color-teal-300: #6fbba4;
-  --color-teal-500: #14856a;
-  --color-teal-600: #0f6e56;
-  --color-teal-700: #0c5744;
-  --color-teal-900: #072e24;
+  /*
+   * Paleta "Psychology & Well-being" — reservada para una futura sección
+   * de psicología/salud en el trabajo, todavía no aplicada a ninguna
+   * pantalla (no existe esa sección en el código aún). Reemplaza el
+   * scale "teal" que cumplía este mismo propósito con un placeholder.
+   * El verde de marca (emerald) NO se toca — sigue siendo la identidad
+   * principal en todo lo demás.
+   *
+   * Contraste verificado (WCAG AA):
+   *  - navy-900 (#002640) sobre blanco: 15.54:1 — sobre aqua-100: 13.95:1.
+   *    Seguro como texto en cualquier fondo claro, y como fondo con
+   *    texto blanco encima (headers/nav de esa futura sección).
+   *  - azure-600 (#008F91, hex EXACTO de marca) sobre blanco: 3.93:1.
+   *    NO cumple AA para texto normal ni para botones con el tamaño de
+   *    letra que ya usa la app (text-sm ≈ 14px). Reservar azure-600 para
+   *    íconos, bordes, badges grandes — nunca texto pequeño ni botones
+   *    de tamaño estándar.
+   *  - azure-700 (#00797A) es una versión más oscura de la misma familia,
+   *    creada específicamente para texto/botones pequeños: 5.23:1 sobre
+   *    blanco, 4.69:1 sobre aqua-100. Usar esta variante ahí, no azure-600.
+   *  - aqua-100 (#E0F7FA, hex EXACTO de marca) es solo fondo/superficie,
+   *    nunca texto — así lo pidió la guía de marca.
+   */
+  --color-navy-50: #eaf2f6;
+  --color-navy-100: #cfe2eb;
+  --color-navy-200: #a3c6d9;
+  --color-navy-300: #76aac7;
+  --color-navy-400: #4a8db0;
+  --color-navy-500: #2c6e93;
+  --color-navy-600: #1a5175;
+  --color-navy-700: #0e3a57;
+  --color-navy-800: #05283f;
+  --color-navy-900: #002640;
+
+  --color-azure-50: #e6f7f7;
+  --color-azure-100: #c4ebec;
+  --color-azure-200: #8ed9db;
+  --color-azure-300: #57c6c9;
+  --color-azure-400: #26b4b6;
+  --color-azure-500: #00a1a3;
+  --color-azure-600: #008f91;
+  --color-azure-700: #00797a;
+  --color-azure-800: #005f60;
+  --color-azure-900: #003f40;
+
+  --color-aqua-50: #f3fcfd;
+  --color-aqua-100: #e0f7fa;
+  --color-aqua-200: #b8ecf1;
+  --color-aqua-300: #8fe0e8;
+  --color-aqua-400: #63d2de;
+  --color-aqua-500: #3ac3d2;
+}
+
+/*
+ * Selector de tema (ver /admin/temas): la app SIEMPRE usa las clases
+ * bg-emerald-900/text-emerald-700/etc — nunca hay que tocar componentes
+ * para cambiar de tema. Lo que cambia es a qué hex apunta cada variable
+ * --color-emerald-* según el atributo data-theme del <html>, fijado en
+ * el layout raíz a partir de la fila guardada en app_config. Tailwind
+ * genera las utilidades con var(--color-emerald-900) (confirmado en
+ * vivo: sobreescribir la variable en runtime repinta todo el árbol al
+ * instante), así que este override en cascada es suficiente.
+ *
+ * Tema "azul" = paleta "Psychology & Well-being": el verde de marca se
+ * reemplaza por Navy/Azure/Aqua en el rol equivalente de cada escalón
+ * (900 estructural, 800 acento/hover, 700 texto/enlaces AA-safe, tintes
+ * claros hacia Aqua). Ámbar (alertas) y el texto antracita no cambian
+ * de tema a tema — ya cumplen AA sobre ambos fondos.
+ */
+:root[data-theme="azul"] {
+  --background: #f3fcfd;
+
+  --color-emerald-50: #f3fcfd;
+  --color-emerald-100: #e0f7fa;
+  --color-emerald-200: #b8ecf1;
+  --color-emerald-300: #8fe0e8;
+  --color-emerald-400: #63d2de;
+  --color-emerald-500: #3ac3d2;
+  --color-emerald-600: #00a1a3;
+  --color-emerald-700: #00797a;
+  --color-emerald-800: #008f91;
+  --color-emerald-900: #002640;
+  --color-emerald-950: #05283f;
 }
 
 @media (prefers-color-scheme: dark) {
