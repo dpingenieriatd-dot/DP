@@ -175,11 +175,11 @@ export function CrudTable({
               {editing ? "Editar" : "Nuevo"} — {title}
             </h2>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {fields.filter((f) => !f.tableOnly).map((f) => (
                 <label
                   key={f.key}
-                  className={`block text-sm ${f.type === "textarea" ? "col-span-2" : ""}`}
+                  className={`block text-sm ${f.type === "textarea" ? "sm:col-span-2" : ""}`}
                 >
                   <span className="mb-1 block text-neutral-600">{f.label}</span>
                   {f.type === "textarea" ? (
