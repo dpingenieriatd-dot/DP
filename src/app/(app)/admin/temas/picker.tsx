@@ -26,6 +26,50 @@ const TEMAS = [
       { hex: "#F3FCFD", label: "Fondo" },
     ],
   },
+  {
+    id: "violeta",
+    nombre: "Violeta Institucional",
+    descripcion: "Complementario del verde del logo — máximo contraste, look premium/ejecutivo.",
+    swatches: [
+      { hex: "#251B32", label: "Estructural (900)" },
+      { hex: "#531A93", label: "Acento (800)" },
+      { hex: "#4B3069", label: "Texto/enlaces (700)" },
+      { hex: "#F7F6F9", label: "Fondo" },
+    ],
+  },
+  {
+    id: "vino",
+    nombre: "Vino / Burdeos",
+    descripcion: "Análogo cálido del complementario — tono editorial y sobrio.",
+    swatches: [
+      { hex: "#331A22", label: "Estructural (900)" },
+      { hex: "#981641", label: "Acento (800)" },
+      { hex: "#6C2D42", label: "Texto/enlaces (700)" },
+      { hex: "#F9F6F7", label: "Fondo" },
+    ],
+  },
+  {
+    id: "terracota",
+    nombre: "Terracota",
+    descripcion: "Cuasi-triádico, cálido — ladrillo/óxido, coherente con ingeniería y construcción.",
+    swatches: [
+      { hex: "#32221B", label: "Estructural (900)" },
+      { hex: "#933E1A", label: "Acento (800)" },
+      { hex: "#694130", label: "Texto/enlaces (700)" },
+      { hex: "#F9F7F6", label: "Fondo" },
+    ],
+  },
+  {
+    id: "grafito",
+    nombre: "Grafito Neutro",
+    descripcion: "Casi sin saturación — el logo verde queda como único acento de color.",
+    swatches: [
+      { hex: "#282625", label: "Estructural (900)" },
+      { hex: "#695A44", label: "Acento (800)" },
+      { hex: "#504D49", label: "Texto/enlaces (700)" },
+      { hex: "#F8F7F7", label: "Fondo" },
+    ],
+  },
 ];
 
 export function TemaPicker({ temaActual }: { temaActual: string }) {
@@ -47,7 +91,7 @@ export function TemaPicker({ temaActual }: { temaActual: string }) {
 
   return (
     <div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {TEMAS.map((t) => {
           const activo = seleccionado === t.id;
           return (

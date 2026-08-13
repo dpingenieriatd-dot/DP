@@ -144,6 +144,96 @@
   --color-emerald-950: #05283f;
 }
 
+/*
+ * 4 paletas adicionales (2026-08-13), elegidas por colorimetría relativa
+ * al verde del logo — no al azar. El verde de marca real (extraído del
+ * PNG del logo, no del token CSS) cae en ~90-95° de matiz (amarillo-verde).
+ * Cada tema toma una relación clásica de la rueda de color respecto a ese
+ * matiz, así que el logo (que sigue siempre en verde, nunca cambia) queda
+ * armónico o en contraste intencional con cada paleta, nunca chocando:
+ *
+ *  - "violeta": complementario exacto (90°+180°≈268° por redondeo hacia
+ *    violeta-azulado en vez de amarillo puro) — máximo contraste, look
+ *    premium/ejecutivo.
+ *  - "vino": análogo del complementario (~340°, rosa-vino) — variante más
+ *    cálida y sobria que "violeta", tono editorial/institucional.
+ *  - "terracota": cuasi-triádico (~18°, rojo-naranja) — paleta cálida y
+ *    "de obra" (ladrillo, óxido, tierra), coherente con que D&P es una
+ *    firma de ingeniería/construcción.
+ *  - "grafito": neutro de saturación casi nula (~35° pero s≈0.06) — no
+ *    compite con ningún color, deja al logo verde como el único acento
+ *    de color visible en toda la interfaz.
+ *
+ * Contraste WCAG AA verificado en los 3 escalones que la app realmente
+ * usa como texto/fondo interactivo (900 estructural, 800 acento/botón,
+ * 700 texto/enlaces) — los 4 pasan holgado, con margen mayor a 6.5:1 en
+ * el peor caso (no hizo falta un ajuste especial tipo azure-700, porque
+ * acá el hex "de marca" lo elegimos nosotros mismos ya sabiendo el
+ * mínimo de contraste que necesitaba, al revés que con Azure-Teal).
+ * Igual que con el resto de las escalas de esta app, "800" queda
+ * deliberadamente más claro/vívido que "700" (el acento real no es el
+ * paso más oscuro) — no es un error de interpolación.
+ */
+:root[data-theme="violeta"] {
+  --background: #f7f6f9;
+  --color-emerald-50: #f7f6f9;
+  --color-emerald-100: #ede9f2;
+  --color-emerald-200: #d8cde4;
+  --color-emerald-300: #bba7d3;
+  --color-emerald-400: #9775bd;
+  --color-emerald-500: #734b9f;
+  --color-emerald-600: #5e3d85;
+  --color-emerald-700: #4b3069; /* 10.9:1 vs blanco */
+  --color-emerald-800: #531a93; /* 10.8:1 vs blanco */
+  --color-emerald-900: #251b32; /* 16.4:1 vs blanco */
+  --color-emerald-950: #16101e;
+}
+
+:root[data-theme="vino"] {
+  --background: #f9f6f7;
+  --color-emerald-50: #f9f6f7;
+  --color-emerald-100: #f2e8ec;
+  --color-emerald-200: #e5ccd5;
+  --color-emerald-300: #d5a5b5;
+  --color-emerald-400: #c1718c;
+  --color-emerald-500: #a34866;
+  --color-emerald-600: #883954;
+  --color-emerald-700: #6c2d42; /* 10.0:1 vs blanco */
+  --color-emerald-800: #981641; /* 8.3:1 vs blanco */
+  --color-emerald-900: #331a22; /* 16.0:1 vs blanco */
+  --color-emerald-950: #1f0f14;
+}
+
+:root[data-theme="terracota"] {
+  --background: #f9f7f6;
+  --color-emerald-50: #f9f7f6;
+  --color-emerald-100: #f2ebe9;
+  --color-emerald-200: #e4d4cd;
+  --color-emerald-300: #d3b4a7;
+  --color-emerald-400: #bd8a75;
+  --color-emerald-500: #9f654b;
+  --color-emerald-600: #85523d;
+  --color-emerald-700: #694130; /* 8.8:1 vs blanco */
+  --color-emerald-800: #933e1a; /* 7.1:1 vs blanco */
+  --color-emerald-900: #32221b; /* 15.2:1 vs blanco */
+  --color-emerald-950: #1e1410;
+}
+
+:root[data-theme="grafito"] {
+  --background: #f8f7f7;
+  --color-emerald-50: #f8f7f7;
+  --color-emerald-100: #eeeded;
+  --color-emerald-200: #dad9d7;
+  --color-emerald-300: #bfbdba;
+  --color-emerald-400: #9d9a95;
+  --color-emerald-500: #7a7671;
+  --color-emerald-600: #65625d;
+  --color-emerald-700: #504d49; /* 8.4:1 vs blanco */
+  --color-emerald-800: #695a44; /* 6.7:1 vs blanco */
+  --color-emerald-900: #282625; /* 15.1:1 vs blanco */
+  --color-emerald-950: #181716;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
