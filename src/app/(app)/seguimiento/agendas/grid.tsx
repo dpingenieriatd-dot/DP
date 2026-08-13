@@ -53,7 +53,7 @@ export function AgendaGrid({
   }
 
   return (
-    <div className="p-8">
+    <div className="flex flex-col p-8 lg:h-full">
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-emerald-900">Agendas</h1>
@@ -72,12 +72,12 @@ export function AgendaGrid({
 
       {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
 
-      <div className="max-h-[calc(100vh-260px)] overflow-auto rounded-lg border border-neutral-200 bg-white">
-        <table className="w-full min-w-[1450px] table-fixed border-collapse text-sm">
+      <div className="min-h-[420px] overflow-auto rounded-lg border border-neutral-200 bg-white lg:min-h-0 lg:flex-1">
+        <table className="w-full min-w-[900px] table-fixed border-collapse text-sm">
           <colgroup>
-            <col className="w-[190px]" />
+            <col className="w-[16%]" />
             {NOMBRES.map((n) => (
-              <col key={n} className="w-[180px]" />
+              <col key={n} className="w-[12%]" />
             ))}
           </colgroup>
           <thead>
