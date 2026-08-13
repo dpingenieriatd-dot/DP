@@ -57,7 +57,7 @@ export function ComprasList({
   }
 
   return (
-    <div className="p-8">
+    <div className="flex flex-col p-8 lg:h-full">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-emerald-900">Compras</h1>
         <button
@@ -71,7 +71,7 @@ export function ComprasList({
         </button>
       </div>
 
-      <div className="max-h-[calc(100vh-220px)] overflow-auto rounded-lg border border-neutral-200 bg-white">
+      <div className="min-h-[360px] overflow-auto rounded-lg border border-neutral-200 bg-white lg:min-h-0 lg:flex-1">
         <table className="w-full min-w-[1100px] text-xs">
           <thead>
             <tr className="text-left text-[11px] uppercase text-neutral-500">
