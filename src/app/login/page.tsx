@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -82,6 +83,10 @@ export default function LoginPage() {
         >
           {loading ? "Ingresando…" : "Ingresar"}
         </button>
+
+        <Link href="/recuperar-password" className="mt-4 block text-center text-xs text-neutral-500 hover:underline">
+          ¿Olvidaste tu contraseña?
+        </Link>
       </form>
     </div>
   );

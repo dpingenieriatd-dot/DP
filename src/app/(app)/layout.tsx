@@ -85,7 +85,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <div className="text-white/50">
                 {profile?.role === "admin" ? "Administrador" : (profile?.modules?.join(", ") || "Sin módulos asignados")}
               </div>
-              <div className="mt-1">
+              <div className="mt-1 flex items-center gap-2">
+                <Link href="/cuenta/password" className="text-xs text-white/60 hover:text-white hover:underline">
+                  Cambiar contraseña
+                </Link>
+                <span className="text-white/30">·</span>
                 <LogoutButton />
               </div>
             </div>

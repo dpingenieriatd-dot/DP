@@ -4,6 +4,13 @@ import { useState } from "react";
 
 type FiltroKey = "proyecto" | "cliente" | "usuario" | "estado";
 
+const FILTRO_LABELS: Record<FiltroKey, string> = {
+  proyecto: "Proyecto",
+  cliente: "Cliente",
+  usuario: "Usuario",
+  estado: "Estado",
+};
+
 const TIPOS: { value: string; label: string; filtros: FiltroKey[]; estados?: string[] }[] = [
   { value: "compras", label: "Compras", filtros: ["proyecto"] },
   { value: "presupuestos", label: "Presupuestos", filtros: ["proyecto"] },
@@ -68,6 +75,9 @@ export function CustomReportForm({
               </option>
             ))}
           </select>
+          <span className="mt-1 block text-[11px] text-neutral-400">
+            Filtros: {tipo.filtros.map((f) => FILTRO_LABELS[f]).join(", ")}
+          </span>
         </label>
 
         {tipo.filtros.includes("proyecto") && (
