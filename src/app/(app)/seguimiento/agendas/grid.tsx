@@ -73,17 +73,23 @@ export function AgendaGrid({
       {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
 
       <div className="max-h-[calc(100vh-260px)] overflow-auto rounded-lg border border-neutral-200 bg-white">
-        <table className="w-full min-w-[1200px] border-collapse text-xs">
+        <table className="w-full min-w-[1450px] table-fixed border-collapse text-sm">
+          <colgroup>
+            <col className="w-[190px]" />
+            {NOMBRES.map((n) => (
+              <col key={n} className="w-[180px]" />
+            ))}
+          </colgroup>
           <thead>
-            <tr className="text-left text-[11px] uppercase text-neutral-500">
-              <th className="sticky top-0 z-10 border-b border-r border-neutral-200 bg-neutral-50 px-3 py-2">Persona</th>
+            <tr className="text-left text-xs uppercase tracking-wide text-neutral-500">
+              <th className="sticky top-0 z-10 border-b border-r border-neutral-200 bg-neutral-50 px-3 py-3">Persona</th>
               {NOMBRES.map((n, i) => (
                 <th
                   key={n}
-                  className={`sticky top-0 z-10 border-b border-r border-neutral-200 px-3 py-2 ${ES_FIN_DE_SEMANA[i] ? "bg-amber-50 text-amber-700" : "bg-neutral-50"}`}
+                  className={`sticky top-0 z-10 border-b border-r border-neutral-200 px-3 py-3 ${ES_FIN_DE_SEMANA[i] ? "bg-amber-50 text-amber-700" : "bg-neutral-50"}`}
                 >
                   {n}
-                  {ES_FIN_DE_SEMANA[i] && <span className="ml-1 font-normal normal-case text-amber-600">(extraordinario)</span>}
+                  {ES_FIN_DE_SEMANA[i] && <span className="block font-normal normal-case text-amber-600">Extraordinario</span>}
                 </th>
               ))}
             </tr>
@@ -93,7 +99,7 @@ export function AgendaGrid({
               const horasPersona = bloques.filter((b) => b.usuario_id === p.id).reduce((a, b) => a + Number(b.horas), 0);
               return (
                 <tr key={p.id} className="align-top">
-                  <td className="border-b border-r border-neutral-200 bg-neutral-50 px-3 py-2 font-medium text-neutral-700">
+                  <td className="border-b border-r border-neutral-200 bg-neutral-50 px-3 py-3 font-medium text-neutral-700">
                     {p.full_name || p.email}
                     <div className="text-xs font-normal text-neutral-400">
                       {horasPersona}h / {p.capacidad_semanal_horas}h
@@ -102,19 +108,19 @@ export function AgendaGrid({
                   {dias.map((dia, i) => (
                     <td
                       key={dia}
-                      className={`border-b border-r border-neutral-200 px-2 py-2 ${ES_FIN_DE_SEMANA[i] ? "bg-amber-50/40" : ""}`}
+                      className={`border-b border-r border-neutral-200 px-2 py-3 ${ES_FIN_DE_SEMANA[i] ? "bg-amber-50/40" : ""}`}
                     >
                       {bloques
                         .filter((b) => b.usuario_id === p.id && b.dia === dia)
                         .map((b) => (
-                          <div key={b.id} className="mb-1 rounded-md bg-emerald-50 p-2 text-xs">
+                          <div key={b.id} className="mb-2 break-words rounded-lg bg-emerald-50 p-3 text-sm">
                             <div className="font-semibold text-emerald-900">
                               {b.hora_inicio.slice(0, 5)} · {b.horas}h
                             </div>
-                            {b.tarea && <div>{b.tarea}</div>}
-                            {b.clientes?.nombre && <div className="text-neutral-500">{b.clientes.nombre}</div>}
+                            {b.tarea && <div className="mt-0.5">{b.tarea}</div>}
+                            {b.clientes?.nombre && <div className="mt-0.5 text-neutral-500">{b.clientes.nombre}</div>}
                             {b.proyectos?.nombre && <div className="text-neutral-500">{b.proyectos.nombre}</div>}
-                            <button onClick={() => del(b.id)} className="mt-1 text-red-600 hover:underline">
+                            <button onClick={() => del(b.id)} className="mt-1 text-xs text-red-600 hover:underline">
                               Quitar
                             </button>
                           </div>
