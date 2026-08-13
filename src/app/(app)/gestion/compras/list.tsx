@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { crearCompra, actualizarCompra, eliminarCompra } from "./actions";
+import { crearCompra, actualizarCompra, archivarCompra } from "./actions";
 import { money } from "@/lib/finance";
 
 type Compra = {
@@ -71,19 +71,19 @@ export function ComprasList({
         </button>
       </div>
 
-      <div className="overflow-auto rounded-lg border border-neutral-200 bg-white">
-        <table className="w-full min-w-[1100px] text-sm">
+      <div className="max-h-[calc(100vh-220px)] overflow-auto rounded-lg border border-neutral-200 bg-white">
+        <table className="w-full min-w-[1100px] text-xs">
           <thead>
-            <tr className="bg-neutral-50 text-left text-xs uppercase text-neutral-500">
-              <th className="px-3 py-2">Fecha</th>
-              <th className="px-3 py-2">Proyecto</th>
-              <th className="px-3 py-2">Proveedor</th>
-              <th className="px-3 py-2 text-right">Cantidad</th>
-              <th className="px-3 py-2 text-right">Vr. unitario</th>
-              <th className="px-3 py-2 text-right">Total</th>
-              <th className="px-3 py-2 text-right">Pagado</th>
-              <th className="px-3 py-2">Estado</th>
-              <th className="px-3 py-2" />
+            <tr className="text-left text-[11px] uppercase text-neutral-500">
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Fecha</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Proyecto</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Proveedor</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Cantidad</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Vr. unitario</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Total</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Pagado</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Estado</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2" />
             </tr>
           </thead>
           <tbody>
@@ -100,7 +100,8 @@ export function ComprasList({
                 <td className="whitespace-nowrap px-3 py-2 text-right">
                   {confirmingId === c.id ? (
                     <span className="inline-flex items-center gap-2 text-xs">
-                      <button onClick={() => startTransition(async () => { await eliminarCompra(c.id); setConfirmingId(null); })} className="font-semibold text-red-600 hover:underline">
+                      <span className="text-neutral-500">¿Archivar?</span>
+                      <button onClick={() => startTransition(async () => { await archivarCompra(c.id); setConfirmingId(null); })} className="font-semibold text-red-600 hover:underline">
                         Sí
                       </button>
                       <button onClick={() => setConfirmingId(null)} className="text-neutral-500 hover:underline">
@@ -119,7 +120,7 @@ export function ComprasList({
                         Editar
                       </button>
                       <button onClick={() => setConfirmingId(c.id)} className="text-xs font-medium text-red-600 hover:underline">
-                        Eliminar
+                        Archivar
                       </button>
                     </>
                   )}

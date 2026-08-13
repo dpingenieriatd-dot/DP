@@ -43,10 +43,10 @@ export async function actualizarCompra(id: string, formData: FormData) {
   revalidateAll(formData.get("proyecto_id"));
 }
 
-export async function eliminarCompra(id: string) {
+export async function archivarCompra(id: string) {
   const supabase = await createClient();
   const { data: compra } = await supabase.from("compras").select("proyecto_id").eq("id", id).single();
-  const { error } = await supabase.from("compras").delete().eq("id", id);
+  const { error } = await supabase.from("compras").update({ archivado: true }).eq("id", id);
   if (error) return { error: error.message };
   revalidateAll(compra?.proyecto_id ?? null);
 }

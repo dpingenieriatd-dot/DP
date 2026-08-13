@@ -72,15 +72,15 @@ export function AgendaGrid({
 
       {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
 
-      <div className="overflow-auto rounded-lg border border-neutral-200 bg-white">
-        <table className="w-full min-w-[1200px] border-collapse text-sm">
+      <div className="max-h-[calc(100vh-260px)] overflow-auto rounded-lg border border-neutral-200 bg-white">
+        <table className="w-full min-w-[1200px] border-collapse text-xs">
           <thead>
-            <tr className="bg-neutral-50 text-left text-xs uppercase text-neutral-500">
-              <th className="border-b border-r border-neutral-200 px-3 py-2">Persona</th>
+            <tr className="text-left text-[11px] uppercase text-neutral-500">
+              <th className="sticky top-0 z-10 border-b border-r border-neutral-200 bg-neutral-50 px-3 py-2">Persona</th>
               {NOMBRES.map((n, i) => (
                 <th
                   key={n}
-                  className={`border-b border-r border-neutral-200 px-3 py-2 ${ES_FIN_DE_SEMANA[i] ? "bg-amber-50 text-amber-700" : ""}`}
+                  className={`sticky top-0 z-10 border-b border-r border-neutral-200 px-3 py-2 ${ES_FIN_DE_SEMANA[i] ? "bg-amber-50 text-amber-700" : "bg-neutral-50"}`}
                 >
                   {n}
                   {ES_FIN_DE_SEMANA[i] && <span className="ml-1 font-normal normal-case text-amber-600">(extraordinario)</span>}

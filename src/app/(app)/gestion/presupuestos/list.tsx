@@ -38,20 +38,20 @@ export function PresupuestosList({ filas, proyectos }: { filas: Fila[]; proyecto
         más de un presupuesto (por ejemplo, uno por cada servicio o entregable).
       </p>
 
-      <div className="overflow-auto rounded-lg border border-neutral-200 bg-white">
-        <table className="w-full min-w-[1100px] text-sm">
+      <div className="max-h-[calc(100vh-280px)] overflow-auto rounded-lg border border-neutral-200 bg-white">
+        <table className="w-full min-w-[1100px] text-xs">
           <thead>
-            <tr className="bg-neutral-50 text-left text-xs uppercase text-neutral-500">
-              <th className="px-3 py-2">Código</th>
-              <th className="px-3 py-2">Proyecto</th>
-              <th className="px-3 py-2">Nombre</th>
-              <th className="px-3 py-2 text-right">Valor cotizado</th>
-              <th className="px-3 py-2 text-right">Presupuesto vigente</th>
-              <th className="px-3 py-2 text-right">Costo real</th>
-              <th className="px-3 py-2 text-right">Disponible</th>
-              <th className="px-3 py-2 text-right">Ganancia estimada</th>
-              <th className="px-3 py-2">Viabilidad</th>
-              <th className="px-3 py-2" />
+            <tr className="text-left text-[11px] uppercase text-neutral-500">
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Código</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Proyecto</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Nombre</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Valor cotizado</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Presupuesto vigente</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Costo real</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Disponible</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Ganancia estimada</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Viabilidad</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2" />
             </tr>
           </thead>
           <tbody>

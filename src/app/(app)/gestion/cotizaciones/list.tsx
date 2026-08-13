@@ -125,18 +125,18 @@ export function CotizacionesList({
         </button>
       </div>
 
-      <div className="overflow-auto rounded-lg border border-neutral-200 bg-white">
-        <table className="w-full min-w-[900px] text-sm">
+      <div className="max-h-[calc(100vh-220px)] overflow-auto rounded-lg border border-neutral-200 bg-white">
+        <table className="w-full min-w-[900px] text-xs">
           <thead>
-            <tr className="bg-neutral-50 text-left text-xs uppercase text-neutral-500">
-              <th className="px-3 py-2">Código</th>
-              <th className="px-3 py-2">Nombre</th>
-              <th className="px-3 py-2">Cliente</th>
-              <th className="px-3 py-2 text-right">Valor cotizado</th>
-              <th className="px-3 py-2 text-right">Precio sugerido</th>
-              <th className="px-3 py-2">Viabilidad</th>
-              <th className="px-3 py-2">Estado</th>
-              <th className="px-3 py-2" />
+            <tr className="text-left text-[11px] uppercase text-neutral-500">
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Código</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Nombre</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Cliente</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Valor cotizado</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Precio sugerido</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Viabilidad</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Estado</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2" />
             </tr>
           </thead>
           <tbody>

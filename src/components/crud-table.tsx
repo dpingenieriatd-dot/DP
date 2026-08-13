@@ -93,22 +93,22 @@ export function CrudTable({
         </button>
       </div>
 
-      <div className="overflow-auto rounded-lg border border-neutral-200 bg-white">
-        <table className="w-full min-w-max text-sm">
+      <div className="max-h-[calc(100vh-220px)] overflow-auto rounded-lg border border-neutral-200 bg-white">
+        <table className="w-full min-w-max text-xs">
           <thead>
-            <tr className="bg-neutral-50 text-left text-xs uppercase tracking-wide text-neutral-500">
+            <tr className="text-left text-[11px] uppercase tracking-wide text-neutral-500">
               {fields.map((f) => (
-                <th key={f.key} className="px-4 py-3">
+                <th key={f.key} className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">
                   {f.label}
                 </th>
               ))}
-              <th className="px-4 py-3" />
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2" />
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={fields.length + 1} className="px-4 py-8 text-center text-neutral-400">
+                <td colSpan={fields.length + 1} className="px-3 py-8 text-center text-neutral-400">
                   {emptyLabel}
                 </td>
               </tr>
@@ -116,11 +116,11 @@ export function CrudTable({
             {rows.map((row) => (
               <tr key={String(row[idKey])} className="border-t border-neutral-100 hover:bg-neutral-50">
                 {fields.map((f) => (
-                  <td key={f.key} className="px-4 py-2.5">
+                  <td key={f.key} className="px-3 py-2">
                     {displayValue(f, row[f.key])}
                   </td>
                 ))}
-                <td className="whitespace-nowrap px-4 py-2.5 text-right">
+                <td className="whitespace-nowrap px-3 py-2 text-right">
                   {confirmingId === String(row[idKey]) ? (
                     <span className="inline-flex items-center gap-2 text-xs">
                       <span className="text-neutral-500">¿Eliminar?</span>

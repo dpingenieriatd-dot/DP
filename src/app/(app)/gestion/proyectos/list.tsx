@@ -47,19 +47,19 @@ export function ProyectosList({
         </button>
       </div>
 
-      <div className="overflow-auto rounded-lg border border-neutral-200 bg-white">
-        <table className="w-full min-w-[1000px] text-sm">
+      <div className="max-h-[calc(100vh-220px)] overflow-auto rounded-lg border border-neutral-200 bg-white">
+        <table className="w-full min-w-[1000px] text-xs">
           <thead>
-            <tr className="bg-neutral-50 text-left text-xs uppercase text-neutral-500">
-              <th className="px-3 py-2">Código</th>
-              <th className="px-3 py-2">Proyecto</th>
-              <th className="px-3 py-2">Cliente</th>
-              <th className="px-3 py-2">Empresa atendida</th>
-              <th className="px-3 py-2">Responsable</th>
-              <th className="px-3 py-2">Presupuestos</th>
-              <th className="px-3 py-2 text-right">Ganancia estimada</th>
-              <th className="px-3 py-2">Estado</th>
-              <th className="px-3 py-2" />
+            <tr className="text-left text-[11px] uppercase text-neutral-500">
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Código</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Proyecto</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Cliente</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Empresa atendida</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Responsable</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Presupuestos</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Ganancia estimada</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Estado</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2" />
             </tr>
           </thead>
           <tbody>
