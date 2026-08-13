@@ -96,11 +96,10 @@ async function reporteProyectos(supabase: SupabaseClient): Promise<ReportDoc> {
   };
 }
 
-async function reportePresupuestos(supabase: SupabaseClient): Promise<ReportDoc> {
-  const { data: presupuestos } = await supabase
-    .from("presupuestos")
-    .select("*, proyectos(nombre)")
-    .order("created_at", { ascending: false });
+async function reportePresupuestos(supabase: SupabaseClient, proyectoId?: string | null): Promise<ReportDoc> {
+  let query = supabase.from("presupuestos").select("*, proyectos(nombre)").order("created_at", { ascending: false });
+  if (proyectoId) query = query.eq("proyecto_id", proyectoId);
+  const { data: presupuestos } = await query;
 
   const rows = (presupuestos ?? []).map((p) => {
     const f = calcularPresupuesto(p);
@@ -117,9 +116,24 @@ async function reportePresupuestos(supabase: SupabaseClient): Promise<ReportDoc>
     };
   });
 
+  let kpis: KpiItem[] | undefined;
+  let subtitle = "Costos, utilidad esperada e IVA por presupuesto";
+  if (proyectoId) {
+    const totalCostos = (presupuestos ?? []).reduce((a, p) => a + calcularPresupuesto(p).costos, 0);
+    const totalCotizado = (presupuestos ?? []).reduce((a, p) => a + calcularPresupuesto(p).valorCotizado, 0);
+    const nombreProyecto = presupuestos?.[0]?.proyectos?.nombre;
+    subtitle = `Filtrado por proyecto: ${nombreProyecto ?? "—"}`;
+    kpis = [
+      { label: "Presupuestos", value: String((presupuestos ?? []).length) },
+      { label: "Total costos", value: fmtMoney(totalCostos) },
+      { label: "Total valor cotizado", value: fmtMoney(totalCotizado) },
+    ];
+  }
+
   return {
     title: "Presupuestos",
-    subtitle: "Costos, utilidad esperada e IVA por presupuesto",
+    subtitle,
+    kpis,
     columns: [
       { key: "codigo", label: "Código", width: 0.7 },
       { key: "proyecto", label: "Proyecto", width: 1.8 },
@@ -167,11 +181,13 @@ async function reporteCotizaciones(supabase: SupabaseClient): Promise<ReportDoc>
   };
 }
 
-async function reporteCompras(supabase: SupabaseClient): Promise<ReportDoc> {
-  const { data: compras } = await supabase
-    .from("compras")
-    .select("*, proyectos(nombre), proveedores(nombre)")
-    .order("fecha", { ascending: false });
+async function reporteCompras(supabase: SupabaseClient, proyectoId?: string | null): Promise<ReportDoc> {
+  let query = supabase.from("compras").select("*, proyectos(nombre), proveedores(nombre)").order("fecha", { ascending: false });
+  if (proyectoId) query = query.eq("proyecto_id", proyectoId);
+  const { data: compras } = await query;
+
+  const totalFila = (c: { cantidad: number | null; valor_unitario: number | null }) =>
+    Number(c.cantidad || 0) * Number(c.valor_unitario || 0);
 
   const rows = (compras ?? []).map((c) => ({
     fecha: fmtDate(c.fecha),
@@ -179,13 +195,29 @@ async function reporteCompras(supabase: SupabaseClient): Promise<ReportDoc> {
     proveedor: c.proveedores?.nombre ?? "—",
     cantidad: String(c.cantidad ?? 0),
     unitario: fmtMoney(c.valor_unitario),
-    total: fmtMoney(c.valor_pagado),
+    total: fmtMoney(totalFila(c)),
+    pagado: fmtMoney(c.valor_pagado),
     estado: c.estado_pago,
   }));
 
+  let kpis: KpiItem[] | undefined;
+  let subtitle = "Control de compras por proyecto y proveedor";
+  if (proyectoId) {
+    const totalGeneral = (compras ?? []).reduce((a, c) => a + totalFila(c), 0);
+    const totalPagado = (compras ?? []).reduce((a, c) => a + Number(c.valor_pagado || 0), 0);
+    const nombreProyecto = compras?.[0]?.proyectos?.nombre;
+    subtitle = `Filtrado por proyecto: ${nombreProyecto ?? "—"}`;
+    kpis = [
+      { label: "Compras", value: String((compras ?? []).length) },
+      { label: "Total", value: fmtMoney(totalGeneral) },
+      { label: "Total pagado", value: fmtMoney(totalPagado) },
+    ];
+  }
+
   return {
     title: "Compras",
-    subtitle: "Control de compras por proyecto y proveedor",
+    subtitle,
+    kpis,
     columns: [
       { key: "fecha", label: "Fecha", width: 0.8 },
       { key: "proyecto", label: "Proyecto", width: 1.8 },
@@ -193,6 +225,7 @@ async function reporteCompras(supabase: SupabaseClient): Promise<ReportDoc> {
       { key: "cantidad", label: "Cant.", width: 0.6 },
       { key: "unitario", label: "Vr. unitario", width: 1 },
       { key: "total", label: "Total", width: 1 },
+      { key: "pagado", label: "Pagado", width: 1 },
       { key: "estado", label: "Estado", width: 0.9 },
     ],
     rows,
@@ -328,7 +361,7 @@ async function reporteActividades(supabase: SupabaseClient): Promise<ReportDoc> 
   };
 }
 
-const REPORTS: Record<string, (supabase: SupabaseClient) => Promise<ReportDoc>> = {
+const REPORTS: Record<string, (supabase: SupabaseClient, proyectoId?: string | null) => Promise<ReportDoc>> = {
   resumen: reporteResumen,
   proyectos: reporteProyectos,
   presupuestos: reportePresupuestos,
@@ -341,7 +374,7 @@ const REPORTS: Record<string, (supabase: SupabaseClient) => Promise<ReportDoc>> 
   actividades: reporteActividades,
 };
 
-export async function GET(_req: Request, { params }: { params: Promise<{ slug: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const build = REPORTS[slug];
   if (!build) return NextResponse.json({ error: "Reporte no encontrado" }, { status: 404 });
@@ -352,13 +385,15 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
-  const doc = await build(supabase);
+  const proyectoId = new URL(req.url).searchParams.get("proyecto_id");
+
+  const doc = await build(supabase, proyectoId);
   const buffer = await renderToBuffer(<TableReportDoc {...doc} />);
 
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="dp-reporte-${slug}.pdf"`,
+      "Content-Disposition": `attachment; filename="dp-reporte-${slug}${proyectoId ? "-proyecto" : ""}.pdf"`,
     },
   });
 }

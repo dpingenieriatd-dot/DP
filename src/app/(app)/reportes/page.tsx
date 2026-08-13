@@ -1,3 +1,6 @@
+import { createClient } from "@/lib/supabase/server";
+import { CustomReportForm } from "./custom-form";
+
 const REPORTES = [
   { slug: "resumen", titulo: "Resumen ejecutivo", descripcion: "KPIs generales de Seguimiento y Gestión." },
   { slug: "proyectos", titulo: "Proyectos", descripcion: "Listado de proyectos con ganancia estimada por proyecto." },
@@ -11,7 +14,10 @@ const REPORTES = [
   { slug: "actividades", titulo: "Actividades", descripcion: "Registro histórico de actividades del equipo." },
 ];
 
-export default function ReportesPage() {
+export default async function ReportesPage() {
+  const supabase = await createClient();
+  const { data: proyectos } = await supabase.from("proyectos").select("id, codigo, nombre").order("nombre");
+
   return (
     <div className="p-8">
       <h1 className="text-2xl font-semibold text-emerald-900">Reportes</h1>
@@ -32,6 +38,15 @@ export default function ReportesPage() {
             </a>
           </div>
         ))}
+      </div>
+
+      <h2 className="mt-8 text-sm font-semibold uppercase text-neutral-500">Reportes personalizados</h2>
+      <p className="mt-1 text-sm text-neutral-500">
+        Filtrá compras o presupuestos por un proyecto específico — el PDF sale con el listado y el total de ese
+        proyecto solamente.
+      </p>
+      <div className="mt-2">
+        <CustomReportForm proyectos={proyectos ?? []} />
       </div>
     </div>
   );
