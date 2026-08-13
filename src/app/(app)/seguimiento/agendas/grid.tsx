@@ -81,15 +81,19 @@ export function AgendaGrid({
             ))}
           </colgroup>
           <thead>
-            <tr className="text-left text-xs uppercase tracking-wide text-neutral-500">
-              <th className="sticky top-0 z-10 border-b border-r border-neutral-200 bg-neutral-50 px-3 py-3">Persona</th>
+            <tr className="text-left uppercase tracking-wide text-neutral-500">
+              <th className="sticky top-0 z-10 border-b border-r border-neutral-200 bg-neutral-50 px-3 py-3">
+                <div className="agenda-cell text-[clamp(0.65rem,6cqw,0.8rem)]">Persona</div>
+              </th>
               {NOMBRES.map((n, i) => (
                 <th
                   key={n}
                   className={`sticky top-0 z-10 border-b border-r border-neutral-200 px-3 py-3 ${ES_FIN_DE_SEMANA[i] ? "bg-amber-50 text-amber-700" : "bg-neutral-50"}`}
                 >
-                  {n}
-                  {ES_FIN_DE_SEMANA[i] && <span className="block font-normal normal-case text-amber-600">Extraordinario</span>}
+                  <div className="agenda-cell text-[clamp(0.6rem,7cqw,0.75rem)]">
+                    {n}
+                    {ES_FIN_DE_SEMANA[i] && <span className="block font-normal normal-case text-amber-600">Extraordinario</span>}
+                  </div>
                 </th>
               ))}
             </tr>
@@ -100,9 +104,11 @@ export function AgendaGrid({
               return (
                 <tr key={p.id} className="align-top">
                   <td className="border-b border-r border-neutral-200 bg-neutral-50 px-3 py-3 font-medium text-neutral-700">
-                    {p.full_name || p.email}
-                    <div className="text-xs font-normal text-neutral-400">
-                      {horasPersona}h / {p.capacidad_semanal_horas}h
+                    <div className="agenda-cell">
+                      <div className="text-[clamp(0.8rem,6cqw,0.95rem)]">{p.full_name || p.email}</div>
+                      <div className="text-[clamp(0.65rem,5cqw,0.75rem)] font-normal text-neutral-400">
+                        {horasPersona}h / {p.capacidad_semanal_horas}h
+                      </div>
                     </div>
                   </td>
                   {dias.map((dia, i) => (
@@ -110,21 +116,27 @@ export function AgendaGrid({
                       key={dia}
                       className={`border-b border-r border-neutral-200 px-2 py-3 ${ES_FIN_DE_SEMANA[i] ? "bg-amber-50/40" : ""}`}
                     >
-                      {bloques
-                        .filter((b) => b.usuario_id === p.id && b.dia === dia)
-                        .map((b) => (
-                          <div key={b.id} className="mb-2 break-words rounded-lg bg-emerald-50 p-3 text-sm">
-                            <div className="font-semibold text-emerald-900">
-                              {b.hora_inicio.slice(0, 5)} · {b.horas}h
+                      <div className="agenda-cell">
+                        {bloques
+                          .filter((b) => b.usuario_id === p.id && b.dia === dia)
+                          .map((b) => (
+                            <div key={b.id} className="mb-2 break-words rounded-lg bg-emerald-50 p-3">
+                              <div className="text-[clamp(0.75rem,8cqw,0.95rem)] font-semibold text-emerald-900">
+                                {b.hora_inicio.slice(0, 5)} · {b.horas}h
+                              </div>
+                              {b.tarea && <div className="mt-0.5 text-[clamp(0.7rem,7cqw,0.875rem)]">{b.tarea}</div>}
+                              {b.clientes?.nombre && (
+                                <div className="mt-0.5 text-[clamp(0.65rem,6.5cqw,0.8rem)] text-neutral-500">{b.clientes.nombre}</div>
+                              )}
+                              {b.proyectos?.nombre && (
+                                <div className="text-[clamp(0.65rem,6.5cqw,0.8rem)] text-neutral-500">{b.proyectos.nombre}</div>
+                              )}
+                              <button onClick={() => del(b.id)} className="mt-1 text-[clamp(0.65rem,6cqw,0.75rem)] text-red-600 hover:underline">
+                                Quitar
+                              </button>
                             </div>
-                            {b.tarea && <div className="mt-0.5">{b.tarea}</div>}
-                            {b.clientes?.nombre && <div className="mt-0.5 text-neutral-500">{b.clientes.nombre}</div>}
-                            {b.proyectos?.nombre && <div className="text-neutral-500">{b.proyectos.nombre}</div>}
-                            <button onClick={() => del(b.id)} className="mt-1 text-xs text-red-600 hover:underline">
-                              Quitar
-                            </button>
-                          </div>
-                        ))}
+                          ))}
+                      </div>
                     </td>
                   ))}
                 </tr>

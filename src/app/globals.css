@@ -240,6 +240,18 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/*
+ * Celdas de la grilla de Agendas (ver AgendaGrid): el texto se autoajusta
+ * al ancho real de cada celda vía CSS Container Queries, en vez de un
+ * tamaño fijo o basado en el viewport completo. Cada th/td con esta
+ * clase se vuelve un "query container" de tamaño; el texto adentro usa
+ * unidades cqw (1cqw = 1% del ancho de ESE contenedor) envueltas en
+ * clamp() para no encogerse ni crecer más allá de un rango legible.
+ */
+.agenda-cell {
+  container-type: inline-size;
+}
+
 /* Estilo compartido para inputs/selects/textarea de formularios de la plataforma. */
 .in {
   width: 100%;
