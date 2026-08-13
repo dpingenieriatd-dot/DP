@@ -15,6 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "D&P Ingeniería Integral · Plataforma interna",
   description: "Seguimiento operativo, proyectos y presupuestos de D&P Ingeniería Integral S.A.S.",
+  manifest: "/site.webmanifest",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
