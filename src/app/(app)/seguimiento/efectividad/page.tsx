@@ -5,7 +5,7 @@ export default async function Page() {
   const supabase = await createClient();
   const semana = semanaActual();
   const desde = toISODate(semana[0]);
-  const hasta = toISODate(semana[4]);
+  const hasta = toISODate(semana[6]);
 
   const [{ data: profiles }, { data: tareas }, { data: bloques }, { data: params }] = await Promise.all([
     supabase.from("profiles").select("id, full_name, email, cargo, capacidad_semanal_horas").order("full_name"),
@@ -17,6 +17,7 @@ export default async function Page() {
   const pesoCumplimiento = Number(params?.peso_cumplimiento ?? 50);
   const pesoOportunidad = Number(params?.peso_oportunidad ?? 25);
   const pesoEquilibrio = Number(params?.peso_equilibrio_carga ?? 10);
+  const umbralEquilibrio = Number(params?.umbral_carga_equilibrada_pct ?? 90);
   const sumaPesosDisponibles = pesoCumplimiento + pesoOportunidad + pesoEquilibrio;
 
   const filas = (profiles ?? []).map((p) => {
@@ -30,7 +31,7 @@ export default async function Page() {
 
     const planificadas = (bloques ?? []).filter((b) => b.usuario_id === p.id).reduce((a, b) => a + Number(b.horas), 0);
     const uso = p.capacidad_semanal_horas > 0 ? (planificadas / p.capacidad_semanal_horas) * 100 : 0;
-    const equilibrio = Math.max(0, 100 - Math.abs(82 - Math.min(100, uso)) * 1.8);
+    const equilibrio = Math.max(0, 100 - Math.abs(umbralEquilibrio - Math.min(100, uso)) * 1.8);
 
     const score = sumaPesosDisponibles
       ? (cumplimiento * pesoCumplimiento + oportunidad * pesoOportunidad + equilibrio * pesoEquilibrio) / sumaPesosDisponibles

@@ -6,7 +6,7 @@ export default async function Page() {
   const supabase = await createClient();
   const semana = semanaActual();
   const desde = toISODate(semana[0]);
-  const hasta = toISODate(semana[4]);
+  const hasta = toISODate(semana[6]);
 
   const [{ data: profiles }, { data: bloques }] = await Promise.all([
     supabase.from("profiles").select("id, full_name, email, capacidad_semanal_horas").order("full_name"),

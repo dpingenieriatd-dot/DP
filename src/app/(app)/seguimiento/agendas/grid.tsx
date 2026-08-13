@@ -14,7 +14,9 @@ type Bloque = {
   cliente: string | null;
 };
 
-const NOMBRES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+const NOMBRES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+/** Sábado y domingo quedan disponibles solo para días extraordinarios — no se espera uso regular. */
+const ES_FIN_DE_SEMANA = [false, false, false, false, false, true, true];
 
 export function AgendaGrid({ profiles, bloques, dias }: { profiles: Profile[]; bloques: Bloque[]; dias: string[] }) {
   const [open, setOpen] = useState(false);
@@ -41,7 +43,8 @@ export function AgendaGrid({ profiles, bloques, dias }: { profiles: Profile[]; b
         <div>
           <h1 className="text-2xl font-semibold text-emerald-900">Agendas</h1>
           <p className="text-sm text-neutral-500">
-            Semana del {dias[0]} al {dias[4]}
+            Semana del {dias[0]} al {dias[6]}. Sábado y domingo quedan disponibles solo para días extraordinarios
+            que salgan del horario habitual.
           </p>
         </div>
         <button
@@ -55,13 +58,17 @@ export function AgendaGrid({ profiles, bloques, dias }: { profiles: Profile[]; b
       {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
 
       <div className="overflow-auto rounded-lg border border-neutral-200 bg-white">
-        <table className="w-full min-w-[900px] border-collapse text-sm">
+        <table className="w-full min-w-[1200px] border-collapse text-sm">
           <thead>
             <tr className="bg-neutral-50 text-left text-xs uppercase text-neutral-500">
               <th className="border-b border-r border-neutral-200 px-3 py-2">Persona</th>
-              {NOMBRES.map((n) => (
-                <th key={n} className="border-b border-r border-neutral-200 px-3 py-2">
+              {NOMBRES.map((n, i) => (
+                <th
+                  key={n}
+                  className={`border-b border-r border-neutral-200 px-3 py-2 ${ES_FIN_DE_SEMANA[i] ? "bg-amber-50 text-amber-700" : ""}`}
+                >
                   {n}
+                  {ES_FIN_DE_SEMANA[i] && <span className="ml-1 font-normal normal-case text-amber-600">(extraordinario)</span>}
                 </th>
               ))}
             </tr>
@@ -77,8 +84,11 @@ export function AgendaGrid({ profiles, bloques, dias }: { profiles: Profile[]; b
                       {horasPersona}h / {p.capacidad_semanal_horas}h
                     </div>
                   </td>
-                  {dias.map((dia) => (
-                    <td key={dia} className="border-b border-r border-neutral-200 px-2 py-2">
+                  {dias.map((dia, i) => (
+                    <td
+                      key={dia}
+                      className={`border-b border-r border-neutral-200 px-2 py-2 ${ES_FIN_DE_SEMANA[i] ? "bg-amber-50/40" : ""}`}
+                    >
                       {bloques
                         .filter((b) => b.usuario_id === p.id && b.dia === dia)
                         .map((b) => (
@@ -100,7 +110,7 @@ export function AgendaGrid({ profiles, bloques, dias }: { profiles: Profile[]; b
             })}
             {profiles.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-3 py-8 text-center text-neutral-400">
+                <td colSpan={8} className="px-3 py-8 text-center text-neutral-400">
                   Todavía no hay personas con perfil creado.
                 </td>
               </tr>
@@ -133,7 +143,7 @@ export function AgendaGrid({ profiles, bloques, dias }: { profiles: Profile[]; b
                 <select name="dia" required className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
                   {dias.map((d, i) => (
                     <option key={d} value={d}>
-                      {NOMBRES[i]} ({d})
+                      {NOMBRES[i]} ({d}){ES_FIN_DE_SEMANA[i] ? " — extraordinario" : ""}
                     </option>
                   ))}
                 </select>
