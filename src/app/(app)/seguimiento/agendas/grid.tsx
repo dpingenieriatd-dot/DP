@@ -164,7 +164,7 @@ export function AgendaGrid({
                   ))}
                 </select>
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label className="block text-sm">
                   <span className="mb-1 block text-neutral-600">Hora inicio</span>
                   <input type="time" name="hora_inicio" defaultValue="08:00" required className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
@@ -178,7 +178,7 @@ export function AgendaGrid({
                 <span className="mb-1 block text-neutral-600">Tarea / actividad</span>
                 <input name="tarea" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label className="block text-sm">
                   <span className="mb-1 block text-neutral-600">Cliente</span>
                   <select name="cliente_id" defaultValue="" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">

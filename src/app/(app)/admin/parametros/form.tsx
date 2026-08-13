@@ -43,7 +43,7 @@ export function ParametrosForm({ settings, efectividad }: { settings: Settings; 
       <h1 className="text-2xl font-semibold text-emerald-900">Parámetros del negocio</h1>
       {msg && <p className="mt-2 text-sm text-emerald-700">{msg}</p>}
 
-      <div className="mt-4 grid grid-cols-2 gap-6">
+      <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2">
         <form action={guardarSettings} className="space-y-3 rounded-lg border border-neutral-200 bg-white p-5">
           <h2 className="font-semibold text-emerald-900">Configuración financiera</h2>
           <p className="text-xs text-neutral-500">Valores por defecto para proyectos nuevos (cada proyecto puede tener su propio % administrativo).</p>

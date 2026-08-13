@@ -54,13 +54,13 @@ export function ProyectoDetalle({
         {proyecto.codigo || "(sin código)"} · {proyecto.nombre}
       </h1>
 
-      <div className="mt-6 grid grid-cols-[1fr_1fr] gap-6">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1fr]">
         <form action={guardar} className="space-y-3 rounded-lg border border-neutral-200 bg-white p-5">
           <h2 className="font-semibold text-emerald-900">Datos del proyecto</h2>
           <Campo label="Nombre">
             <input name="nombre" defaultValue={proyecto.nombre} required className="in" />
           </Campo>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Campo label="Cliente">
               <select name="cliente_id" defaultValue={proyecto.cliente_id ?? ""} className="in">
                 <option value="">Seleccione…</option>

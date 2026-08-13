@@ -92,14 +92,14 @@ export function PresupuestoDetalle({
         </p>
       </div>
 
-      <div className="mt-4 grid grid-cols-4 gap-4">
+      <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <Kpi label="Valor cotizado" valor={money.format(f.valorCotizado)} sub="Precio de venta al cliente" />
         <Kpi label="Presupuesto vigente" valor={money.format(control.plan)} sub="Costo planeado" />
         <Kpi label="Costo real acumulado" valor={money.format(control.real)} warn={control.real > control.plan} />
         <Kpi label="Ganancia estimada" valor={money.format(control.gananciaEst)} warn={control.gananciaEst < 0} />
       </div>
 
-      <div className="mt-6 grid grid-cols-[1fr_1fr] gap-6">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1fr]">
         <form action={guardarBase} className="space-y-3 rounded-lg border border-neutral-200 bg-white p-5">
           <h2 className="font-semibold text-emerald-900">Datos base del presupuesto</h2>
           <Campo label="Nombre">
@@ -108,7 +108,7 @@ export function PresupuestoDetalle({
           <Campo label="Costo directo base">
             <input type="number" step="0.01" name="costos" defaultValue={presupuesto.costos} className="in" />
           </Campo>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Campo label="Costos administrativos (%)">
               <input type="number" step="0.1" name="admin_pct" defaultValue={presupuesto.admin_pct} className="in" />
             </Campo>
@@ -116,7 +116,7 @@ export function PresupuestoDetalle({
               <input type="number" step="0.1" name="margen_pct" defaultValue={presupuesto.margen_pct} className="in" />
             </Campo>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="flex items-center gap-2 pt-5 text-sm">
               <input type="checkbox" name="resp_iva" defaultChecked={presupuesto.resp_iva} />
               Aplica IVA
@@ -252,7 +252,7 @@ export function PresupuestoDetalle({
               <Campo label="Proveedor / responsable">
                 <input name="proveedor" defaultValue={editingItem?.proveedor ?? ""} className="in" />
               </Campo>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Campo label="Presupuestado">
                   <input type="number" step="0.01" name="presupuestado" defaultValue={editingItem?.presupuestado ?? 0} className="in" />
                 </Campo>

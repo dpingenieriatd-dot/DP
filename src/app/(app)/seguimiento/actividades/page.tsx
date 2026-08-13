@@ -41,7 +41,7 @@ export default async function Page() {
     <div>
       <div className="px-8 pt-8">
         <p className="text-sm text-neutral-500">Registro histórico de actividades del equipo.</p>
-        <div className="mt-3 grid grid-cols-3 gap-4">
+        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Kpi label="Cumplidas" valor={cumplidas} />
           <Kpi label="Pendientes / parciales" valor={pendientes} />
           <Kpi label="No cumplidas" valor={noCumplidas} />

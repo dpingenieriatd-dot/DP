@@ -131,7 +131,7 @@ export function TaskBoard({
 
       {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
 
-      <div className="mb-6 grid grid-cols-3 gap-4">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-lg border border-neutral-200 bg-white p-4">
           <div className="text-xs uppercase text-neutral-500">Disponibles</div>
           <div className="mt-1 text-2xl font-bold text-emerald-900">{disponibles.length}</div>
@@ -146,7 +146,7 @@ export function TaskBoard({
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Column title="Disponibles" count={disponibles.length}>
           {disponibles.map((t) => (
             <Card key={t.id} t={t} profiles={profiles}>
@@ -306,7 +306,7 @@ function CreateModal({
             <span className="mb-1 block text-neutral-600">Tarea por realizar</span>
             <textarea name="titulo" required className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
           </label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block text-sm">
               <span className="mb-1 block text-neutral-600">Cliente</span>
               <select name="cliente_id" defaultValue="" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">

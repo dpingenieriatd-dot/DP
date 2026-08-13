@@ -11,14 +11,14 @@ export default async function HomePage() {
       <p className="mt-1 text-sm text-neutral-500">Resumen general de Seguimiento y Gestión.</p>
 
       <h2 className="mt-6 text-sm font-semibold uppercase text-neutral-500">Seguimiento</h2>
-      <div className="mt-2 grid grid-cols-3 gap-4">
+      <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Kpi label="Tareas disponibles" valor={d.disponibles} />
         <Kpi label="En proceso" valor={d.enProceso} />
         <Kpi label="Terminadas" valor={d.terminadas} />
       </div>
 
       <h2 className="mt-6 text-sm font-semibold uppercase text-neutral-500">Gestión</h2>
-      <div className="mt-2 grid grid-cols-4 gap-4">
+      <div className="mt-2 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <Kpi label="Proyectos activos" valor={d.proyectosActivos} />
         <Kpi label="Clientes" valor={d.clientes} />
         <Kpi label="Valor cotizado total" valor={money.format(d.ingresos)} />
@@ -29,7 +29,7 @@ export default async function HomePage() {
       </p>
 
       <h2 className="mt-6 text-sm font-semibold uppercase text-neutral-500">Gráficos</h2>
-      <div className="mt-2 grid grid-cols-2 gap-4">
+      <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <PieCard
           title="Tareas por estado"
           data={[

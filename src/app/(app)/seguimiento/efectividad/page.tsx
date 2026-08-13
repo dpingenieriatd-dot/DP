@@ -51,7 +51,7 @@ export default async function Page() {
         usarse para comparar personas entre sí ni para decisiones automáticas.
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-4">
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         {filas.map(({ p, cumplimiento, oportunidad, equilibrio, score, totalTareas }) => (
           <div key={p.id} className="rounded-lg border border-neutral-200 bg-white p-4">
             <div className="flex items-start justify-between">

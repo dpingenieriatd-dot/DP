@@ -39,7 +39,7 @@ export default async function Page() {
         automáticamente ninguna decisión sobre una persona.
       </p>
 
-      <div className="mt-6 grid grid-cols-3 gap-4">
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         {filas.map(({ p, planificadas, usoPct, abiertas, texto, clase }) => (
           <div key={p.id} className="rounded-lg border border-neutral-200 bg-white p-4">
             <div className="font-semibold text-neutral-800">{p.full_name || p.email}</div>

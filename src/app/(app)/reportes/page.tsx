@@ -27,7 +27,7 @@ export default async function ReportesPage() {
       <h1 className="text-2xl font-semibold text-emerald-900">Reportes</h1>
       <p className="mt-1 text-sm text-neutral-500">Descarga reportes en PDF listos para compartir.</p>
 
-      <div className="mt-6 grid grid-cols-2 gap-4">
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         {REPORTES.map((r) => (
           <div key={r.slug} className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white p-4">
             <div>

@@ -196,7 +196,7 @@ export function CotizacionesList({
         <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpen(false)}>
           <form action={submit} onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-lg">
             <h2 className="mb-4 text-lg font-semibold text-emerald-900">{editing ? "Editar" : "Nueva"} cotización</h2>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <Campo label="Código">
                 <input name="codigo" placeholder="COT-001" defaultValue={editing?.codigo ?? ""} className="in" />
               </Campo>

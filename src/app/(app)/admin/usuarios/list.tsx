@@ -78,7 +78,7 @@ export function UsuariosList({ perfiles, currentUserId }: { perfiles: Perfil[]; 
           <div key={p.id} className="rounded-lg border border-neutral-200 bg-white p-4">
             {editingId === p.id ? (
               <form action={(fd) => guardar(p.id, fd)} className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="text-sm text-neutral-500">{p.email}</div>
                   <label className="text-sm">
                     <span className="mb-1 block text-neutral-600">Nombre / cargo</span>
