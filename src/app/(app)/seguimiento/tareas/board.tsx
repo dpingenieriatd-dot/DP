@@ -14,7 +14,10 @@ import {
 type Tarea = {
   id: string;
   titulo: string;
-  cliente: string | null;
+  cliente_id: string | null;
+  proyecto_id: string | null;
+  clientes?: { nombre: string } | null;
+  proyectos?: { nombre: string } | null;
   prioridad: "Alta" | "Media" | "Baja";
   fecha_limite: string | null;
   descripcion: string | null;
@@ -29,6 +32,8 @@ type Tarea = {
 };
 
 type Profile = { id: string; full_name: string | null; email: string | null };
+type Cliente = { id: string; nombre: string };
+type Proyecto = { id: string; codigo: string | null; nombre: string };
 type TimerActivo = { id: string; tarea_id: string; inicio: string } | null;
 
 const PRIORIDAD_CLASS: Record<string, string> = {
@@ -65,11 +70,15 @@ function useElapsed(inicio: string | null) {
 export function TaskBoard({
   tareas,
   profiles,
+  clientes,
+  proyectos,
   currentUserId,
   timerActivo,
 }: {
   tareas: Tarea[];
   profiles: Profile[];
+  clientes: Cliente[];
+  proyectos: Proyecto[];
   currentUserId: string | null;
   timerActivo: TimerActivo;
 }) {
@@ -200,6 +209,8 @@ export function TaskBoard({
 
       {createOpen && (
         <CreateModal
+          clientes={clientes}
+          proyectos={proyectos}
           onClose={() => setCreateOpen(false)}
           onSubmit={(fd) =>
             startTransition(async () => {
@@ -253,7 +264,8 @@ function Card({ t, profiles, children }: { t: Tarea; profiles: Profile[]; childr
       </span>
       <h4 className="text-sm font-semibold text-neutral-800">{t.titulo}</h4>
       <div className="mt-1 space-y-0.5 text-xs text-neutral-500">
-        {t.cliente && <div>Cliente: {t.cliente}</div>}
+        {t.clientes?.nombre && <div>Cliente: {t.clientes.nombre}</div>}
+        {t.proyectos?.nombre && <div>Proyecto: {t.proyectos.nombre}</div>}
         {t.fecha_limite && <div>Vence: {t.fecha_limite}</div>}
         {t.responsable && <div>Responsable: {nombreDe(profiles, t.responsable)}</div>}
         {(t.horas_estimadas || t.horas_reales > 0) && (
@@ -269,10 +281,14 @@ function Card({ t, profiles, children }: { t: Tarea; profiles: Profile[]; childr
 }
 
 function CreateModal({
+  clientes,
+  proyectos,
   onClose,
   onSubmit,
   pending,
 }: {
+  clientes: Cliente[];
+  proyectos: Proyecto[];
   onClose: () => void;
   onSubmit: (fd: FormData) => void;
   pending: boolean;
@@ -292,8 +308,27 @@ function CreateModal({
           </label>
           <div className="grid grid-cols-2 gap-3">
             <label className="block text-sm">
-              <span className="mb-1 block text-neutral-600">Cliente / proyecto</span>
-              <input name="cliente" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+              <span className="mb-1 block text-neutral-600">Cliente</span>
+              <select name="cliente_id" defaultValue="" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
+                <option value="">Seleccione…</option>
+                {clientes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nombre}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block text-neutral-600">Proyecto</span>
+              <select name="proyecto_id" defaultValue="" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
+                <option value="">Seleccione…</option>
+                {proyectos.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.codigo ? `${p.codigo} · ` : ""}
+                    {p.nombre}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className="block text-sm">
               <span className="mb-1 block text-neutral-600">Prioridad</span>

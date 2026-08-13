@@ -10,11 +10,15 @@ export type Field = {
   /** Para selects relacionales (value = id real, label = lo que se ve). Tiene prioridad sobre `options`. */
   optionEntries?: { value: string; label: string }[];
   required?: boolean;
-  /** Cómo mostrar el valor en la tabla (por defecto, el valor crudo). Útil para mostrar el nombre en vez del id de una FK. */
-  display?: (value: Row[string], row: Row) => string;
   /** Columna calculada que solo se muestra en la tabla, sin campo propio en el formulario de crear/editar. */
   tableOnly?: boolean;
 };
+
+/** Muestra el label de optionEntries en vez del id crudo de una FK (no puede ser una función: este componente es client y las props vienen de un Server Component). */
+function displayValue(f: Field, value: Row[string]) {
+  if (f.optionEntries) return f.optionEntries.find((o) => o.value === String(value))?.label ?? "—";
+  return String(value ?? "—");
+}
 
 export type Row = Record<string, string | number | boolean | null>;
 
@@ -113,7 +117,7 @@ export function CrudTable({
               <tr key={String(row[idKey])} className="border-t border-neutral-100 hover:bg-neutral-50">
                 {fields.map((f) => (
                   <td key={f.key} className="px-4 py-2.5">
-                    {f.display ? f.display(row[f.key], row) : String(row[f.key] ?? "—")}
+                    {displayValue(f, row[f.key])}
                   </td>
                 ))}
                 <td className="whitespace-nowrap px-4 py-2.5 text-right">

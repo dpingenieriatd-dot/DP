@@ -2,20 +2,35 @@ import { createClient } from "@/lib/supabase/server";
 import { CrudTable, type Field } from "@/components/crud-table";
 import { createActividad, updateActividad, deleteActividad } from "./actions";
 
-const fields: Field[] = [
-  { key: "fecha", label: "Fecha", type: "date", required: true },
-  { key: "cargo", label: "Cargo" },
-  { key: "actividad", label: "Actividad", required: true },
-  { key: "cliente", label: "Cliente" },
-  { key: "estado", label: "Estado", type: "select", options: ["Cumplido", "Parcial", "Pendiente", "No cumplido"] },
-  { key: "origen", label: "Origen", tableOnly: true },
-  { key: "observaciones", label: "Observaciones", type: "textarea" },
-  { key: "respuesta", label: "Respuesta", type: "textarea" },
-];
-
 export default async function Page() {
   const supabase = await createClient();
-  const { data: rows } = await supabase.from("actividades").select("*").order("fecha", { ascending: false });
+  const [{ data: rows }, { data: clientes }, { data: proyectos }] = await Promise.all([
+    supabase.from("actividades").select("*").order("fecha", { ascending: false }),
+    supabase.from("clientes").select("id, nombre").order("nombre"),
+    supabase.from("proyectos").select("id, codigo, nombre").order("nombre"),
+  ]);
+
+  const fields: Field[] = [
+    { key: "fecha", label: "Fecha", type: "date", required: true },
+    { key: "cargo", label: "Cargo" },
+    { key: "actividad", label: "Actividad", required: true },
+    {
+      key: "cliente_id",
+      label: "Cliente",
+      type: "select",
+      optionEntries: (clientes ?? []).map((c) => ({ value: c.id, label: c.nombre })),
+    },
+    {
+      key: "proyecto_id",
+      label: "Proyecto",
+      type: "select",
+      optionEntries: (proyectos ?? []).map((p) => ({ value: p.id, label: p.codigo ? `${p.codigo} · ${p.nombre}` : p.nombre })),
+    },
+    { key: "estado", label: "Estado", type: "select", options: ["Cumplido", "Parcial", "Pendiente", "No cumplido"] },
+    { key: "origen", label: "Origen", tableOnly: true },
+    { key: "observaciones", label: "Observaciones", type: "textarea" },
+    { key: "respuesta", label: "Respuesta", type: "textarea" },
+  ];
 
   const items = rows ?? [];
   const cumplidas = items.filter((r) => r.estado === "Cumplido").length;

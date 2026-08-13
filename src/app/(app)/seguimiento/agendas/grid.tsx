@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { crearBloque, eliminarBloque } from "./actions";
 
 type Profile = { id: string; full_name: string | null; email: string | null; capacidad_semanal_horas: number };
+type Cliente = { id: string; nombre: string };
+type Proyecto = { id: string; codigo: string | null; nombre: string };
 type Bloque = {
   id: string;
   usuario_id: string;
@@ -11,14 +13,27 @@ type Bloque = {
   hora_inicio: string;
   horas: number;
   tarea: string | null;
-  cliente: string | null;
+  clientes?: { nombre: string } | null;
+  proyectos?: { nombre: string } | null;
 };
 
 const NOMBRES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 /** Sábado y domingo quedan disponibles solo para días extraordinarios — no se espera uso regular. */
 const ES_FIN_DE_SEMANA = [false, false, false, false, false, true, true];
 
-export function AgendaGrid({ profiles, bloques, dias }: { profiles: Profile[]; bloques: Bloque[]; dias: string[] }) {
+export function AgendaGrid({
+  profiles,
+  clientes,
+  proyectos,
+  bloques,
+  dias,
+}: {
+  profiles: Profile[];
+  clientes: Cliente[];
+  proyectos: Proyecto[];
+  bloques: Bloque[];
+  dias: string[];
+}) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -97,7 +112,8 @@ export function AgendaGrid({ profiles, bloques, dias }: { profiles: Profile[]; b
                               {b.hora_inicio.slice(0, 5)} · {b.horas}h
                             </div>
                             {b.tarea && <div>{b.tarea}</div>}
-                            {b.cliente && <div className="text-neutral-500">{b.cliente}</div>}
+                            {b.clientes?.nombre && <div className="text-neutral-500">{b.clientes.nombre}</div>}
+                            {b.proyectos?.nombre && <div className="text-neutral-500">{b.proyectos.nombre}</div>}
                             <button onClick={() => del(b.id)} className="mt-1 text-red-600 hover:underline">
                               Quitar
                             </button>
@@ -162,10 +178,31 @@ export function AgendaGrid({ profiles, bloques, dias }: { profiles: Profile[]; b
                 <span className="mb-1 block text-neutral-600">Tarea / actividad</span>
                 <input name="tarea" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
               </label>
-              <label className="block text-sm">
-                <span className="mb-1 block text-neutral-600">Cliente / proyecto</span>
-                <input name="cliente" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
-              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block text-sm">
+                  <span className="mb-1 block text-neutral-600">Cliente</span>
+                  <select name="cliente_id" defaultValue="" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
+                    <option value="">Seleccione…</option>
+                    {clientes.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-sm">
+                  <span className="mb-1 block text-neutral-600">Proyecto</span>
+                  <select name="proyecto_id" defaultValue="" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
+                    <option value="">Seleccione…</option>
+                    {proyectos.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.codigo ? `${p.codigo} · ` : ""}
+                        {p.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
             </div>
             <div className="mt-5 flex justify-end gap-2">
               <button type="button" onClick={() => setOpen(false)} className="rounded-md px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-100">

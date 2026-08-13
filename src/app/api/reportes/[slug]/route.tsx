@@ -6,10 +6,35 @@ import { TableReportDoc, type Column, type KpiItem } from "@/lib/pdf/table-doc";
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 type ReportDoc = { title: string; subtitle?: string; kpis?: KpiItem[]; columns: Column[]; rows: Record<string, string>[] };
+type ReportFilters = {
+  proyectoId?: string | null;
+  clienteId?: string | null;
+  responsableId?: string | null;
+  estado?: string | null;
+};
 
 const fmtMoney = (v: number | null | undefined) => money.format(Number(v || 0));
 const fmtDate = (v: string | null | undefined) => (v ? new Date(v + "T00:00:00").toLocaleDateString("es-CO") : "—");
 const fmtPct = (v: number | null | undefined) => `${Number(v || 0).toFixed(1)}%`;
+const hasFilters = (f?: ReportFilters) => !!(f?.proyectoId || f?.clienteId || f?.responsableId || f?.estado);
+
+async function describeFilters(supabase: SupabaseClient, filters?: ReportFilters): Promise<string> {
+  const parts: string[] = [];
+  if (filters?.proyectoId) {
+    const { data } = await supabase.from("proyectos").select("nombre").eq("id", filters.proyectoId).single();
+    if (data?.nombre) parts.push(`Proyecto: ${data.nombre}`);
+  }
+  if (filters?.clienteId) {
+    const { data } = await supabase.from("clientes").select("nombre").eq("id", filters.clienteId).single();
+    if (data?.nombre) parts.push(`Cliente: ${data.nombre}`);
+  }
+  if (filters?.responsableId) {
+    const { data } = await supabase.from("profiles").select("full_name, email").eq("id", filters.responsableId).single();
+    if (data) parts.push(`Usuario: ${data.full_name || data.email}`);
+  }
+  if (filters?.estado) parts.push(`Estado: ${filters.estado}`);
+  return parts.length ? `Filtrado por ${parts.join(" · ")}` : "Filtrado";
+}
 
 async function reporteResumen(supabase: SupabaseClient): Promise<ReportDoc> {
   const [{ data: tareas }, { data: proyectos }, { data: presupuestos }, { data: costos }, { data: clientes }, { data: actividades }] =
@@ -54,13 +79,21 @@ async function reporteResumen(supabase: SupabaseClient): Promise<ReportDoc> {
   };
 }
 
-async function reporteProyectos(supabase: SupabaseClient): Promise<ReportDoc> {
+async function reporteProyectos(supabase: SupabaseClient, filters?: ReportFilters): Promise<ReportDoc> {
+  let proyectosQuery = supabase
+    .from("proyectos")
+    .select("*, clientes(nombre), empresas_atendidas(nombre)")
+    .order("created_at", { ascending: false });
+  if (filters?.clienteId) proyectosQuery = proyectosQuery.eq("cliente_id", filters.clienteId);
+  if (filters?.estado) proyectosQuery = proyectosQuery.eq("estado", filters.estado);
+
   const [{ data: proyectos }, { data: presupuestos }, { data: costos }] = await Promise.all([
-    supabase.from("proyectos").select("*, clientes(nombre), empresas_atendidas(nombre)").order("created_at", { ascending: false }),
+    proyectosQuery,
     supabase.from("presupuestos").select("*"),
     supabase.from("presupuesto_costos").select("presupuesto_id, presupuestado, real"),
   ]);
 
+  let gananciaTotal = 0;
   const rows = (proyectos ?? []).map((p) => {
     const presDelProyecto = (presupuestos ?? []).filter((pr) => pr.proyecto_id === p.id);
     let ganancia = 0;
@@ -69,6 +102,7 @@ async function reporteProyectos(supabase: SupabaseClient): Promise<ReportDoc> {
       const items = (costos ?? []).filter((c) => c.presupuesto_id === pre.id);
       ganancia += calcularControlCostos(items, f.valorCotizado, f.admin, f.iva).gananciaEst;
     }
+    gananciaTotal += ganancia;
     return {
       codigo: p.codigo ?? "—",
       nombre: p.nombre,
@@ -80,9 +114,20 @@ async function reporteProyectos(supabase: SupabaseClient): Promise<ReportDoc> {
     };
   });
 
+  let kpis: KpiItem[] | undefined;
+  let subtitle = "Listado general con ganancia estimada";
+  if (hasFilters(filters)) {
+    subtitle = await describeFilters(supabase, filters);
+    kpis = [
+      { label: "Proyectos", value: String((proyectos ?? []).length) },
+      { label: "Ganancia estimada total", value: fmtMoney(gananciaTotal) },
+    ];
+  }
+
   return {
     title: "Proyectos",
-    subtitle: "Listado general con ganancia estimada",
+    subtitle,
+    kpis,
     columns: [
       { key: "codigo", label: "Código", width: 0.7 },
       { key: "nombre", label: "Proyecto", width: 2 },
@@ -96,9 +141,9 @@ async function reporteProyectos(supabase: SupabaseClient): Promise<ReportDoc> {
   };
 }
 
-async function reportePresupuestos(supabase: SupabaseClient, proyectoId?: string | null): Promise<ReportDoc> {
+async function reportePresupuestos(supabase: SupabaseClient, filters?: ReportFilters): Promise<ReportDoc> {
   let query = supabase.from("presupuestos").select("*, proyectos(nombre)").order("created_at", { ascending: false });
-  if (proyectoId) query = query.eq("proyecto_id", proyectoId);
+  if (filters?.proyectoId) query = query.eq("proyecto_id", filters.proyectoId);
   const { data: presupuestos } = await query;
 
   const rows = (presupuestos ?? []).map((p) => {
@@ -118,11 +163,10 @@ async function reportePresupuestos(supabase: SupabaseClient, proyectoId?: string
 
   let kpis: KpiItem[] | undefined;
   let subtitle = "Costos, utilidad esperada e IVA por presupuesto";
-  if (proyectoId) {
+  if (filters?.proyectoId) {
     const totalCostos = (presupuestos ?? []).reduce((a, p) => a + calcularPresupuesto(p).costos, 0);
     const totalCotizado = (presupuestos ?? []).reduce((a, p) => a + calcularPresupuesto(p).valorCotizado, 0);
-    const nombreProyecto = presupuestos?.[0]?.proyectos?.nombre;
-    subtitle = `Filtrado por proyecto: ${nombreProyecto ?? "—"}`;
+    subtitle = await describeFilters(supabase, filters);
     kpis = [
       { label: "Presupuestos", value: String((presupuestos ?? []).length) },
       { label: "Total costos", value: fmtMoney(totalCostos) },
@@ -149,11 +193,14 @@ async function reportePresupuestos(supabase: SupabaseClient, proyectoId?: string
   };
 }
 
-async function reporteCotizaciones(supabase: SupabaseClient): Promise<ReportDoc> {
-  const { data: cotizaciones } = await supabase
+async function reporteCotizaciones(supabase: SupabaseClient, filters?: ReportFilters): Promise<ReportDoc> {
+  let query = supabase
     .from("cotizaciones")
     .select("*, clientes(nombre), empresas_atendidas(nombre)")
     .order("fecha", { ascending: false });
+  if (filters?.clienteId) query = query.eq("cliente_id", filters.clienteId);
+  if (filters?.estado) query = query.eq("estado", filters.estado);
+  const { data: cotizaciones } = await query;
 
   const rows = (cotizaciones ?? []).map((c) => ({
     codigo: c.codigo ?? "—",
@@ -165,9 +212,20 @@ async function reporteCotizaciones(supabase: SupabaseClient): Promise<ReportDoc>
     estado: c.estado,
   }));
 
+  let kpis: KpiItem[] | undefined;
+  let subtitle = "Histórico de cotizaciones enviadas a clientes";
+  if (hasFilters(filters)) {
+    subtitle = await describeFilters(supabase, filters);
+    kpis = [
+      { label: "Cotizaciones", value: String((cotizaciones ?? []).length) },
+      { label: "Valor cotizado total", value: fmtMoney((cotizaciones ?? []).reduce((a, c) => a + Number(c.valor_cotizado || 0), 0)) },
+    ];
+  }
+
   return {
     title: "Cotizaciones",
-    subtitle: "Histórico de cotizaciones enviadas a clientes",
+    subtitle,
+    kpis,
     columns: [
       { key: "codigo", label: "Código", width: 0.7 },
       { key: "nombre", label: "Nombre", width: 2 },
@@ -181,9 +239,9 @@ async function reporteCotizaciones(supabase: SupabaseClient): Promise<ReportDoc>
   };
 }
 
-async function reporteCompras(supabase: SupabaseClient, proyectoId?: string | null): Promise<ReportDoc> {
+async function reporteCompras(supabase: SupabaseClient, filters?: ReportFilters): Promise<ReportDoc> {
   let query = supabase.from("compras").select("*, proyectos(nombre), proveedores(nombre)").order("fecha", { ascending: false });
-  if (proyectoId) query = query.eq("proyecto_id", proyectoId);
+  if (filters?.proyectoId) query = query.eq("proyecto_id", filters.proyectoId);
   const { data: compras } = await query;
 
   const totalFila = (c: { cantidad: number | null; valor_unitario: number | null }) =>
@@ -202,11 +260,10 @@ async function reporteCompras(supabase: SupabaseClient, proyectoId?: string | nu
 
   let kpis: KpiItem[] | undefined;
   let subtitle = "Control de compras por proyecto y proveedor";
-  if (proyectoId) {
+  if (filters?.proyectoId) {
     const totalGeneral = (compras ?? []).reduce((a, c) => a + totalFila(c), 0);
     const totalPagado = (compras ?? []).reduce((a, c) => a + Number(c.valor_pagado || 0), 0);
-    const nombreProyecto = compras?.[0]?.proyectos?.nombre;
-    subtitle = `Filtrado por proyecto: ${nombreProyecto ?? "—"}`;
+    subtitle = await describeFilters(supabase, filters);
     kpis = [
       { label: "Compras", value: String((compras ?? []).length) },
       { label: "Total", value: fmtMoney(totalGeneral) },
@@ -313,22 +370,45 @@ async function reporteInsumos(supabase: SupabaseClient): Promise<ReportDoc> {
   };
 }
 
-async function reporteTareas(supabase: SupabaseClient): Promise<ReportDoc> {
-  const { data: tareas } = await supabase.from("tareas").select("*").order("fecha_limite", { ascending: true });
+async function reporteTareas(supabase: SupabaseClient, filters?: ReportFilters): Promise<ReportDoc> {
+  let query = supabase
+    .from("tareas")
+    .select("*, clientes(nombre), proyectos(nombre)")
+    .order("fecha_limite", { ascending: true });
+  if (filters?.responsableId) query = query.eq("responsable", filters.responsableId);
+  if (filters?.clienteId) query = query.eq("cliente_id", filters.clienteId);
+  if (filters?.proyectoId) query = query.eq("proyecto_id", filters.proyectoId);
+  if (filters?.estado) query = query.eq("estado", filters.estado);
+  const { data: tareas } = await query;
+
   const rows = (tareas ?? []).map((t) => ({
     titulo: t.titulo,
-    cliente: t.cliente ?? "—",
+    cliente: t.clientes?.nombre ?? t.proyectos?.nombre ?? "—",
     prioridad: t.prioridad,
     limite: fmtDate(t.fecha_limite),
     avance: fmtPct(t.avance_pct),
     estado: t.estado,
   }));
+
+  const filtered = !!(filters?.responsableId || filters?.clienteId || filters?.proyectoId || filters?.estado);
+  let kpis: KpiItem[] | undefined;
+  let subtitle = "Estado del banco de tareas del equipo";
+  if (filtered) {
+    subtitle = await describeFilters(supabase, filters);
+    kpis = [
+      { label: "Tareas", value: String((tareas ?? []).length) },
+      { label: "Terminadas", value: String((tareas ?? []).filter((t) => t.estado === "Terminada").length) },
+      { label: "En proceso", value: String((tareas ?? []).filter((t) => t.estado === "En proceso").length) },
+    ];
+  }
+
   return {
     title: "Banco de tareas",
-    subtitle: "Estado del banco de tareas del equipo",
+    subtitle,
+    kpis,
     columns: [
       { key: "titulo", label: "Tarea", width: 2.6 },
-      { key: "cliente", label: "Cliente", width: 1.6 },
+      { key: "cliente", label: "Cliente / proyecto", width: 1.6 },
       { key: "prioridad", label: "Prioridad", width: 0.9 },
       { key: "limite", label: "Fecha límite", width: 1 },
       { key: "avance", label: "Avance", width: 0.8 },
@@ -338,30 +418,53 @@ async function reporteTareas(supabase: SupabaseClient): Promise<ReportDoc> {
   };
 }
 
-async function reporteActividades(supabase: SupabaseClient): Promise<ReportDoc> {
-  const { data: actividades } = await supabase.from("actividades").select("*").order("fecha", { ascending: false });
+async function reporteActividades(supabase: SupabaseClient, filters?: ReportFilters): Promise<ReportDoc> {
+  let query = supabase
+    .from("actividades")
+    .select("*, clientes(nombre), proyectos(nombre)")
+    .order("fecha", { ascending: false });
+  if (filters?.responsableId) query = query.eq("usuario_id", filters.responsableId);
+  if (filters?.clienteId) query = query.eq("cliente_id", filters.clienteId);
+  if (filters?.proyectoId) query = query.eq("proyecto_id", filters.proyectoId);
+  if (filters?.estado) query = query.eq("estado", filters.estado);
+  const { data: actividades } = await query;
+
   const rows = (actividades ?? []).map((a) => ({
     fecha: fmtDate(a.fecha),
     cargo: a.cargo ?? "—",
     actividad: a.actividad,
-    cliente: a.cliente ?? "—",
+    cliente: a.clientes?.nombre ?? a.proyectos?.nombre ?? "—",
     estado: a.estado,
   }));
+
+  const filtered = !!(filters?.responsableId || filters?.clienteId || filters?.proyectoId || filters?.estado);
+  let kpis: KpiItem[] | undefined;
+  let subtitle = "Registro histórico de actividades del equipo";
+  if (filtered) {
+    subtitle = await describeFilters(supabase, filters);
+    kpis = [
+      { label: "Actividades", value: String((actividades ?? []).length) },
+      { label: "Cumplidas", value: String((actividades ?? []).filter((a) => a.estado === "Cumplido").length) },
+      { label: "Pendientes", value: String((actividades ?? []).filter((a) => a.estado === "Pendiente").length) },
+    ];
+  }
+
   return {
     title: "Actividades",
-    subtitle: "Registro histórico de actividades del equipo",
+    subtitle,
+    kpis,
     columns: [
       { key: "fecha", label: "Fecha", width: 0.8 },
       { key: "cargo", label: "Cargo", width: 1.5 },
       { key: "actividad", label: "Actividad", width: 2.6 },
-      { key: "cliente", label: "Cliente", width: 1.6 },
+      { key: "cliente", label: "Cliente / proyecto", width: 1.6 },
       { key: "estado", label: "Estado", width: 1 },
     ],
     rows,
   };
 }
 
-const REPORTS: Record<string, (supabase: SupabaseClient, proyectoId?: string | null) => Promise<ReportDoc>> = {
+const REPORTS: Record<string, (supabase: SupabaseClient, filters?: ReportFilters) => Promise<ReportDoc>> = {
   resumen: reporteResumen,
   proyectos: reporteProyectos,
   presupuestos: reportePresupuestos,
@@ -385,15 +488,21 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
-  const proyectoId = new URL(req.url).searchParams.get("proyecto_id");
+  const searchParams = new URL(req.url).searchParams;
+  const filters: ReportFilters = {
+    proyectoId: searchParams.get("proyecto_id"),
+    clienteId: searchParams.get("cliente_id"),
+    responsableId: searchParams.get("usuario_id"),
+    estado: searchParams.get("estado"),
+  };
 
-  const doc = await build(supabase, proyectoId);
+  const doc = await build(supabase, filters);
   const buffer = await renderToBuffer(<TableReportDoc {...doc} />);
 
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="dp-reporte-${slug}${proyectoId ? "-proyecto" : ""}.pdf"`,
+      "Content-Disposition": `attachment; filename="dp-reporte-${slug}${hasFilters(filters) ? "-filtrado" : ""}.pdf"`,
     },
   });
 }

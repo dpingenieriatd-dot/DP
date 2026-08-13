@@ -13,7 +13,8 @@ export async function crearTarea(formData: FormData) {
 
   const { error } = await supabase.from("tareas").insert({
     titulo: formData.get("titulo"),
-    cliente: formData.get("cliente") || null,
+    cliente_id: formData.get("cliente_id") || null,
+    proyecto_id: formData.get("proyecto_id") || null,
     prioridad: formData.get("prioridad") || "Media",
     fecha_limite: formData.get("fecha_limite") || null,
     horas_estimadas: formData.get("horas_estimadas") || null,

@@ -13,7 +13,8 @@ export async function crearBloque(formData: FormData) {
     hora_inicio: formData.get("hora_inicio"),
     horas: formData.get("horas") || 1,
     tarea: formData.get("tarea") || null,
-    cliente: formData.get("cliente") || null,
+    cliente_id: formData.get("cliente_id") || null,
+    proyecto_id: formData.get("proyecto_id") || null,
   });
   if (error) return { error: error.message };
   revalidatePath(PATH);

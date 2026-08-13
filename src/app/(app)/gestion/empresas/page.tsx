@@ -9,8 +9,6 @@ export default async function Page() {
     supabase.from("clientes").select("id, nombre").order("nombre"),
   ]);
 
-  const clienteNombre = (id: unknown) => clientes?.find((c) => c.id === id)?.nombre ?? "—";
-
   const fields: Field[] = [
     { key: "nombre", label: "Empresa atendida", required: true },
     {
@@ -18,7 +16,6 @@ export default async function Page() {
       label: "Cliente",
       type: "select",
       optionEntries: (clientes ?? []).map((c) => ({ value: c.id, label: c.nombre })),
-      display: (v) => clienteNombre(v),
     },
     { key: "nit", label: "NIT" },
     { key: "sector", label: "Sector" },

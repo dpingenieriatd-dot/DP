@@ -16,7 +16,11 @@ const REPORTES = [
 
 export default async function ReportesPage() {
   const supabase = await createClient();
-  const { data: proyectos } = await supabase.from("proyectos").select("id, codigo, nombre").order("nombre");
+  const [{ data: proyectos }, { data: clientes }, { data: usuarios }] = await Promise.all([
+    supabase.from("proyectos").select("id, codigo, nombre").order("nombre"),
+    supabase.from("clientes").select("id, nombre").order("nombre"),
+    supabase.from("profiles").select("id, full_name, email").order("full_name"),
+  ]);
 
   return (
     <div className="p-8">
@@ -42,11 +46,11 @@ export default async function ReportesPage() {
 
       <h2 className="mt-8 text-sm font-semibold uppercase text-neutral-500">Reportes personalizados</h2>
       <p className="mt-1 text-sm text-neutral-500">
-        Filtrá compras o presupuestos por un proyecto específico — el PDF sale con el listado y el total de ese
-        proyecto solamente.
+        Elegí un tipo de reporte y filtrá por proyecto, cliente, usuario o estado — el PDF sale con el listado y los
+        totales de ese recorte solamente.
       </p>
       <div className="mt-2">
-        <CustomReportForm proyectos={proyectos ?? []} />
+        <CustomReportForm proyectos={proyectos ?? []} clientes={clientes ?? []} usuarios={usuarios ?? []} />
       </div>
     </div>
   );
