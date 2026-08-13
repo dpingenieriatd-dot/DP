@@ -36,10 +36,15 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-50 p-6">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-neutral-50 p-6">
+      <div
+        className="absolute inset-0 bg-cover bg-center opacity-20"
+        style={{ backgroundImage: "url(/dpbg.png)" }}
+        aria-hidden
+      />
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm rounded-lg border border-neutral-200 bg-white p-8 shadow-sm"
+        className="relative z-10 w-full max-w-sm rounded-lg border border-neutral-200 bg-white p-8 shadow-sm"
       >
         <Image src="/logo-dp.png" alt="D&P Ingeniería Integral" width={327} height={233} className="mx-auto h-auto w-40" priority />
         <p className="mt-3 text-center text-sm text-neutral-500">Plataforma interna</p>
