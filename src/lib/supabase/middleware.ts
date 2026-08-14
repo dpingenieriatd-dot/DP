@@ -45,7 +45,10 @@ export async function updateSession(request: NextRequest) {
   const isPublicRoute =
     request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/recuperar-password") ||
-    request.nextUrl.pathname.startsWith("/auth/callback");
+    request.nextUrl.pathname.startsWith("/auth/callback") ||
+    // Llamadas servidor-a-servidor (Vercel Cron): no hay sesión de navegador,
+    // se autentican con su propio secreto (ver CRON_SECRET) dentro de la ruta.
+    request.nextUrl.pathname.startsWith("/api/cron/");
 
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();

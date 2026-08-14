@@ -72,18 +72,48 @@ export async function liberarTarea(id: string) {
 
 export async function terminarTarea(id: string, formData: FormData) {
   const supabase = await createClient();
+
+  const { data: tarea } = await supabase.from("tareas").select("titulo, cliente_id, proyecto_id, responsable").eq("id", id).single();
+
+  const entregable = (formData.get("entregable") as string) || null;
+  const notas = (formData.get("notas") as string) || null;
+
   const { error } = await supabase
     .from("tareas")
     .update({
       estado: "Terminada",
       avance_pct: 100,
       fecha_cierre: new Date().toISOString().slice(0, 10),
-      entregable: formData.get("entregable") || null,
-      notas: formData.get("notas") || null,
+      entregable,
+      notas,
     })
     .eq("id", id);
   if (error) return { error: error.message };
+
+  // Registra el cierre en Actividades (bitácora de cumplimiento), sin que
+  // haya que volver a digitarlo a mano — ver [[project-dp-ingenieria]] sobre
+  // por qué antes quedaban desconectados.
+  if (tarea) {
+    let cargo: string | null = null;
+    if (tarea.responsable) {
+      const { data: perfil } = await supabase.from("profiles").select("cargo").eq("id", tarea.responsable).single();
+      cargo = perfil?.cargo ?? null;
+    }
+    await supabase.from("actividades").insert({
+      fecha: new Date().toISOString().slice(0, 10),
+      usuario_id: tarea.responsable,
+      cargo,
+      actividad: tarea.titulo,
+      cliente_id: tarea.cliente_id,
+      proyecto_id: tarea.proyecto_id,
+      estado: "Cumplido",
+      observaciones: [entregable, notas].filter(Boolean).join(" — ") || null,
+      origen: "Banco de tareas",
+    });
+  }
+
   revalidatePath(PATH);
+  revalidatePath("/seguimiento/actividades");
 }
 
 export async function eliminarTarea(id: string) {
