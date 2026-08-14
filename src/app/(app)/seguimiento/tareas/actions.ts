@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { crearNotificacion } from "@/lib/notificaciones";
 
 const PATH = "/seguimiento/tareas";
 
@@ -32,6 +33,8 @@ export async function tomarTarea(id: string) {
   } = await supabase.auth.getUser();
   if (!user) return { error: "No hay sesión activa." };
 
+  const { data: tarea } = await supabase.from("tareas").select("titulo, publicado_por").eq("id", id).single();
+
   const { error } = await supabase
     .from("tareas")
     .update({
@@ -42,6 +45,18 @@ export async function tomarTarea(id: string) {
     .eq("id", id)
     .eq("estado", "Disponible");
   if (error) return { error: error.message };
+
+  if (tarea?.publicado_por && tarea.publicado_por !== user.id) {
+    const { data: quien } = await supabase.from("profiles").select("full_name, email").eq("id", user.id).single();
+    await crearNotificacion(supabase, {
+      usuarioId: tarea.publicado_por,
+      tipo: "tarea_tomada",
+      titulo: "Tomaron tu tarea",
+      mensaje: `${quien?.full_name || quien?.email || "Alguien"} tomó "${tarea.titulo}"`,
+      enlace: "/seguimiento/tareas",
+    });
+  }
+
   revalidatePath(PATH);
 }
 

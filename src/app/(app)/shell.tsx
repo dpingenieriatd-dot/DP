@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { LogoutButton } from "@/lib/supabase/logout-button";
+import { NotificationBell } from "@/components/notification-bell";
+import { AgendaReminderPopup } from "@/components/agenda-reminder-popup";
 
 type NavItem = { href: string; label: string };
 type NavGroup = { section: string; items: NavItem[] };
@@ -30,15 +32,18 @@ export function AppShell({
           </div>
           <span className="text-sm font-semibold">D&P · Plataforma interna</span>
         </div>
-        <button
-          onClick={() => setOpen(true)}
-          aria-label="Abrir menú"
-          className="rounded-md p-2 hover:bg-white/10"
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-1">
+          {userEmail && <NotificationBell variant="dark" />}
+          <button
+            onClick={() => setOpen(true)}
+            aria-label="Abrir menú"
+            className="rounded-md p-2 hover:bg-white/10"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {open && <div className="fixed inset-0 z-30 bg-black/40 lg:hidden" onClick={() => setOpen(false)} />}
@@ -53,11 +58,18 @@ export function AppShell({
             <div className="w-1/2 rounded-md bg-white p-2">
               <Image src="/logo-dp.png" alt="D&P Ingeniería Integral" width={327} height={233} className="h-auto w-full" priority />
             </div>
-            <button onClick={() => setOpen(false)} aria-label="Cerrar menú" className="rounded-md p-1 text-white/70 hover:bg-white/10 lg:hidden">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
-              </svg>
-            </button>
+            <div className="flex items-center gap-1">
+              {userEmail && (
+                <div className="hidden lg:block">
+                  <NotificationBell variant="dark" />
+                </div>
+              )}
+              <button onClick={() => setOpen(false)} aria-label="Cerrar menú" className="rounded-md p-1 text-white/70 hover:bg-white/10 lg:hidden">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
           </div>
           <div className="text-xs text-white/60">Plataforma interna</div>
           {userEmail && (
@@ -99,6 +111,8 @@ export function AppShell({
       </aside>
 
       <main className="bg-neutral-50 lg:h-screen lg:overflow-y-auto">{children}</main>
+
+      {userEmail && <AgendaReminderPopup />}
     </div>
   );
 }

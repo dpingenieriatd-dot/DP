@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { crearBloque, eliminarBloque } from "./actions";
+import { crearBloque, eliminarBloque, actualizarPreferenciasRecordatorio } from "./actions";
 
 type Profile = { id: string; full_name: string | null; email: string | null; capacidad_semanal_horas: number };
 type Cliente = { id: string; nombre: string };
@@ -27,12 +27,16 @@ export function AgendaGrid({
   proyectos,
   bloques,
   dias,
+  recordatorioMinutos,
+  recordatorioSonido,
 }: {
   profiles: Profile[];
   clientes: Cliente[];
   proyectos: Proyecto[];
   bloques: Bloque[];
   dias: string[];
+  recordatorioMinutos: number;
+  recordatorioSonido: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,12 +66,15 @@ export function AgendaGrid({
             que salgan del horario habitual.
           </p>
         </div>
-        <button
-          onClick={() => setOpen(true)}
-          className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
-        >
-          + Agregar bloque
-        </button>
+        <div className="flex items-center gap-2">
+          <RecordatorioSettings minutosInicial={recordatorioMinutos} sonidoInicial={recordatorioSonido} />
+          <button
+            onClick={() => setOpen(true)}
+            className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
+          >
+            + Agregar bloque
+          </button>
+        </div>
       </div>
 
       {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
@@ -232,6 +239,71 @@ export function AgendaGrid({
             </div>
           </form>
         </div>
+      )}
+    </div>
+  );
+}
+
+const OPCIONES_MINUTOS = [5, 10, 15, 30, 60];
+
+function RecordatorioSettings({ minutosInicial, sonidoInicial }: { minutosInicial: number; sonidoInicial: boolean }) {
+  const [abierto, setAbierto] = useState(false);
+  const [minutos, setMinutos] = useState(minutosInicial);
+  const [sonido, setSonido] = useState(sonidoInicial);
+  const [guardando, startTransition] = useTransition();
+
+  function guardar(nuevoMinutos: number, nuevoSonido: boolean) {
+    setMinutos(nuevoMinutos);
+    setSonido(nuevoSonido);
+    startTransition(async () => {
+      await actualizarPreferenciasRecordatorio(nuevoMinutos, nuevoSonido);
+    });
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setAbierto((v) => !v)}
+        title="Preferencias de recordatorio"
+        aria-label="Preferencias de recordatorio"
+        className="rounded-md border border-neutral-300 p-2 text-neutral-600 hover:bg-neutral-100"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
+        </svg>
+      </button>
+
+      {abierto && (
+        <>
+          <div className="fixed inset-0 z-20" onClick={() => setAbierto(false)} />
+          <div className="absolute right-0 z-30 mt-2 w-64 rounded-xl border border-neutral-200 bg-white p-4 shadow-2xl">
+            <div className="text-sm font-semibold text-emerald-900">Recordatorios de agenda</div>
+            <p className="mt-1 text-xs text-neutral-500">Avisan con un aviso emergente y sonido antes de cada bloque tuyo.</p>
+
+            <label className="mt-3 block text-xs font-medium text-neutral-600">
+              Avisarme con anticipación de
+              <select
+                value={minutos}
+                onChange={(e) => guardar(Number(e.target.value), sonido)}
+                className="mt-1 w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm"
+              >
+                {OPCIONES_MINUTOS.map((m) => (
+                  <option key={m} value={m}>
+                    {m} minutos
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="mt-3 flex items-center gap-2 text-xs font-medium text-neutral-600">
+              <input type="checkbox" checked={sonido} onChange={(e) => guardar(minutos, e.target.checked)} className="h-4 w-4 rounded" />
+              Reproducir sonido
+            </label>
+
+            {guardando && <p className="mt-2 text-[11px] text-neutral-400">Guardando…</p>}
+          </div>
+        </>
       )}
     </div>
   );

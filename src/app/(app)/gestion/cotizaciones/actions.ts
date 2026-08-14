@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { calcularCotizacion, calcularPresupuesto } from "@/lib/finance";
+import { crearNotificacion } from "@/lib/notificaciones";
 
 const PATH = "/gestion/cotizaciones";
 
@@ -81,6 +82,9 @@ export async function actualizarCotizacion(id: string, formData: FormData) {
   const inputs = inputsFromForm(formData);
   const calc = calcularCotizacion(inputs);
   const rent = rentabilidadFromForm(formData, calc.valorCotizado);
+  const nuevoEstado = (formData.get("estado") as string) || "Borrador";
+
+  const { data: previa } = await supabase.from("cotizaciones").select("estado, creado_por, nombre").eq("id", id).single();
 
   const { error } = await supabase
     .from("cotizaciones")
@@ -101,10 +105,21 @@ export async function actualizarCotizacion(id: string, formData: FormData) {
       costos_estimados: rent.costosEstimados,
       resp_iva: rent.respIva,
       ...(rent.valorSugerido !== undefined ? { valor_sugerido: rent.valorSugerido, margen: rent.margenNeg } : {}),
-      estado: formData.get("estado") || "Borrador",
+      estado: nuevoEstado,
     })
     .eq("id", id);
   if (error) return { error: error.message };
+
+  if (previa && previa.estado !== nuevoEstado && (nuevoEstado === "Aprobada" || nuevoEstado === "Rechazada")) {
+    await crearNotificacion(supabase, {
+      usuarioId: previa.creado_por,
+      tipo: "cotizacion_estado",
+      titulo: `Cotización ${nuevoEstado.toLowerCase()}`,
+      mensaje: previa.nombre,
+      enlace: "/gestion/cotizaciones",
+    });
+  }
+
   revalidatePath(PATH);
 }
 
