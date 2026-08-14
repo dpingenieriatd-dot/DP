@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { actualizarPerfil, invitarUsuario } from "./actions";
+import { createClient } from "@/lib/supabase/client";
 
 type Perfil = {
   id: string;
@@ -11,6 +12,7 @@ type Perfil = {
   role: string;
   modules: string[];
   capacidad_semanal_horas: number;
+  last_seen_at?: string | null;
 };
 
 const MODULOS = [
@@ -18,10 +20,44 @@ const MODULOS = [
   { key: "gestion", label: "Gestión" },
 ];
 
+const UMBRAL_EN_LINEA_MS = 2 * 60 * 1000;
+const INTERVALO_POLL_MS = 30_000;
+
+function estaEnLinea(iso: string | null | undefined) {
+  if (!iso) return false;
+  return Date.now() - new Date(iso).getTime() < UMBRAL_EN_LINEA_MS;
+}
+
+function haceTiempo(iso: string | null | undefined) {
+  if (!iso) return "Sin actividad registrada";
+  const seg = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+  if (seg < 60) return "Activo hace un momento";
+  const min = Math.floor(seg / 60);
+  if (min < 60) return `Visto hace ${min} min`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `Visto hace ${hr} h`;
+  const dias = Math.floor(hr / 24);
+  return `Visto hace ${dias} d`;
+}
+
 export function UsuariosList({ perfiles, currentUserId }: { perfiles: Perfil[]; currentUserId: string }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [presencia, setPresencia] = useState<Record<string, string | null>>(() =>
+    Object.fromEntries(perfiles.map((p) => [p.id, p.last_seen_at ?? null])),
+  );
+
+  useEffect(() => {
+    const supabase = createClient();
+    async function refrescar() {
+      const { data } = await supabase.from("profiles").select("id, last_seen_at");
+      if (data) setPresencia(Object.fromEntries(data.map((p) => [p.id, p.last_seen_at])));
+    }
+    refrescar();
+    const id = setInterval(refrescar, INTERVALO_POLL_MS);
+    return () => clearInterval(id);
+  }, []);
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
@@ -120,11 +156,20 @@ export function UsuariosList({ perfiles, currentUserId }: { perfiles: Perfil[]; 
             ) : (
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-medium text-neutral-800">
-                    {p.full_name || p.email} {p.id === currentUserId && <span className="text-xs text-neutral-400">(tú)</span>}
+                  <div className="flex items-center gap-2">
+                    <span
+                      title={haceTiempo(presencia[p.id])}
+                      className={`h-2 w-2 shrink-0 rounded-full ${estaEnLinea(presencia[p.id]) ? "bg-emerald-500" : "bg-neutral-300"}`}
+                    />
+                    <div className="font-medium text-neutral-800">
+                      {p.full_name || p.email} {p.id === currentUserId && <span className="text-xs text-neutral-400">(tú)</span>}
+                    </div>
                   </div>
-                  <div className="text-xs text-neutral-500">{p.cargo || "Sin cargo asignado"}</div>
-                  <div className="mt-1 flex gap-2">
+                  <div className="ml-4 text-xs text-neutral-500">{p.cargo || "Sin cargo asignado"}</div>
+                  <div className="ml-4 text-[11px] text-neutral-400">
+                    {estaEnLinea(presencia[p.id]) ? <span className="font-medium text-emerald-600">En línea</span> : haceTiempo(presencia[p.id])}
+                  </div>
+                  <div className="ml-4 mt-1 flex gap-2">
                     <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${p.role === "admin" ? "bg-emerald-100 text-emerald-700" : "bg-neutral-100 text-neutral-600"}`}>
                       {p.role === "admin" ? "Administrador" : "Miembro"}
                     </span>

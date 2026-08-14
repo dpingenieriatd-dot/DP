@@ -6,6 +6,7 @@ import Image from "next/image";
 import { LogoutButton } from "@/lib/supabase/logout-button";
 import { NotificationBell } from "@/components/notification-bell";
 import { AgendaReminderPopup } from "@/components/agenda-reminder-popup";
+import { PresenceHeartbeat } from "@/components/presence-heartbeat";
 
 type NavItem = { href: string; label: string };
 type NavGroup = { section: string; items: NavItem[] };
@@ -113,6 +114,7 @@ export function AppShell({
       <main className="bg-neutral-50 lg:h-screen lg:overflow-y-auto">{children}</main>
 
       {userEmail && <AgendaReminderPopup />}
+      {userEmail && <PresenceHeartbeat />}
     </div>
   );
 }
