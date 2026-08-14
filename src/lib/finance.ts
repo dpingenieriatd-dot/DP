@@ -73,4 +73,44 @@ export function calcularCotizacion(c: CotizacionInputs) {
   return { personas, valorUnit, valMateriales, horas, valorHora, valorProf, valorCotizado };
 }
 
+export type ContratoInputs = {
+  contrato_valor: number;
+  contrato_incluye_iva: boolean;
+  iva_aplica: boolean;
+  iva_pct: number;
+  retencion_pct: number;
+  ica_pct: number;
+  otras_retenciones: number;
+};
+
+/**
+ * Efectivo neto esperado a nivel de contrato de un proyecto (distinto del
+ * motor de rentabilidad de Cotizaciones/Presupuestos, que compara costo vs.
+ * precio). Aquí se parte del valor pactado con el cliente y se calcula
+ * cuánto llega realmente a D&P después de IVA, retención en la fuente e
+ * ICA — que el cliente retiene y paga directamente a la DIAN/municipio,
+ * no a D&P.
+ *
+ * Retención en la fuente e ICA se calculan sobre la base SIN IVA (estándar
+ * en Colombia: esos impuestos no se calculan sobre el IVA mismo).
+ */
+export function calcularEfectivoEsperado(p: ContratoInputs) {
+  const contratoValor = Number(p.contrato_valor || 0);
+  const ivaPct = Number(p.iva_pct ?? 19);
+  const retencionPct = Number(p.retencion_pct || 0);
+  const icaPct = Number(p.ica_pct || 0);
+  const otrasRetenciones = Number(p.otras_retenciones || 0);
+
+  const valorSinIva = p.iva_aplica && p.contrato_incluye_iva ? contratoValor / (1 + ivaPct / 100) : contratoValor;
+  const iva = p.iva_aplica ? valorSinIva * (ivaPct / 100) : 0;
+  const valorConIva = valorSinIva + iva;
+
+  const retencion = valorSinIva * (retencionPct / 100);
+  const ica = valorSinIva * (icaPct / 100);
+
+  const efectivoNetoEsperado = valorConIva - retencion - ica - otrasRetenciones;
+
+  return { valorSinIva, iva, valorConIva, retencion, ica, otrasRetenciones, efectivoNetoEsperado };
+}
+
 export const money = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
