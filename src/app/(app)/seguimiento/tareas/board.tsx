@@ -131,6 +131,8 @@ export function TaskBoard({
 
       {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
 
+      <HelpBanner />
+
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-lg border border-neutral-200 bg-white p-4">
           <div className="text-xs uppercase text-neutral-500">Disponibles</div>
@@ -237,6 +239,35 @@ export function TaskBoard({
           pending={pending}
         />
       )}
+    </div>
+  );
+}
+
+const PASOS = [
+  { titulo: "Revisa la tarea", detalle: "Abre la tarea para ver toda la información, instrucciones y observaciones." },
+  { titulo: "Inicia el cronómetro", detalle: "Úsalo para medir el tiempo real mientras desarrollas la tarea." },
+  { titulo: "Completa la tarea", detalle: "Desarrolla la actividad según las indicaciones." },
+  { titulo: "Finaliza y entrega", detalle: "Marca la tarea como terminada y adjunta lo requerido." },
+  { titulo: "Archiva o elimina", detalle: "Las tareas terminadas se archivan y las canceladas se eliminan." },
+];
+
+function HelpBanner() {
+  return (
+    <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+      <p className="mb-3 text-sm font-semibold text-emerald-900">¿Qué debes hacer en este módulo? Sigue estos 5 pasos:</p>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-5">
+        {PASOS.map((p, i) => (
+          <div key={p.titulo} className="flex gap-2">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-900 text-[11px] font-bold text-white">
+              {i + 1}
+            </span>
+            <div>
+              <div className="text-xs font-semibold text-emerald-900">{p.titulo}</div>
+              <div className="text-[11px] text-emerald-700">{p.detalle}</div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

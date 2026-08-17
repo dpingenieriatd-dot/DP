@@ -28,7 +28,7 @@ export default async function Page() {
 
   return (
     <CrudTable
-      title="Materiales de trabajo"
+      title="Inventario materiales"
       fields={fields}
       rows={items}
       onCreate={createMaterial}

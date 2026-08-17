@@ -140,7 +140,7 @@ export function PresupuestoDetalle({
           <Fila label={`Costos administrativos (${presupuesto.admin_pct}%)`} valor={money.format(f.admin)} />
           <Fila label={`Utilidad esperada (${presupuesto.margen_pct}%)`} valor={money.format(f.utilidadEsperada)} />
           <Fila label="Valor" valor={money.format(f.valor)} bold />
-          <Fila label={`IVA (${presupuesto.iva_pct}%)`} valor={money.format(f.iva)} />
+          <Fila label={`IVA de los costos del proyecto (${presupuesto.iva_pct}%)`} valor={money.format(f.iva)} />
           <Fila label="Valor sugerido al cliente" valor={money.format(f.valorSugerido)} bold />
           <div className="my-2 border-t border-neutral-100" />
           <Fila label="Disponible (plan − real)" valor={money.format(control.disponible)} />

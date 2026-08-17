@@ -24,7 +24,7 @@ const NAV = [
       { href: "/gestion/proveedores", label: "Proveedores" },
       { href: "/gestion/clientes", label: "Clientes" },
       { href: "/gestion/empresas", label: "Empresas atendidas" },
-      { href: "/gestion/materiales", label: "Materiales de trabajo" },
+      { href: "/gestion/materiales", label: "Inventario materiales" },
       { href: "/gestion/profesionales", label: "Profesionales" },
       { href: "/gestion/insumos", label: "Banco de insumos" },
     ],
