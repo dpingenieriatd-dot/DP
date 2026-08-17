@@ -325,6 +325,17 @@ function Doc() {
             Puedes ajustar con cuánta anticipación te avisa y si quieres o no el sonido, desde el ícono de engranaje junto
             a + Agregar bloque en Agendas.
           </Nota>
+
+          <H2>3.4 Para administradores</H2>
+          <P>
+            Además de lo anterior, los administradores cuentan con dos herramientas de visibilidad del equipo:
+          </P>
+          <Bullets
+            items={[
+              "Quién está en línea: en Administración, Usuarios, un punto verde junto al nombre indica que la persona está activa en la plataforma en ese momento; si no, muestra hace cuánto se le vio por última vez.",
+              "Resumen semanal por correo: cada lunes en la mañana llega automáticamente un correo con tareas cerradas la semana anterior, proyectos con margen negativo y compras pendientes de pago, para tener una vista rápida sin entrar a revisar cada módulo.",
+            ]}
+          />
         </View>
       </Page>
 
@@ -348,9 +359,13 @@ function Doc() {
 
           <H2>4.2 Actividades</H2>
           <P>
-            Registro histórico de actividades del equipo (incluye lo cerrado desde el Banco de tareas y lo que se registre
-            manualmente), con su fecha, cliente/proyecto relacionado y estado de cumplimiento.
+            Registro histórico de actividades del equipo, con su fecha, cliente/proyecto relacionado y estado de
+            cumplimiento.
           </P>
+          <Nota>
+            Al terminar una tarea desde el Banco de tareas, su registro se agrega automáticamente aquí — no es necesario
+            volver a digitarla en Actividades.
+          </Nota>
 
           <H2>4.3 Agendas</H2>
           <P>

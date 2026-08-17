@@ -21,6 +21,25 @@ const NOMBRES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"
 /** Sábado y domingo quedan disponibles solo para días extraordinarios — no se espera uso regular. */
 const ES_FIN_DE_SEMANA = [false, false, false, false, false, true, true];
 
+/** Primer nombre + primer apellido, para que la columna angosta de la agenda no se overlape con el email. */
+function nombreCorto(fullName: string | null, email: string | null) {
+  // Algunos perfiles quedaron con full_name = su propio correo (valor por defecto al invitar, nunca completado).
+  const nombreReal = fullName && fullName.trim() && !fullName.includes("@") ? fullName.trim() : null;
+  if (nombreReal) {
+    const partes = nombreReal.split(/\s+/);
+    return partes.length === 1 ? partes[0] : `${partes[0]} ${partes[partes.length - 1]}`;
+  }
+  const correo = email || fullName;
+  if (correo) {
+    const partes = correo
+      .split("@")[0]
+      .split(/[._-]+/)
+      .filter(Boolean);
+    return partes.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(" ") || correo;
+  }
+  return "Sin nombre";
+}
+
 export function AgendaGrid({
   profiles,
   clientes,
@@ -112,7 +131,7 @@ export function AgendaGrid({
                 <tr key={p.id} className="align-top">
                   <td className="border-b border-r border-neutral-200 bg-neutral-50 px-3 py-3 font-medium text-neutral-700">
                     <div className="agenda-cell">
-                      <div className="text-[clamp(0.8rem,6cqw,0.95rem)]">{p.full_name || p.email}</div>
+                      <div className="text-[clamp(0.8rem,6cqw,0.95rem)]">{nombreCorto(p.full_name, p.email)}</div>
                       <div className="text-[clamp(0.65rem,5cqw,0.75rem)] font-normal text-neutral-400">
                         {horasPersona}h / {p.capacidad_semanal_horas}h
                       </div>
@@ -174,7 +193,7 @@ export function AgendaGrid({
                 <select name="usuario_id" required className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
                   {profiles.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.full_name || p.email}
+                      {nombreCorto(p.full_name, p.email)}
                     </option>
                   ))}
                 </select>
