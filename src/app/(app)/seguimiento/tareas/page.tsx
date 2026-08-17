@@ -8,7 +8,7 @@ export default async function Page() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: tareas }, { data: profiles }, { data: clientes }, { data: proyectos }, { data: timerActivo }] =
+  const [{ data: tareas }, { data: profiles }, { data: clientes }, { data: proyectos }, { data: timerActivo }, { data: miPerfil }] =
     await Promise.all([
       supabase.from("tareas").select("*, clientes(nombre), proyectos(nombre)").order("created_at", { ascending: false }),
       supabase.from("profiles").select("id, full_name, email"),
@@ -22,6 +22,7 @@ export default async function Page() {
             .is("fin", null)
             .maybeSingle()
         : Promise.resolve({ data: null }),
+      user ? supabase.from("profiles").select("role").eq("id", user.id).single() : Promise.resolve({ data: null }),
     ]);
 
   return (
@@ -32,6 +33,7 @@ export default async function Page() {
       proyectos={proyectos ?? []}
       currentUserId={user?.id ?? null}
       timerActivo={timerActivo ?? null}
+      isAdmin={miPerfil?.role === "admin"}
     />
   );
 }

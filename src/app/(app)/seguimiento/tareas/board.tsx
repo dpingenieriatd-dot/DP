@@ -7,6 +7,9 @@ import {
   liberarTarea,
   terminarTarea,
   eliminarTarea,
+  archivarTarea,
+  pausarTarea,
+  reanudarTarea,
   iniciarTiempo,
   detenerTiempo,
 } from "./actions";
@@ -23,12 +26,13 @@ type Tarea = {
   descripcion: string | null;
   publicado_por: string | null;
   responsable: string | null;
-  estado: "Disponible" | "En proceso" | "Terminada";
+  estado: "Disponible" | "En proceso" | "Pausada" | "Terminada";
   horas_estimadas: number | null;
   horas_reales: number;
   avance_pct: number;
   entregable: string | null;
   notas: string | null;
+  archivado: boolean;
 };
 
 type Profile = { id: string; full_name: string | null; email: string | null };
@@ -74,6 +78,7 @@ export function TaskBoard({
   proyectos,
   currentUserId,
   timerActivo,
+  isAdmin,
 }: {
   tareas: Tarea[];
   profiles: Profile[];
@@ -81,17 +86,20 @@ export function TaskBoard({
   proyectos: Proyecto[];
   currentUserId: string | null;
   timerActivo: TimerActivo;
+  isAdmin: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const [createOpen, setCreateOpen] = useState(false);
   const [finishing, setFinishing] = useState<Tarea | null>(null);
+  const [detalle, setDetalle] = useState<Tarea | null>(null);
   const [error, setError] = useState<string | null>(null);
   const elapsed = useElapsed(timerActivo?.inicio ?? null);
   const tareaTimer = timerActivo ? tareas.find((t) => t.id === timerActivo.tarea_id) : null;
 
   const disponibles = tareas.filter((t) => t.estado === "Disponible");
   const enProceso = tareas.filter((t) => t.estado === "En proceso");
-  const terminadas = tareas.filter((t) => t.estado === "Terminada");
+  const pausadas = tareas.filter((t) => t.estado === "Pausada");
+  const terminadas = tareas.filter((t) => t.estado === "Terminada" && !t.archivado);
 
   function run(fn: () => Promise<{ error?: string } | void>) {
     startTransition(async () => {
@@ -133,7 +141,7 @@ export function TaskBoard({
 
       <HelpBanner />
 
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-lg border border-neutral-200 bg-white p-4">
           <div className="text-xs uppercase text-neutral-500">Disponibles</div>
           <div className="mt-1 text-2xl font-bold text-emerald-900">{disponibles.length}</div>
@@ -143,22 +151,45 @@ export function TaskBoard({
           <div className="mt-1 text-2xl font-bold text-emerald-900">{enProceso.length}</div>
         </div>
         <div className="rounded-lg border border-neutral-200 bg-white p-4">
+          <div className="text-xs uppercase text-neutral-500">Pausadas</div>
+          <div className="mt-1 text-2xl font-bold text-amber-700">{pausadas.length}</div>
+        </div>
+        <div className="rounded-lg border border-neutral-200 bg-white p-4">
           <div className="text-xs uppercase text-neutral-500">Terminadas</div>
           <div className="mt-1 text-2xl font-bold text-emerald-900">{terminadas.length}</div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
         <Column title="Disponibles" count={disponibles.length}>
           {disponibles.map((t) => (
             <Card key={t.id} t={t} profiles={profiles}>
-              <button
-                onClick={() => run(() => tomarTarea(t.id))}
-                disabled={pending}
-                className="rounded-md bg-emerald-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
-              >
-                🙋 Tomar
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => run(() => tomarTarea(t.id))}
+                  disabled={pending}
+                  className="rounded-md bg-emerald-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
+                >
+                  🙋 Tomar
+                </button>
+                <button
+                  onClick={() => setDetalle(t)}
+                  className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-100"
+                >
+                  Ver detalles
+                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => {
+                      if (confirm(`¿Eliminar la tarea "${t.titulo}"?`)) run(() => eliminarTarea(t.id));
+                    }}
+                    disabled={pending}
+                    className="rounded-md px-3 py-1.5 text-xs text-red-600 hover:underline disabled:opacity-60"
+                  >
+                    🗑 Eliminar
+                  </button>
+                )}
+              </div>
             </Card>
           ))}
         </Column>
@@ -169,34 +200,76 @@ export function TaskBoard({
             const corriendo = timerActivo?.tarea_id === t.id;
             return (
               <Card key={t.id} t={t} profiles={profiles}>
-                {esMia ? (
-                  <div className="flex flex-wrap gap-2">
-                    {corriendo ? null : (
+                <div className="flex flex-wrap gap-2">
+                  {esMia && (
+                    <>
+                      {corriendo ? (
+                        <button
+                          onClick={() => run(() => pausarTarea(timerActivo!.id))}
+                          disabled={pending}
+                          className="rounded-md bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-200 disabled:opacity-60"
+                        >
+                          ⏸ Pausar
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => run(() => iniciarTiempo(t.id))}
+                          disabled={pending || !!timerActivo}
+                          className="rounded-md bg-neutral-100 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-200 disabled:opacity-60"
+                        >
+                          ▶ Tiempo
+                        </button>
+                      )}
                       <button
-                        onClick={() => run(() => iniciarTiempo(t.id))}
-                        disabled={pending || !!timerActivo}
-                        className="rounded-md bg-neutral-100 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-200 disabled:opacity-60"
+                        onClick={() => setFinishing(t)}
+                        className="rounded-md bg-emerald-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800"
                       >
-                        ▶ Tiempo
+                        ✓ Terminar
                       </button>
-                    )}
+                      <button
+                        onClick={() => run(() => liberarTarea(t.id))}
+                        disabled={pending}
+                        className="rounded-md px-3 py-1.5 text-xs text-neutral-500 hover:underline"
+                      >
+                        Liberar
+                      </button>
+                    </>
+                  )}
+                  <button
+                    onClick={() => setDetalle(t)}
+                    className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-100"
+                  >
+                    Ver detalles
+                  </button>
+                  {!esMia && <span className="text-xs text-neutral-400">Asignada, sin más acciones para ti</span>}
+                </div>
+              </Card>
+            );
+          })}
+        </Column>
+
+        <Column title="Pausadas" count={pausadas.length}>
+          {pausadas.map((t) => {
+            const esMia = t.responsable === currentUserId;
+            return (
+              <Card key={t.id} t={t} profiles={profiles}>
+                <div className="flex flex-wrap gap-2">
+                  {esMia && (
                     <button
-                      onClick={() => setFinishing(t)}
-                      className="rounded-md bg-emerald-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800"
+                      onClick={() => run(() => reanudarTarea(t.id))}
+                      disabled={pending || !!timerActivo}
+                      className="rounded-md bg-emerald-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
                     >
-                      ✓ Terminar
+                      ▶ Reanudar
                     </button>
-                    <button
-                      onClick={() => run(() => liberarTarea(t.id))}
-                      disabled={pending}
-                      className="rounded-md px-3 py-1.5 text-xs text-neutral-500 hover:underline"
-                    >
-                      Liberar
-                    </button>
-                  </div>
-                ) : (
-                  <span className="text-xs text-neutral-400">Asignada, sin acciones para ti</span>
-                )}
+                  )}
+                  <button
+                    onClick={() => setDetalle(t)}
+                    className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-100"
+                  >
+                    Ver detalles
+                  </button>
+                </div>
               </Card>
             );
           })}
@@ -204,10 +277,30 @@ export function TaskBoard({
 
         <Column title="Terminadas" count={terminadas.length}>
           {terminadas.map((t) => (
-            <Card key={t.id} t={t} profiles={profiles} />
+            <Card key={t.id} t={t} profiles={profiles}>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setDetalle(t)}
+                  className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-100"
+                >
+                  Ver detalles
+                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => run(() => archivarTarea(t.id))}
+                    disabled={pending}
+                    className="rounded-md px-3 py-1.5 text-xs text-neutral-500 hover:underline disabled:opacity-60"
+                  >
+                    🗄 Archivar
+                  </button>
+                )}
+              </div>
+            </Card>
           ))}
         </Column>
       </div>
+
+      {detalle && <DetailModal tarea={detalle} profiles={profiles} onClose={() => setDetalle(null)} />}
 
       {createOpen && (
         <CreateModal
@@ -441,6 +534,54 @@ function FinishModal({
           </button>
         </div>
       </form>
+    </div>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
+  if (!value) return null;
+  return (
+    <div className="border-t border-neutral-100 py-2 first:border-t-0">
+      <div className="text-xs font-semibold uppercase text-neutral-400">{label}</div>
+      <div className="mt-0.5 text-sm text-neutral-700">{value}</div>
+    </div>
+  );
+}
+
+function DetailModal({ tarea, profiles, onClose }: { tarea: Tarea; profiles: Profile[]; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-lg rounded-lg bg-white p-6 shadow-lg">
+        <div className="mb-1 flex items-center gap-2">
+          <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${PRIORIDAD_CLASS[tarea.prioridad]}`}>
+            {tarea.prioridad}
+          </span>
+          <span className="text-xs text-neutral-400">{tarea.estado}</span>
+        </div>
+        <h2 className="mb-3 text-lg font-semibold text-emerald-900">{tarea.titulo}</h2>
+        <div>
+          <DetailRow label="Descripción / entregable esperado" value={tarea.descripcion} />
+          <DetailRow label="Cliente" value={tarea.clientes?.nombre} />
+          <DetailRow label="Proyecto" value={tarea.proyectos?.nombre} />
+          <DetailRow label="Fecha límite" value={tarea.fecha_limite} />
+          <DetailRow label="Responsable" value={nombreDe(profiles, tarea.responsable)} />
+          <DetailRow
+            label="Horas"
+            value={
+              tarea.horas_estimadas || tarea.horas_reales > 0
+                ? `${Number(tarea.horas_reales).toFixed(1)}h${tarea.horas_estimadas ? ` / ${tarea.horas_estimadas}h est.` : ""}`
+                : null
+            }
+          />
+          <DetailRow label="Entregable entregado" value={tarea.entregable} />
+          <DetailRow label="Observaciones" value={tarea.notas} />
+        </div>
+        <div className="mt-5 flex justify-end">
+          <button onClick={onClose} className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
+            Cerrar
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

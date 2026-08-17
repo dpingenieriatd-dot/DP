@@ -3,18 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-
-/** Confirma que quien llama a la action ya es admin — la página lo filtra, pero una Server Action se puede invocar directo. */
-async function requiereAdmin() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data: miPerfil } = user
-    ? await supabase.from("profiles").select("role").eq("id", user.id).single()
-    : { data: null };
-  return miPerfil?.role === "admin";
-}
+import { requiereAdmin } from "@/lib/auth";
 
 export async function invitarUsuario(formData: FormData) {
   if (!(await requiereAdmin())) return { error: "Solo un administrador puede invitar usuarios." };

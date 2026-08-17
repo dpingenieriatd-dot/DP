@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { crearNotificacion } from "@/lib/notificaciones";
+import { requiereAdmin } from "@/lib/auth";
 
 const PATH = "/seguimiento/tareas";
 
@@ -117,8 +118,40 @@ export async function terminarTarea(id: string, formData: FormData) {
 }
 
 export async function eliminarTarea(id: string) {
+  if (!(await requiereAdmin())) return { error: "Solo la Directora de Proyectos puede eliminar tareas." };
   const supabase = await createClient();
   const { error } = await supabase.from("tareas").delete().eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath(PATH);
+}
+
+export async function archivarTarea(id: string) {
+  if (!(await requiereAdmin())) return { error: "Solo la Directora de Proyectos puede archivar tareas." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("tareas").update({ archivado: true }).eq("id", id).eq("estado", "Terminada");
+  if (error) return { error: error.message };
+  revalidatePath(PATH);
+}
+
+export async function pausarTarea(registroId: string) {
+  const resultado = await detenerTiempo(registroId);
+  if (resultado?.error) return resultado;
+
+  const supabase = await createClient();
+  const { data: registro } = await supabase.from("registros_tiempo").select("tarea_id").eq("id", registroId).single();
+  if (!registro) return { error: "No se encontró el registro." };
+
+  const { error } = await supabase.from("tareas").update({ estado: "Pausada" }).eq("id", registro.tarea_id);
+  if (error) return { error: error.message };
+  revalidatePath(PATH);
+}
+
+export async function reanudarTarea(tareaId: string) {
+  const resultado = await iniciarTiempo(tareaId);
+  if (resultado?.error) return resultado;
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("tareas").update({ estado: "En proceso" }).eq("id", tareaId);
   if (error) return { error: error.message };
   revalidatePath(PATH);
 }

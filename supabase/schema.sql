@@ -92,7 +92,7 @@ create table if not exists tareas (
   descripcion text,
   publicado_por uuid references profiles(id),
   responsable uuid references profiles(id),
-  estado text not null default 'Disponible' check (estado in ('Disponible', 'En proceso', 'Terminada')),
+  estado text not null default 'Disponible' check (estado in ('Disponible', 'En proceso', 'Pausada', 'Terminada')),
   horas_estimadas numeric,
   horas_reales numeric not null default 0,
   avance_pct integer not null default 0 check (avance_pct between 0 and 100),
@@ -100,6 +100,7 @@ create table if not exists tareas (
   notas text,
   fecha_toma date,
   fecha_cierre date,
+  archivado boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -174,9 +175,17 @@ alter table actividades enable row level security;
 alter table agenda_bloques enable row level security;
 alter table efectividad_parametros enable row level security;
 
+-- Eliminar tareas queda restringido a admin (Directora de Proyectos); el
+-- resto de operaciones sigue abierto a cualquiera con el módulo.
 drop policy if exists "seguimiento: acceso por módulo" on tareas;
-create policy "seguimiento: acceso por módulo" on tareas
-  for all using (has_module('seguimiento')) with check (has_module('seguimiento'));
+create policy "seguimiento: leer/crear/editar por módulo" on tareas
+  for select using (has_module('seguimiento'));
+create policy "seguimiento: crear por módulo" on tareas
+  for insert with check (has_module('seguimiento'));
+create policy "seguimiento: editar por módulo" on tareas
+  for update using (has_module('seguimiento')) with check (has_module('seguimiento'));
+create policy "seguimiento: eliminar solo admin" on tareas
+  for delete using (is_admin());
 
 drop policy if exists "seguimiento: acceso por módulo" on registros_tiempo;
 create policy "seguimiento: acceso por módulo" on registros_tiempo
