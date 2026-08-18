@@ -198,9 +198,30 @@ create policy "seguimiento: editar por módulo" on tareas
 create policy "seguimiento: eliminar solo admin" on tareas
   for delete using (is_admin());
 
+-- RLS no puede restringir por columna, solo por fila (mismo problema que profiles) — archivado y
+-- calidad_pct necesitan quedar admin-only mientras el resto de columnas siguen abiertas a cualquiera
+-- con el módulo (para que pausar/reanudar/terminar tarea funcionen). Se resuelve con un trigger.
+create or replace function guard_tareas_admin_columns()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if (new.archivado is distinct from old.archivado or new.calidad_pct is distinct from old.calidad_pct)
+     and not is_admin() then
+    raise exception 'Solo un administrador (Directora de Proyectos) puede archivar o calificar la calidad de una tarea.';
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists trg_tareas_guard_admin_columns on tareas;
+create trigger trg_tareas_guard_admin_columns
+  before update on tareas
+  for each row execute function guard_tareas_admin_columns();
+
+-- Cada quien solo puede tocar sus propios registros de cronómetro — toda la app ya consulta
+-- siempre por usuario_id = usuario logueado, así que esto no rompe ningún flujo existente.
 drop policy if exists "seguimiento: acceso por módulo" on registros_tiempo;
-create policy "seguimiento: acceso por módulo" on registros_tiempo
-  for all using (has_module('seguimiento')) with check (has_module('seguimiento'));
+create policy "seguimiento: propios registros de tiempo" on registros_tiempo
+  for all using (has_module('seguimiento') and usuario_id = auth.uid())
+  with check (has_module('seguimiento') and usuario_id = auth.uid());
 
 drop policy if exists "seguimiento: acceso por módulo" on actividades;
 create policy "seguimiento: acceso por módulo" on actividades
