@@ -68,7 +68,7 @@ export default async function Page() {
               </div>
               <div className="text-right">
                 <div className="text-2xl font-bold text-emerald-900">{Math.round(score)}%</div>
-                {provisional && <div className="text-[11px] font-semibold text-amber-600">Provisional</div>}
+                {provisional && <div className="text-[11px] font-semibold text-amber-600">Efectividad provisional</div>}
               </div>
             </div>
             <Barra label="Cumplimiento" valor={cumplimiento} />
