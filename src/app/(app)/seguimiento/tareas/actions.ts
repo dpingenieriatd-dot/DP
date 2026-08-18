@@ -89,6 +89,14 @@ export async function tomarTarea(id: string, formData: FormData) {
 
 export async function liberarTarea(id: string) {
   const supabase = await createClient();
+
+  // Misma razón que en terminarTarea: si el cronómetro seguía corriendo, se cierra antes de
+  // soltar la tarea para no dejar un registro de tiempo abierto para siempre.
+  const { data: abiertos } = await supabase.from("registros_tiempo").select("id").eq("tarea_id", id).is("fin", null);
+  for (const registro of abiertos ?? []) {
+    await detenerTiempo(registro.id);
+  }
+
   const { error } = await supabase
     .from("tareas")
     .update({ responsable: null, estado: "Disponible", fecha_toma: null })
@@ -104,6 +112,15 @@ export async function terminarTarea(id: string, formData: FormData) {
 
   const entregable = (formData.get("entregable") as string) || null;
   const notas = (formData.get("notas") as string) || null;
+
+  // Si el cronómetro seguía corriendo (se terminó la tarea sin pasar por "Pausar" antes), se
+  // cierra aquí para que el tiempo de esa última sesión también quede consolidado — si no, ese
+  // registro quedaría abierto para siempre y "Cronómetro activo" seguiría apareciendo para una
+  // tarea ya Terminada.
+  const { data: abiertos } = await supabase.from("registros_tiempo").select("id").eq("tarea_id", id).is("fin", null);
+  for (const registro of abiertos ?? []) {
+    await detenerTiempo(registro.id);
+  }
 
   const { error } = await supabase
     .from("tareas")
@@ -190,12 +207,23 @@ export async function pausarTarea(registroId: string) {
 }
 
 export async function reanudarTarea(tareaId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "No hay sesión activa." };
+
+  // Pasa a "En proceso" primero: iniciarTiempo exige que la tarea ya esté en ese estado.
+  const { error: estadoError } = await supabase
+    .from("tareas")
+    .update({ estado: "En proceso" })
+    .eq("id", tareaId)
+    .eq("estado", "Pausada")
+    .eq("responsable", user.id);
+  if (estadoError) return { error: estadoError.message };
+
   const resultado = await iniciarTiempo(tareaId);
   if (resultado?.error) return resultado;
-
-  const supabase = await createClient();
-  const { error } = await supabase.from("tareas").update({ estado: "En proceso" }).eq("id", tareaId);
-  if (error) return { error: error.message };
   revalidatePath(PATH);
 }
 
@@ -205,6 +233,12 @@ export async function iniciarTiempo(tareaId: string) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "No hay sesión activa." };
+
+  // El cronómetro solo se activa sobre una tarea que el usuario haya tomado y que esté En proceso.
+  const { data: tarea } = await supabase.from("tareas").select("estado, responsable").eq("id", tareaId).single();
+  if (!tarea || tarea.responsable !== user.id || tarea.estado !== "En proceso") {
+    return { error: "El cronómetro solo se puede activar sobre una tarea que hayas tomado y que esté En proceso." };
+  }
 
   // Solo un cronómetro activo por persona a la vez.
   await supabase
