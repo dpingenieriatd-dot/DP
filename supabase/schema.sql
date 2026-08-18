@@ -264,6 +264,40 @@ drop policy if exists "seguimiento: acceso por módulo" on agenda_bloques;
 create policy "seguimiento: acceso por módulo" on agenda_bloques
   for all using (has_module('seguimiento')) with check (has_module('seguimiento'));
 
+-- La política de arriba es intencionalmente abierta para que la planeación compartida siga
+-- funcionando en bloques manuales (tarea_id is null). Pero un bloque ligado a una tarea
+-- (tarea_id not null) no debe poder ser reprogramado ni borrado por cualquiera con el módulo —
+-- solo por quien tomó la tarea o un admin. RLS no puede condicionar por el valor de una columna
+-- de OTRA tabla dentro de la misma política de forma simple, así que se resuelve con un trigger,
+-- mismo patrón que guard_tareas_responsable.
+create or replace function guard_agenda_bloques_responsable()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_tarea_id uuid;
+  v_responsable uuid;
+begin
+  if is_admin() then
+    return coalesce(new, old);
+  end if;
+
+  v_tarea_id := coalesce(new.tarea_id, old.tarea_id);
+  if v_tarea_id is null then
+    return coalesce(new, old);
+  end if;
+
+  select responsable into v_responsable from tareas where id = v_tarea_id;
+  if v_responsable is distinct from auth.uid() then
+    raise exception 'Solo quien tomó la tarea puede modificar su bloque de Agenda.';
+  end if;
+
+  return coalesce(new, old);
+end;
+$$;
+drop trigger if exists trg_agenda_bloques_guard_responsable on agenda_bloques;
+create trigger trg_agenda_bloques_guard_responsable
+  before update or delete on agenda_bloques
+  for each row execute function guard_agenda_bloques_responsable();
+
 drop policy if exists "seguimiento: leer parámetros de efectividad" on efectividad_parametros;
 create policy "seguimiento: leer parámetros de efectividad" on efectividad_parametros
   for select using (has_module('seguimiento'));

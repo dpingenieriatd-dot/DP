@@ -184,6 +184,7 @@ export function AgendaGrid({
                                   )}
                                 </div>
                                 {b.tarea && <div className="mt-0.5 text-[clamp(0.7rem,7cqw,0.875rem)]">{b.tarea}</div>}
+                                <div className="mt-0.5 text-[clamp(0.6rem,6cqw,0.75rem)] text-neutral-400">{nombreCorto(p.full_name, p.email)}</div>
                                 {b.clientes?.nombre && (
                                   <div className="mt-0.5 text-[clamp(0.65rem,6.5cqw,0.8rem)] text-neutral-500">{b.clientes.nombre}</div>
                                 )}
