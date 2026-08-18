@@ -12,6 +12,7 @@ export default async function Page() {
 
   const fields: Field[] = [
     { key: "fecha", label: "Fecha", type: "date", required: true },
+    { key: "hora", label: "Hora de inicio (crea el bloque en Agenda)", type: "time" },
     { key: "cargo", label: "Cargo" },
     { key: "actividad", label: "Actividad", required: true },
     {

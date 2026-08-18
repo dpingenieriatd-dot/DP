@@ -27,14 +27,21 @@ export async function crearTarea(formData: FormData) {
   revalidatePath(PATH);
 }
 
-export async function tomarTarea(id: string) {
+export async function tomarTarea(id: string, formData: FormData) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "No hay sesión activa." };
 
-  const { data: tarea } = await supabase.from("tareas").select("titulo, publicado_por").eq("id", id).single();
+  const dia = (formData.get("dia") as string) || new Date().toISOString().slice(0, 10);
+  const horaInicio = (formData.get("hora_inicio") as string) || "08:00";
+
+  const { data: tarea } = await supabase
+    .from("tareas")
+    .select("titulo, publicado_por, cliente_id, proyecto_id, horas_estimadas")
+    .eq("id", id)
+    .single();
 
   const { error } = await supabase
     .from("tareas")
@@ -46,6 +53,23 @@ export async function tomarTarea(id: string) {
     .eq("id", id)
     .eq("estado", "Disponible");
   if (error) return { error: error.message };
+
+  if (tarea) {
+    const { error: agendaError } = await supabase.from("agenda_bloques").upsert(
+      {
+        tarea_id: id,
+        usuario_id: user.id,
+        dia,
+        hora_inicio: horaInicio,
+        horas: tarea.horas_estimadas || 1,
+        tarea: tarea.titulo,
+        cliente_id: tarea.cliente_id,
+        proyecto_id: tarea.proyecto_id,
+      },
+      { onConflict: "tarea_id" },
+    );
+    if (agendaError) return { error: agendaError.message };
+  }
 
   if (tarea?.publicado_por && tarea.publicado_por !== user.id) {
     const { data: quien } = await supabase.from("profiles").select("full_name, email").eq("id", user.id).single();
@@ -59,6 +83,8 @@ export async function tomarTarea(id: string) {
   }
 
   revalidatePath(PATH);
+  revalidatePath("/seguimiento/agendas");
+  revalidatePath("/seguimiento/capacidad");
 }
 
 export async function liberarTarea(id: string) {

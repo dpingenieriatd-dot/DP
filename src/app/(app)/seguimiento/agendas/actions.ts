@@ -21,6 +21,15 @@ export async function crearBloque(formData: FormData) {
   revalidatePath("/seguimiento/capacidad");
 }
 
+/** Reprograma el bloque de una tarea a nueva fecha/hora — actualiza el mismo registro, nunca crea uno nuevo. */
+export async function reprogramarBloque(tareaId: string, dia: string, horaInicio: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("agenda_bloques").update({ dia, hora_inicio: horaInicio }).eq("tarea_id", tareaId);
+  if (error) return { error: error.message };
+  revalidatePath(PATH);
+  revalidatePath("/seguimiento/capacidad");
+}
+
 export async function eliminarBloque(id: string) {
   const supabase = await createClient();
   const { error } = await supabase.from("agenda_bloques").delete().eq("id", id);

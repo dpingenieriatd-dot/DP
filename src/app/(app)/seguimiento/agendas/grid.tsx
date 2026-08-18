@@ -2,10 +2,12 @@
 
 import { useState, useTransition } from "react";
 import { crearBloque, eliminarBloque, actualizarPreferenciasRecordatorio } from "./actions";
+import { iniciarTiempo, pausarTarea, reanudarTarea } from "../tareas/actions";
 
 type Profile = { id: string; full_name: string | null; email: string | null; capacidad_semanal_horas: number };
 type Cliente = { id: string; nombre: string };
 type Proyecto = { id: string; codigo: string | null; nombre: string };
+type TimerActivo = { id: string; tarea_id: string; inicio: string } | null;
 type Bloque = {
   id: string;
   usuario_id: string;
@@ -15,6 +17,14 @@ type Bloque = {
   tarea: string | null;
   clientes?: { nombre: string } | null;
   proyectos?: { nombre: string } | null;
+  tarea_id?: string | null;
+  tareas?: { id: string; estado: string; responsable: string | null } | null;
+};
+
+const ESTADO_CLASS: Record<string, string> = {
+  "En proceso": "bg-emerald-100 text-emerald-700",
+  Pausada: "bg-amber-100 text-amber-700",
+  Terminada: "bg-neutral-200 text-neutral-600",
 };
 
 const NOMBRES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
@@ -48,6 +58,8 @@ export function AgendaGrid({
   dias,
   recordatorioMinutos,
   recordatorioSonido,
+  currentUserId,
+  timerActivo,
 }: {
   profiles: Profile[];
   clientes: Cliente[];
@@ -56,6 +68,8 @@ export function AgendaGrid({
   dias: string[];
   recordatorioMinutos: number;
   recordatorioSonido: boolean;
+  currentUserId: string | null;
+  timerActivo: TimerActivo;
 }) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,6 +86,13 @@ export function AgendaGrid({
   function del(id: string) {
     startTransition(async () => {
       await eliminarBloque(id);
+    });
+  }
+
+  function run(fn: () => Promise<{ error?: string } | void>) {
+    startTransition(async () => {
+      const result = await fn();
+      if (result?.error) setError(result.error);
     });
   }
 
@@ -145,23 +166,69 @@ export function AgendaGrid({
                       <div className="agenda-cell">
                         {bloques
                           .filter((b) => b.usuario_id === p.id && b.dia === dia)
-                          .map((b) => (
-                            <div key={b.id} className="mb-2 break-words rounded-lg bg-emerald-50 p-3">
-                              <div className="text-[clamp(0.75rem,8cqw,0.95rem)] font-semibold text-emerald-900">
-                                {b.hora_inicio.slice(0, 5)} · {b.horas}h
+                          .map((b) => {
+                            const estado = b.tareas?.estado;
+                            const esMia = b.tareas?.responsable === currentUserId;
+                            const corriendo = timerActivo?.tarea_id === b.tarea_id;
+                            return (
+                              <div key={b.id} className="mb-2 break-words rounded-lg bg-emerald-50 p-3">
+                                <div className="flex items-center justify-between gap-1">
+                                  <div className="text-[clamp(0.75rem,8cqw,0.95rem)] font-semibold text-emerald-900">
+                                    {b.hora_inicio.slice(0, 5)} · {b.horas}h
+                                  </div>
+                                  {estado && (
+                                    <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${ESTADO_CLASS[estado] ?? ""}`}>
+                                      {estado}
+                                    </span>
+                                  )}
+                                </div>
+                                {b.tarea && <div className="mt-0.5 text-[clamp(0.7rem,7cqw,0.875rem)]">{b.tarea}</div>}
+                                {b.clientes?.nombre && (
+                                  <div className="mt-0.5 text-[clamp(0.65rem,6.5cqw,0.8rem)] text-neutral-500">{b.clientes.nombre}</div>
+                                )}
+                                {b.proyectos?.nombre && (
+                                  <div className="text-[clamp(0.65rem,6.5cqw,0.8rem)] text-neutral-500">{b.proyectos.nombre}</div>
+                                )}
+                                {b.tarea_id ? (
+                                  esMia && (estado === "En proceso" || estado === "Pausada") ? (
+                                    <div className="mt-1 flex flex-wrap gap-2">
+                                      {estado === "En proceso" ? (
+                                        corriendo ? (
+                                          <button
+                                            onClick={() => run(() => pausarTarea(timerActivo!.id))}
+                                            disabled={pending}
+                                            className="text-[clamp(0.65rem,6cqw,0.75rem)] font-semibold text-amber-700 hover:underline"
+                                          >
+                                            ⏸ Pausar
+                                          </button>
+                                        ) : (
+                                          <button
+                                            onClick={() => run(() => iniciarTiempo(b.tarea_id!))}
+                                            disabled={pending || !!timerActivo}
+                                            className="text-[clamp(0.65rem,6cqw,0.75rem)] font-semibold text-emerald-700 hover:underline disabled:opacity-60"
+                                          >
+                                            ▶ Tiempo
+                                          </button>
+                                        )
+                                      ) : (
+                                        <button
+                                          onClick={() => run(() => reanudarTarea(b.tarea_id!))}
+                                          disabled={pending || !!timerActivo}
+                                          className="text-[clamp(0.65rem,6cqw,0.75rem)] font-semibold text-emerald-700 hover:underline disabled:opacity-60"
+                                        >
+                                          ▶ Reanudar
+                                        </button>
+                                      )}
+                                    </div>
+                                  ) : null
+                                ) : (
+                                  <button onClick={() => del(b.id)} className="mt-1 text-[clamp(0.65rem,6cqw,0.75rem)] text-red-600 hover:underline">
+                                    Quitar
+                                  </button>
+                                )}
                               </div>
-                              {b.tarea && <div className="mt-0.5 text-[clamp(0.7rem,7cqw,0.875rem)]">{b.tarea}</div>}
-                              {b.clientes?.nombre && (
-                                <div className="mt-0.5 text-[clamp(0.65rem,6.5cqw,0.8rem)] text-neutral-500">{b.clientes.nombre}</div>
-                              )}
-                              {b.proyectos?.nombre && (
-                                <div className="text-[clamp(0.65rem,6.5cqw,0.8rem)] text-neutral-500">{b.proyectos.nombre}</div>
-                              )}
-                              <button onClick={() => del(b.id)} className="mt-1 text-[clamp(0.65rem,6cqw,0.75rem)] text-red-600 hover:underline">
-                                Quitar
-                              </button>
-                            </div>
-                          ))}
+                            );
+                          })}
                       </div>
                     </td>
                   ))}

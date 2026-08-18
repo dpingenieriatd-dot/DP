@@ -126,6 +126,7 @@ create table if not exists registros_tiempo (
 create table if not exists actividades (
   id uuid primary key default gen_random_uuid(),
   fecha date not null default current_date,
+  hora time,
   usuario_id uuid references profiles(id),
   cargo text,
   actividad text not null,
@@ -146,6 +147,12 @@ create table if not exists agenda_bloques (
   horas numeric not null default 1,
   tarea text,
   cliente text,
+  -- Vínculo opcional a la tarea/actividad que originó el bloque (Fase 3 de
+  -- ajustes UAT). El estado se lee en vivo de tareas.estado por join, no se
+  -- duplica aquí. Bloques creados a mano (sin vínculo) siguen funcionando
+  -- igual que antes.
+  tarea_id uuid references tareas(id) on delete set null,
+  actividad_id uuid references actividades(id) on delete set null,
   created_at timestamptz not null default now()
 );
 

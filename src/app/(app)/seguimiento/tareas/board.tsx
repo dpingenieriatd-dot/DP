@@ -13,6 +13,7 @@ import {
   iniciarTiempo,
   detenerTiempo,
 } from "./actions";
+import { reprogramarBloque } from "../agendas/actions";
 
 type Tarea = {
   id: string;
@@ -91,6 +92,8 @@ export function TaskBoard({
   const [pending, startTransition] = useTransition();
   const [createOpen, setCreateOpen] = useState(false);
   const [finishing, setFinishing] = useState<Tarea | null>(null);
+  const [tomando, setTomando] = useState<Tarea | null>(null);
+  const [reprogramando, setReprogramando] = useState<Tarea | null>(null);
   const [detalle, setDetalle] = useState<Tarea | null>(null);
   const [error, setError] = useState<string | null>(null);
   const elapsed = useElapsed(timerActivo?.inicio ?? null);
@@ -166,7 +169,7 @@ export function TaskBoard({
             <Card key={t.id} t={t} profiles={profiles}>
               <div className="flex flex-wrap gap-2">
                 <button
-                  onClick={() => run(() => tomarTarea(t.id))}
+                  onClick={() => setTomando(t)}
                   disabled={pending}
                   className="rounded-md bg-emerald-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
                 >
@@ -255,13 +258,21 @@ export function TaskBoard({
               <Card key={t.id} t={t} profiles={profiles}>
                 <div className="flex flex-wrap gap-2">
                   {esMia && (
-                    <button
-                      onClick={() => run(() => reanudarTarea(t.id))}
-                      disabled={pending || !!timerActivo}
-                      className="rounded-md bg-emerald-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
-                    >
-                      ▶ Reanudar
-                    </button>
+                    <>
+                      <button
+                        onClick={() => run(() => reanudarTarea(t.id))}
+                        disabled={pending || !!timerActivo}
+                        className="rounded-md bg-emerald-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
+                      >
+                        ▶ Reanudar
+                      </button>
+                      <button
+                        onClick={() => setReprogramando(t)}
+                        className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-100"
+                      >
+                        📅 Reprogramar
+                      </button>
+                    </>
                   )}
                   <button
                     onClick={() => setDetalle(t)}
@@ -301,6 +312,39 @@ export function TaskBoard({
       </div>
 
       {detalle && <DetailModal tarea={detalle} profiles={profiles} onClose={() => setDetalle(null)} />}
+
+      {tomando && (
+        <TomarModal
+          tarea={tomando}
+          onClose={() => setTomando(null)}
+          onSubmit={(fd) =>
+            startTransition(async () => {
+              const r = await tomarTarea(tomando.id, fd);
+              if (r?.error) setError(r.error);
+              else setTomando(null);
+            })
+          }
+          pending={pending}
+        />
+      )}
+
+      {reprogramando && (
+        <TomarModal
+          tarea={reprogramando}
+          titulo="Reprogramar bloque de Agenda"
+          textoBoton="Reprogramar"
+          nota="El bloque conserva el mismo registro en Agenda, solo cambia la fecha y hora."
+          onClose={() => setReprogramando(null)}
+          onSubmit={(fd) =>
+            startTransition(async () => {
+              const r = await reprogramarBloque(reprogramando.id, String(fd.get("dia")), String(fd.get("hora_inicio")));
+              if (r?.error) setError(r.error);
+              else setReprogramando(null);
+            })
+          }
+          pending={pending}
+        />
+      )}
 
       {createOpen && (
         <CreateModal
@@ -486,6 +530,70 @@ function CreateModal({
             className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
           >
             Publicar
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function TomarModal({
+  tarea,
+  titulo = "Tomar tarea",
+  textoBoton = "Tomar tarea",
+  nota = "Esto crea el bloque correspondiente en tu Agenda automáticamente — no hace falta agregarlo a mano.",
+  onClose,
+  onSubmit,
+  pending,
+}: {
+  tarea: Tarea;
+  titulo?: string;
+  textoBoton?: string;
+  nota?: string;
+  onClose: () => void;
+  onSubmit: (fd: FormData) => void;
+  pending: boolean;
+}) {
+  const ahora = new Date();
+  const hoy = ahora.toISOString().slice(0, 10);
+  const horaActual = `${String(ahora.getHours()).padStart(2, "0")}:${String(ahora.getMinutes()).padStart(2, "0")}`;
+
+  return (
+    <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <form
+        action={onSubmit}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg"
+      >
+        <h2 className="mb-1 text-lg font-semibold text-emerald-900">{titulo}</h2>
+        <p className="mb-4 text-sm text-neutral-500">{tarea.titulo}</p>
+        <p className="mb-3 text-xs text-neutral-500">{nota}</p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label className="block text-sm">
+            <span className="mb-1 block text-neutral-600">Día</span>
+            <input type="date" name="dia" defaultValue={hoy} required className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block text-neutral-600">Hora de inicio</span>
+            <input
+              type="time"
+              name="hora_inicio"
+              defaultValue={horaActual}
+              required
+              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+            />
+          </label>
+        </div>
+        <div className="mt-5 flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="rounded-md px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-100">
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={pending}
+            className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
+          >
+            {textoBoton}
           </button>
         </div>
       </form>
