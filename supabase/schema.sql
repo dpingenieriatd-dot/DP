@@ -101,6 +101,8 @@ create table if not exists tareas (
   fecha_toma date,
   fecha_cierre date,
   archivado boolean not null default false,
+  -- Calidad del entregable (1-5 -> 20/40/60/80/100), solo sobre Terminadas, solo admin. Null = sin calificar.
+  calidad_pct numeric check (calidad_pct is null or calidad_pct in (20, 40, 60, 80, 100)),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -165,7 +167,9 @@ create table if not exists efectividad_parametros (
   peso_cumplimiento numeric not null default 50,
   peso_oportunidad numeric not null default 25,
   peso_calidad numeric not null default 15,
-  peso_equilibrio_carga numeric not null default 10,
+  -- Antes "equilibrio de carga" (leía agenda_bloques) — Angélica pidió que Efectividad no
+  -- dependa de las horas planificadas en Agenda; ahora compara horas_estimadas vs. horas_reales.
+  peso_eficiencia_tiempo numeric not null default 10,
   umbral_carga_equilibrada_pct numeric not null default 90,
   capacidad_semanal_estandar_horas numeric not null default 40,
   actualizado_por uuid references profiles(id),

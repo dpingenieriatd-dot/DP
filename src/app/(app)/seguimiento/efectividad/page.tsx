@@ -1,24 +1,19 @@
 import { createClient } from "@/lib/supabase/server";
-import { semanaActual, toISODate } from "@/lib/week";
 
 export default async function Page() {
   const supabase = await createClient();
-  const semana = semanaActual();
-  const desde = toISODate(semana[0]);
-  const hasta = toISODate(semana[6]);
 
-  const [{ data: profiles }, { data: tareas }, { data: bloques }, { data: params }] = await Promise.all([
-    supabase.from("profiles").select("id, full_name, email, cargo, capacidad_semanal_horas").order("full_name"),
-    supabase.from("tareas").select("responsable, estado, fecha_limite, fecha_cierre"),
-    supabase.from("agenda_bloques").select("usuario_id, horas").gte("dia", desde).lte("dia", hasta),
+  const [{ data: profiles }, { data: tareas }, { data: params }] = await Promise.all([
+    supabase.from("profiles").select("id, full_name, email, cargo").order("full_name"),
+    supabase.from("tareas").select("responsable, estado, fecha_limite, fecha_cierre, horas_estimadas, horas_reales, calidad_pct"),
     supabase.from("efectividad_parametros").select("*").eq("id", 1).single(),
   ]);
 
   const pesoCumplimiento = Number(params?.peso_cumplimiento ?? 50);
   const pesoOportunidad = Number(params?.peso_oportunidad ?? 25);
-  const pesoEquilibrio = Number(params?.peso_equilibrio_carga ?? 10);
-  const umbralEquilibrio = Number(params?.umbral_carga_equilibrada_pct ?? 90);
-  const sumaPesosDisponibles = pesoCumplimiento + pesoOportunidad + pesoEquilibrio;
+  const pesoEficiencia = Number(params?.peso_eficiencia_tiempo ?? 10);
+  const pesoCalidad = Number(params?.peso_calidad ?? 15);
+  const sumaPesosBase = pesoCumplimiento + pesoOportunidad + pesoEficiencia;
 
   const filas = (profiles ?? []).map((p) => {
     const propias = (tareas ?? []).filter((t) => t.responsable === p.id);
@@ -29,41 +24,57 @@ export default async function Page() {
     const aTiempo = conFecha.filter((t) => t.fecha_cierre && t.fecha_cierre <= t.fecha_limite!);
     const oportunidad = conFecha.length ? (aTiempo.length / conFecha.length) * 100 : 0;
 
-    const planificadas = (bloques ?? []).filter((b) => b.usuario_id === p.id).reduce((a, b) => a + Number(b.horas), 0);
-    const uso = p.capacidad_semanal_horas > 0 ? (planificadas / p.capacidad_semanal_horas) * 100 : 0;
-    const equilibrio = Math.max(0, 100 - Math.abs(umbralEquilibrio - Math.min(100, uso)) * 1.8);
-
-    const score = sumaPesosDisponibles
-      ? (cumplimiento * pesoCumplimiento + oportunidad * pesoOportunidad + equilibrio * pesoEquilibrio) / sumaPesosDisponibles
+    // Eficiencia de tiempo: horas estimadas vs. horas reales por tarea terminada, promediado.
+    // Reemplaza el antiguo "equilibrio de carga" (que leía Agenda) — Efectividad ya no depende
+    // de cuánto se planificó, solo de cuánto tardó realmente cada tarea.
+    const conTiempo = terminadas.filter((t) => t.horas_estimadas && Number(t.horas_reales) > 0);
+    const eficiencia = conTiempo.length
+      ? conTiempo.reduce((sum, t) => sum + Math.min(100, (Number(t.horas_estimadas) / Number(t.horas_reales)) * 100), 0) / conTiempo.length
       : 0;
 
-    return { p, cumplimiento, oportunidad, equilibrio, score, totalTareas: propias.length };
+    // Calidad del entregable: promedio de las tareas terminadas que ya fueron calificadas por un
+    // admin. Provisional (no cuenta en el score) hasta que exista al menos una calificación.
+    const calificadas = terminadas.filter((t) => t.calidad_pct != null);
+    const provisional = calificadas.length === 0;
+    const calidad = calificadas.length ? calificadas.reduce((sum, t) => sum + Number(t.calidad_pct), 0) / calificadas.length : 0;
+
+    const sumaPesos = provisional ? sumaPesosBase : sumaPesosBase + pesoCalidad;
+    const numerador =
+      cumplimiento * pesoCumplimiento + oportunidad * pesoOportunidad + eficiencia * pesoEficiencia + (provisional ? 0 : calidad * pesoCalidad);
+    const score = sumaPesos ? numerador / sumaPesos : 0;
+
+    return { p, cumplimiento, oportunidad, eficiencia, calidad, provisional, score, totalTareas: propias.length };
   });
 
   return (
     <div className="p-8">
       <h1 className="text-2xl font-semibold text-emerald-900">Efectividad</h1>
       <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-        Fórmula parcial: combina <strong>cumplimiento</strong> ({pesoCumplimiento}%), <strong>oportunidad</strong> (
-        {pesoOportunidad}%) y <strong>equilibrio de carga</strong> ({pesoEquilibrio}%), ajustado a 100. El componente de{" "}
-        <strong>calidad del entregable</strong> ({params?.peso_calidad ?? 15}% pactado) todavía no se calcula: falta
-        definir con D&P cómo se va a calificar. Los pesos se editan en Configuración por un administrador. Esto no debe
-        usarse para comparar personas entre sí ni para decisiones automáticas.
+        Combina <strong>cumplimiento</strong> ({pesoCumplimiento}%), <strong>oportunidad</strong> ({pesoOportunidad}%),{" "}
+        <strong>eficiencia de tiempo</strong> ({pesoEficiencia}% — horas reales vs. estimadas) y <strong>calidad del entregable</strong> (
+        {pesoCalidad}% — calificada por un admin al revisar cada tarea terminada), ajustado a 100. Mientras una persona no
+        tenga ninguna tarea calificada, su puntaje se muestra como <strong>provisional</strong> (sin el componente de
+        calidad). Los pesos se editan en Configuración por un administrador. Esto no debe usarse para comparar personas
+        entre sí ni para decisiones automáticas.
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {filas.map(({ p, cumplimiento, oportunidad, equilibrio, score, totalTareas }) => (
+        {filas.map(({ p, cumplimiento, oportunidad, eficiencia, calidad, provisional, score, totalTareas }) => (
           <div key={p.id} className="rounded-lg border border-neutral-200 bg-white p-4">
             <div className="flex items-start justify-between">
               <div>
                 <div className="font-semibold text-neutral-800">{p.full_name || p.email}</div>
                 <div className="text-xs text-neutral-500">{p.cargo || "—"}</div>
               </div>
-              <div className="text-2xl font-bold text-emerald-900">{Math.round(score)}%</div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-emerald-900">{Math.round(score)}%</div>
+                {provisional && <div className="text-[11px] font-semibold text-amber-600">Provisional</div>}
+              </div>
             </div>
             <Barra label="Cumplimiento" valor={cumplimiento} />
             <Barra label="Oportunidad" valor={oportunidad} />
-            <Barra label="Equilibrio de carga" valor={equilibrio} />
+            <Barra label="Eficiencia de tiempo" valor={eficiencia} />
+            <Barra label="Calidad del entregable" valor={calidad} atenuada={provisional} />
             <div className="mt-2 text-xs text-neutral-400">{totalTareas} tarea(s) asignadas en total</div>
           </div>
         ))}
@@ -73,12 +84,12 @@ export default async function Page() {
   );
 }
 
-function Barra({ label, valor }: { label: string; valor: number }) {
+function Barra({ label, valor, atenuada }: { label: string; valor: number; atenuada?: boolean }) {
   return (
-    <div className="mt-2">
+    <div className={`mt-2 ${atenuada ? "opacity-50" : ""}`}>
       <div className="flex justify-between text-xs text-neutral-500">
         <span>{label}</span>
-        <span>{Math.round(valor)}%</span>
+        <span>{atenuada ? "—" : `${Math.round(valor)}%`}</span>
       </div>
       <div className="mt-0.5 h-1.5 overflow-hidden rounded-full bg-neutral-100">
         <div className="h-full bg-emerald-600" style={{ width: `${Math.min(100, valor)}%` }} />

@@ -12,6 +12,7 @@ import {
   reanudarTarea,
   iniciarTiempo,
   detenerTiempo,
+  calificarCalidad,
 } from "./actions";
 import { reprogramarBloque } from "../agendas/actions";
 
@@ -34,6 +35,7 @@ type Tarea = {
   entregable: string | null;
   notas: string | null;
   archivado: boolean;
+  calidad_pct: number | null;
 };
 
 type Profile = { id: string; full_name: string | null; email: string | null };
@@ -289,6 +291,7 @@ export function TaskBoard({
         <Column title="Terminadas" count={terminadas.length}>
           {terminadas.map((t) => (
             <Card key={t.id} t={t} profiles={profiles}>
+              {isAdmin && <CalidadRating tarea={t} onRate={(c) => run(() => calificarCalidad(t.id, c))} disabled={pending} />}
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setDetalle(t)}
@@ -444,6 +447,38 @@ function Card({ t, profiles, children }: { t: Tarea; profiles: Profile[]; childr
       </div>
       {t.descripcion && <p className="mt-2 text-xs text-neutral-600">{t.descripcion}</p>}
       {children && <div className="mt-3">{children}</div>}
+    </div>
+  );
+}
+
+const NIVELES_CALIDAD = [
+  { valor: 20, label: "1 — debe rehacerse" },
+  { valor: 40, label: "2 — correcciones importantes" },
+  { valor: 60, label: "3 — varias correcciones" },
+  { valor: 80, label: "4 — ajustes menores" },
+  { valor: 100, label: "5 — cumple completamente" },
+];
+
+function CalidadRating({ tarea, onRate, disabled }: { tarea: Tarea; onRate: (calidad: number) => void; disabled: boolean }) {
+  const estrella = tarea.calidad_pct ? tarea.calidad_pct / 20 : 0;
+  return (
+    <div className="mt-2 rounded-md bg-neutral-50 p-2">
+      <div className="text-[11px] font-semibold text-neutral-500">Calidad del entregable</div>
+      <div className="mt-1 flex items-center gap-1">
+        {NIVELES_CALIDAD.map((n, i) => (
+          <button
+            key={n.valor}
+            type="button"
+            title={n.label}
+            disabled={disabled}
+            onClick={() => onRate(n.valor)}
+            className={`text-lg leading-none disabled:opacity-60 ${i < estrella ? "text-amber-500" : "text-neutral-300 hover:text-amber-300"}`}
+          >
+            ★
+          </button>
+        ))}
+        {tarea.calidad_pct != null && <span className="ml-1 text-[11px] text-neutral-400">({tarea.calidad_pct}%)</span>}
+      </div>
     </div>
   );
 }

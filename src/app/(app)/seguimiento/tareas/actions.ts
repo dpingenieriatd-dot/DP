@@ -143,6 +143,19 @@ export async function terminarTarea(id: string, formData: FormData) {
   revalidatePath("/seguimiento/actividades");
 }
 
+const CALIDAD_VALIDA = [20, 40, 60, 80, 100];
+
+/** Calificación de calidad del entregable (1-5 -> 20/40/60/80/100), solo sobre tareas Terminadas, solo admin. */
+export async function calificarCalidad(id: string, calidad: number) {
+  if (!(await requiereAdmin())) return { error: "Solo la Directora de Proyectos puede calificar la calidad del entregable." };
+  if (!CALIDAD_VALIDA.includes(calidad)) return { error: "Calificación inválida." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("tareas").update({ calidad_pct: calidad }).eq("id", id).eq("estado", "Terminada");
+  if (error) return { error: error.message };
+  revalidatePath(PATH);
+  revalidatePath("/seguimiento/efectividad");
+}
+
 export async function eliminarTarea(id: string) {
   if (!(await requiereAdmin())) return { error: "Solo la Directora de Proyectos puede eliminar tareas." };
   const supabase = await createClient();

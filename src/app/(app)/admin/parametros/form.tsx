@@ -15,8 +15,7 @@ type Efectividad = {
   peso_cumplimiento: number;
   peso_oportunidad: number;
   peso_calidad: number;
-  peso_equilibrio_carga: number;
-  umbral_carga_equilibrada_pct: number;
+  peso_eficiencia_tiempo: number;
   capacidad_semanal_estandar_horas: number;
 };
 
@@ -70,8 +69,9 @@ export function ParametrosForm({ settings, efectividad }: { settings: Settings; 
         <form action={guardarEfectividad} className="space-y-3 rounded-lg border border-neutral-200 bg-white p-5">
           <h2 className="font-semibold text-emerald-900">Parámetros de Efectividad (Seguimiento)</h2>
           <p className="text-xs text-neutral-500">
-            El componente de calidad ({efectividad?.peso_calidad ?? 15}%) queda guardado pero todavía no se calcula —
-            falta definir con D&P cómo calificar un entregable.
+            La calidad ({efectividad?.peso_calidad ?? 15}%) la califica un admin al revisar cada tarea terminada, antes
+            de archivarla (escala de 1 a 5 estrellas, en Banco de tareas). La eficiencia de tiempo compara horas reales
+            contra horas estimadas — Agenda ya no influye en Efectividad, solo en Capacidad del equipo.
           </p>
           <Campo label="Peso cumplimiento (%)">
             <input type="number" step="1" name="peso_cumplimiento" defaultValue={efectividad?.peso_cumplimiento ?? 50} className="in" />
@@ -79,14 +79,11 @@ export function ParametrosForm({ settings, efectividad }: { settings: Settings; 
           <Campo label="Peso oportunidad (%)">
             <input type="number" step="1" name="peso_oportunidad" defaultValue={efectividad?.peso_oportunidad ?? 25} className="in" />
           </Campo>
+          <Campo label="Peso eficiencia de tiempo (%)">
+            <input type="number" step="1" name="peso_eficiencia_tiempo" defaultValue={efectividad?.peso_eficiencia_tiempo ?? 10} className="in" />
+          </Campo>
           <Campo label="Peso calidad (%)">
             <input type="number" step="1" name="peso_calidad" defaultValue={efectividad?.peso_calidad ?? 15} className="in" />
-          </Campo>
-          <Campo label="Peso equilibrio de carga (%)">
-            <input type="number" step="1" name="peso_equilibrio_carga" defaultValue={efectividad?.peso_equilibrio_carga ?? 10} className="in" />
-          </Campo>
-          <Campo label="Umbral de carga equilibrada (%)">
-            <input type="number" step="1" name="umbral_carga_equilibrada_pct" defaultValue={efectividad?.umbral_carga_equilibrada_pct ?? 90} className="in" />
           </Campo>
           <Campo label="Capacidad semanal estándar (horas)">
             <input type="number" step="1" name="capacidad_semanal_estandar_horas" defaultValue={efectividad?.capacidad_semanal_estandar_horas ?? 40} className="in" />

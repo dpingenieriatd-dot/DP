@@ -31,8 +31,7 @@ export async function actualizarEfectividadParametros(formData: FormData) {
       peso_cumplimiento: formData.get("peso_cumplimiento") || 50,
       peso_oportunidad: formData.get("peso_oportunidad") || 25,
       peso_calidad: formData.get("peso_calidad") || 15,
-      peso_equilibrio_carga: formData.get("peso_equilibrio_carga") || 10,
-      umbral_carga_equilibrada_pct: formData.get("umbral_carga_equilibrada_pct") || 90,
+      peso_eficiencia_tiempo: formData.get("peso_eficiencia_tiempo") || 10,
       capacidad_semanal_estandar_horas: formData.get("capacidad_semanal_estandar_horas") || 40,
       actualizado_por: user?.id ?? null,
     })
