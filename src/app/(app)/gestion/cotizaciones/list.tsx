@@ -49,6 +49,15 @@ export function CotizacionesList({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [porAprobar, setPorAprobar] = useState<string | null>(null);
+  const [estadoFiltro, setEstadoFiltro] = useState("");
+  const [desde, setDesde] = useState("");
+  const [hasta, setHasta] = useState("");
+
+  const visibles = cotizaciones
+    .filter((c) => !estadoFiltro || c.estado === estadoFiltro)
+    .filter((c) => !desde || (c.fecha && c.fecha >= desde))
+    .filter((c) => !hasta || (c.fecha && c.fecha <= hasta));
+  const hayFiltros = !!(estadoFiltro || desde || hasta);
 
   const [preview, setPreview] = useState({
     personas: editing?.personas ?? 0,
@@ -118,11 +127,43 @@ export function CotizacionesList({
 
   return (
     <div className="flex flex-col p-8 lg:h-full">
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-semibold text-emerald-900">Cotizaciones</h1>
         <button onClick={abrirCrear} className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
           + Nueva cotización
         </button>
+      </div>
+
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <label className="text-sm text-neutral-600">
+          Estado{" "}
+          <select value={estadoFiltro} onChange={(e) => setEstadoFiltro(e.target.value)} className="ml-1 rounded-md border border-neutral-300 px-2 py-1.5 text-sm">
+            <option value="">Todos los estados</option>
+            <option>Borrador</option>
+            <option>Enviada</option>
+            <option>Aprobada</option>
+            <option>Rechazada</option>
+            <option>Cancelada</option>
+          </select>
+        </label>
+        <label className="text-sm text-neutral-600">
+          Desde <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} className="ml-1 rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
+        </label>
+        <label className="text-sm text-neutral-600">
+          Hasta <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} className="ml-1 rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
+        </label>
+        {hayFiltros && (
+          <button
+            onClick={() => {
+              setEstadoFiltro("");
+              setDesde("");
+              setHasta("");
+            }}
+            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 hover:bg-neutral-100"
+          >
+            Limpiar filtros
+          </button>
+        )}
       </div>
 
       <div className="min-h-[360px] overflow-auto rounded-lg border border-neutral-200 bg-white lg:min-h-0 lg:flex-1">
@@ -140,7 +181,7 @@ export function CotizacionesList({
             </tr>
           </thead>
           <tbody>
-            {cotizaciones.map((c) => (
+            {visibles.map((c) => (
               <tr key={c.id} className="border-t border-neutral-100 hover:bg-neutral-50">
                 <td className="px-3 py-2">{c.codigo || "—"}</td>
                 <td className="px-3 py-2">{c.nombre}</td>
@@ -181,10 +222,10 @@ export function CotizacionesList({
                 </td>
               </tr>
             ))}
-            {cotizaciones.length === 0 && (
+            {visibles.length === 0 && (
               <tr>
                 <td colSpan={8} className="px-3 py-8 text-center text-neutral-400">
-                  No hay cotizaciones registradas.
+                  {cotizaciones.length === 0 ? "No hay cotizaciones registradas." : "Ningún registro coincide con los filtros."}
                 </td>
               </tr>
             )}

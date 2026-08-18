@@ -8,8 +8,12 @@ function normCargo(s: string | null) {
   return (s ?? "").trim().toLowerCase();
 }
 
-export default async function Page({ searchParams }: { searchParams: Promise<{ cargo?: string }> }) {
-  const { cargo: cargoFiltro } = await searchParams;
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ cargo?: string; estado?: string; desde?: string; hasta?: string }>;
+}) {
+  const { cargo: cargoFiltro, estado: estadoFiltro, desde, hasta } = await searchParams;
   const supabase = await createClient();
   const [{ data: rows }, { data: clientes }, { data: proyectos }] = await Promise.all([
     supabase.from("actividades").select("*").order("fecha", { ascending: false }),
@@ -41,9 +45,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
   ];
 
   const todos = rows ?? [];
-  const items = cargoFiltro
-    ? todos.filter((r) => normCargo(r.cargo).startsWith(normCargo(cargoFiltro)))
-    : todos;
+  const items = todos
+    .filter((r) => !cargoFiltro || normCargo(r.cargo).startsWith(normCargo(cargoFiltro)))
+    .filter((r) => !estadoFiltro || r.estado === estadoFiltro)
+    .filter((r) => !desde || (r.fecha && r.fecha >= desde))
+    .filter((r) => !hasta || (r.fecha && r.fecha <= hasta));
   const cumplidas = items.filter((r) => r.estado === "Cumplido").length;
   const pendientes = items.filter((r) => r.estado === "Pendiente" || r.estado === "Parcial").length;
   const noCumplidas = items.filter((r) => r.estado === "No cumplido").length;

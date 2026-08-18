@@ -6,7 +6,7 @@ import { crearPresupuesto } from "./actions";
 import { money, type calcularPresupuesto, type calcularControlCostos } from "@/lib/finance";
 
 type Fila = {
-  pre: { id: string; codigo: string | null; nombre: string; proyecto_id: string };
+  pre: { id: string; codigo: string | null; nombre: string; proyecto_id: string; created_at: string };
   f: ReturnType<typeof calcularPresupuesto>;
   control: ReturnType<typeof calcularControlCostos>;
   proyecto: string;
@@ -16,6 +16,15 @@ export function PresupuestosList({ filas, proyectos }: { filas: Fila[]; proyecto
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [viabilidadFiltro, setViabilidadFiltro] = useState("");
+  const [desde, setDesde] = useState("");
+  const [hasta, setHasta] = useState("");
+
+  const visibles = filas
+    .filter(({ f }) => !viabilidadFiltro || (viabilidadFiltro === "viable" ? f.viable : !f.viable))
+    .filter(({ pre }) => !desde || pre.created_at.slice(0, 10) >= desde)
+    .filter(({ pre }) => !hasta || pre.created_at.slice(0, 10) <= hasta);
+  const hayFiltros = !!(viabilidadFiltro || desde || hasta);
 
   function submit(formData: FormData) {
     startTransition(async () => {
@@ -26,7 +35,7 @@ export function PresupuestosList({ filas, proyectos }: { filas: Fila[]; proyecto
 
   return (
     <div className="flex flex-col p-8 lg:h-full">
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-semibold text-emerald-900">Presupuestos</h1>
         <button onClick={() => setOpen(true)} className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
           + Nuevo presupuesto
@@ -37,6 +46,35 @@ export function PresupuestosList({ filas, proyectos }: { filas: Fila[]; proyecto
         módulo registra lo que realmente cuesta ejecutar el proyecto y controla la ganancia. Un proyecto puede tener
         más de un presupuesto (por ejemplo, uno por cada servicio o entregable).
       </p>
+
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <label className="text-sm text-neutral-600">
+          Viabilidad{" "}
+          <select value={viabilidadFiltro} onChange={(e) => setViabilidadFiltro(e.target.value)} className="ml-1 rounded-md border border-neutral-300 px-2 py-1.5 text-sm">
+            <option value="">Todas</option>
+            <option value="viable">✅ Viable</option>
+            <option value="no_viable">❌ No viable</option>
+          </select>
+        </label>
+        <label className="text-sm text-neutral-600">
+          Creado desde <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} className="ml-1 rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
+        </label>
+        <label className="text-sm text-neutral-600">
+          Creado hasta <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} className="ml-1 rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
+        </label>
+        {hayFiltros && (
+          <button
+            onClick={() => {
+              setViabilidadFiltro("");
+              setDesde("");
+              setHasta("");
+            }}
+            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 hover:bg-neutral-100"
+          >
+            Limpiar filtros
+          </button>
+        )}
+      </div>
 
       <div className="min-h-[360px] overflow-auto rounded-lg border border-neutral-200 bg-white lg:min-h-0 lg:flex-1">
         <table className="w-full min-w-[1100px] text-xs">
@@ -55,7 +93,7 @@ export function PresupuestosList({ filas, proyectos }: { filas: Fila[]; proyecto
             </tr>
           </thead>
           <tbody>
-            {filas.map(({ pre, f, control, proyecto }) => (
+            {visibles.map(({ pre, f, control, proyecto }) => (
               <tr key={pre.id} className="border-t border-neutral-100 hover:bg-neutral-50">
                 <td className="px-3 py-2">{pre.codigo || "—"}</td>
                 <td className="px-3 py-2">{proyecto}</td>
@@ -79,10 +117,10 @@ export function PresupuestosList({ filas, proyectos }: { filas: Fila[]; proyecto
                 </td>
               </tr>
             ))}
-            {filas.length === 0 && (
+            {visibles.length === 0 && (
               <tr>
                 <td colSpan={10} className="px-3 py-8 text-center text-neutral-400">
-                  No hay presupuestos registrados.
+                  {filas.length === 0 ? "No hay presupuestos registrados." : "Ningún registro coincide con los filtros."}
                 </td>
               </tr>
             )}

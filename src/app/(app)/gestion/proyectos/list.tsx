@@ -6,7 +6,7 @@ import { crearProyecto, archivarProyecto } from "./actions";
 import { money } from "@/lib/finance";
 
 type Fila = {
-  proy: { id: string; codigo: string | null; nombre: string; estado: string };
+  proy: { id: string; codigo: string | null; nombre: string; estado: string; fecha_inicio: string | null; fecha_fin: string | null };
   cliente: string;
   empresa: string;
   responsable: string;
@@ -30,6 +30,15 @@ export function ProyectosList({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [estadoFiltro, setEstadoFiltro] = useState("");
+  const [desde, setDesde] = useState("");
+  const [hasta, setHasta] = useState("");
+
+  const visibles = filas
+    .filter((f) => !estadoFiltro || f.proy.estado === estadoFiltro)
+    .filter((f) => !desde || (f.proy.fecha_inicio && f.proy.fecha_inicio >= desde))
+    .filter((f) => !hasta || (f.proy.fecha_inicio && f.proy.fecha_inicio <= hasta));
+  const hayFiltros = !!(estadoFiltro || desde || hasta);
 
   function submit(formData: FormData) {
     startTransition(async () => {
@@ -40,11 +49,42 @@ export function ProyectosList({
 
   return (
     <div className="flex flex-col p-8 lg:h-full">
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-semibold text-emerald-900">Proyectos</h1>
         <button onClick={() => setOpen(true)} className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
           + Nuevo proyecto
         </button>
+      </div>
+
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <label className="text-sm text-neutral-600">
+          Estado{" "}
+          <select value={estadoFiltro} onChange={(e) => setEstadoFiltro(e.target.value)} className="ml-1 rounded-md border border-neutral-300 px-2 py-1.5 text-sm">
+            <option value="">Todos los estados</option>
+            <option>Planeado</option>
+            <option>En ejecucion</option>
+            <option>Finalizado</option>
+            <option>Cancelado</option>
+          </select>
+        </label>
+        <label className="text-sm text-neutral-600">
+          Inicio desde <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} className="ml-1 rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
+        </label>
+        <label className="text-sm text-neutral-600">
+          Inicio hasta <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} className="ml-1 rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
+        </label>
+        {hayFiltros && (
+          <button
+            onClick={() => {
+              setEstadoFiltro("");
+              setDesde("");
+              setHasta("");
+            }}
+            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 hover:bg-neutral-100"
+          >
+            Limpiar filtros
+          </button>
+        )}
       </div>
 
       <div className="min-h-[360px] overflow-auto rounded-lg border border-neutral-200 bg-white lg:min-h-0 lg:flex-1">
@@ -63,7 +103,7 @@ export function ProyectosList({
             </tr>
           </thead>
           <tbody>
-            {filas.map(({ proy, cliente, empresa, responsable, numPresupuestos, gananciaTotal, viableTodos }) => (
+            {visibles.map(({ proy, cliente, empresa, responsable, numPresupuestos, gananciaTotal, viableTodos }) => (
               <tr key={proy.id} className="border-t border-neutral-100 hover:bg-neutral-50">
                 <td className="px-3 py-2">
                   <Link href={`/gestion/proyectos/${proy.id}`} className="font-medium text-emerald-700 hover:underline">
@@ -111,10 +151,10 @@ export function ProyectosList({
                 </td>
               </tr>
             ))}
-            {filas.length === 0 && (
+            {visibles.length === 0 && (
               <tr>
                 <td colSpan={9} className="px-3 py-8 text-center text-neutral-400">
-                  No hay proyectos registrados.
+                  {filas.length === 0 ? "No hay proyectos registrados." : "Ningún registro coincide con los filtros."}
                 </td>
               </tr>
             )}
