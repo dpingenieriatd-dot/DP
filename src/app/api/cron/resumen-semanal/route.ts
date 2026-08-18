@@ -201,7 +201,7 @@ export async function GET(req: Request) {
   const html = renderHtml({
     desde,
     hasta,
-    siteUrl: process.env.NEXT_PUBLIC_SITE_URL || "https://dp-dp-728a.vercel.app",
+    siteUrl: process.env.NEXT_PUBLIC_SITE_URL || "https://app.dpingenieriaintegral.com",
     tareasTerminadas: tareasTerminadas ?? [],
     proyectosNegativos,
     comprasPendientes,
