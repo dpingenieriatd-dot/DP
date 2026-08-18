@@ -8,6 +8,40 @@ import { crearNotificacion } from "@/lib/notificaciones";
 
 const PATH = "/gestion/cotizaciones";
 
+type SupabaseServer = Awaited<ReturnType<typeof createClient>>;
+
+/**
+ * El select de "Empresa atendida" también permite elegir un Cliente directamente
+ * (cuando la empresa atendida ES el cliente, sin intermediario) — llega como
+ * "cliente:<id>". empresa_id sigue siendo una FK real a empresas_atendidas, así
+ * que se busca (o se crea) la fila correspondiente para ese cliente.
+ */
+async function resolveEmpresaId(supabase: SupabaseServer, raw: FormDataEntryValue | null): Promise<string | null> {
+  const value = raw ? String(raw) : "";
+  if (!value) return null;
+  if (!value.startsWith("cliente:")) return value;
+
+  const clienteId = value.slice("cliente:".length);
+  const { data: cliente } = await supabase.from("clientes").select("nombre, nit, ciudad").eq("id", clienteId).single();
+  if (!cliente) return null;
+
+  const { data: existente } = await supabase
+    .from("empresas_atendidas")
+    .select("id")
+    .eq("cliente_id", clienteId)
+    .eq("nombre", cliente.nombre)
+    .maybeSingle();
+  if (existente) return existente.id;
+
+  const { data: nueva, error } = await supabase
+    .from("empresas_atendidas")
+    .insert({ nombre: cliente.nombre, cliente_id: clienteId, nit: cliente.nit, ciudad: cliente.ciudad, estado: "Activo" })
+    .select("id")
+    .single();
+  if (error || !nueva) return null;
+  return nueva.id;
+}
+
 function inputsFromForm(formData: FormData) {
   return {
     personas: Number(formData.get("personas") || 0),
@@ -30,18 +64,19 @@ function inputsFromForm(formData: FormData) {
 function rentabilidadFromForm(formData: FormData, valorCotizado: number) {
   const costosEstimados = Number(formData.get("costos_estimados") || 0);
   const respIva = formData.get("resp_iva") === "true";
+  const margenPct = Number(formData.get("margen_pct") || 30);
   if (costosEstimados <= 0) {
-    return { costosEstimados: null, respIva, valorSugerido: undefined, margenNeg: undefined };
+    return { costosEstimados: null, respIva, margenPct, valorSugerido: undefined, margenNeg: undefined };
   }
   const f = calcularPresupuesto({
     costos: costosEstimados,
     admin_pct: 15,
-    margen_pct: 30,
+    margen_pct: margenPct,
     resp_iva: respIva,
     iva_pct: 19,
     valor_cotizado: valorCotizado,
   });
-  return { costosEstimados, respIva, valorSugerido: f.valorSugerido, margenNeg: f.margenNeg };
+  return { costosEstimados, respIva, margenPct, valorSugerido: f.valorSugerido, margenNeg: f.margenNeg };
 }
 
 export async function crearCotizacion(formData: FormData) {
@@ -53,11 +88,12 @@ export async function crearCotizacion(formData: FormData) {
   const inputs = inputsFromForm(formData);
   const calc = calcularCotizacion(inputs);
   const rent = rentabilidadFromForm(formData, calc.valorCotizado);
+  const empresaId = await resolveEmpresaId(supabase, formData.get("empresa_id"));
 
   const { error } = await supabase.from("cotizaciones").insert({
     codigo: formData.get("codigo") || null,
     cliente_id: formData.get("cliente_id") || null,
-    empresa_id: formData.get("empresa_id") || null,
+    empresa_id: empresaId,
     nombre: formData.get("nombre"),
     responsable_id: formData.get("responsable_id") || null,
     fecha: formData.get("fecha") || new Date().toISOString().slice(0, 10),
@@ -70,11 +106,18 @@ export async function crearCotizacion(formData: FormData) {
     valor_cotizado: calc.valorCotizado,
     costos_estimados: rent.costosEstimados,
     resp_iva: rent.respIva,
+    margen_pct: rent.margenPct,
     ...(rent.valorSugerido !== undefined ? { valor_sugerido: rent.valorSugerido, margen: rent.margenNeg } : {}),
     creado_por: user?.id ?? null,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: codigoDuplicado(error) };
   revalidatePath(PATH);
+}
+
+/** El código de cotización es único a nivel de base de datos — mensaje legible en vez del error crudo de Postgres. */
+function codigoDuplicado(error: { code?: string; message: string }) {
+  if (error.code === "23505") return "Ya existe una cotización con este código. Usa un código diferente.";
+  return error.message;
 }
 
 export async function actualizarCotizacion(id: string, formData: FormData) {
@@ -83,6 +126,7 @@ export async function actualizarCotizacion(id: string, formData: FormData) {
   const calc = calcularCotizacion(inputs);
   const rent = rentabilidadFromForm(formData, calc.valorCotizado);
   const nuevoEstado = (formData.get("estado") as string) || "Borrador";
+  const empresaId = await resolveEmpresaId(supabase, formData.get("empresa_id"));
 
   const { data: previa } = await supabase.from("cotizaciones").select("estado, creado_por, nombre").eq("id", id).single();
 
@@ -91,7 +135,7 @@ export async function actualizarCotizacion(id: string, formData: FormData) {
     .update({
       codigo: formData.get("codigo") || null,
       cliente_id: formData.get("cliente_id") || null,
-      empresa_id: formData.get("empresa_id") || null,
+      empresa_id: empresaId,
       nombre: formData.get("nombre"),
       responsable_id: formData.get("responsable_id") || null,
       fecha: formData.get("fecha") || null,
@@ -104,11 +148,12 @@ export async function actualizarCotizacion(id: string, formData: FormData) {
       valor_cotizado: calc.valorCotizado,
       costos_estimados: rent.costosEstimados,
       resp_iva: rent.respIva,
+      margen_pct: rent.margenPct,
       ...(rent.valorSugerido !== undefined ? { valor_sugerido: rent.valorSugerido, margen: rent.margenNeg } : {}),
       estado: nuevoEstado,
     })
     .eq("id", id);
-  if (error) return { error: error.message };
+  if (error) return { error: codigoDuplicado(error) };
 
   if (previa && previa.estado !== nuevoEstado && (nuevoEstado === "Aprobada" || nuevoEstado === "Rechazada")) {
     await crearNotificacion(supabase, {

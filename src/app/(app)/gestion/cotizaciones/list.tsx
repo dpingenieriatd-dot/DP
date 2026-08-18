@@ -22,11 +22,13 @@ type Cotizacion = {
   valor_sugerido: number | null;
   costos_estimados: number | null;
   resp_iva: boolean | null;
+  margen_pct: number | null;
   estado: string;
 };
 
 const ESTADO_CLASS: Record<string, string> = {
   Borrador: "bg-neutral-100 text-neutral-600",
+  "Pendiente por definir": "bg-amber-100 text-amber-700",
   Enviada: "bg-sky-100 text-sky-700",
   Aprobada: "bg-emerald-100 text-emerald-700",
   Rechazada: "bg-red-100 text-red-700",
@@ -66,6 +68,7 @@ export function CotizacionesList({
     valor_hora: editing?.valor_hora ?? 0,
     costos: editing?.costos_estimados ?? 0,
     respIva: editing?.resp_iva ?? true,
+    margenPct: editing?.margen_pct ?? 30,
   });
   const calc = useMemo(() => calcularCotizacion(preview), [preview]);
   const rentabilidad = useMemo(
@@ -73,19 +76,19 @@ export function CotizacionesList({
       calcularPresupuesto({
         costos: preview.costos,
         admin_pct: 15,
-        margen_pct: 30,
+        margen_pct: preview.margenPct,
         resp_iva: preview.respIva,
         iva_pct: 19,
         valor_cotizado: calc.valorCotizado,
       }),
-    [preview.costos, preview.respIva, calc.valorCotizado]
+    [preview.costos, preview.respIva, preview.margenPct, calc.valorCotizado]
   );
 
   const clienteNombre = (id: string | null) => clientes.find((c) => c.id === id)?.nombre ?? "—";
 
   function abrirCrear() {
     setEditing(null);
-    setPreview({ personas: 0, valor_unit: 0, horas: 0, valor_hora: 0, costos: 0, respIva: true });
+    setPreview({ personas: 0, valor_unit: 0, horas: 0, valor_hora: 0, costos: 0, respIva: true, margenPct: 30 });
     setError(null);
     setOpen(true);
   }
@@ -99,6 +102,7 @@ export function CotizacionesList({
       valor_hora: c.valor_hora ?? 0,
       costos: c.costos_estimados ?? 0,
       respIva: c.resp_iva ?? true,
+      margenPct: c.margen_pct ?? 30,
     });
     setError(null);
     setOpen(true);
@@ -140,6 +144,7 @@ export function CotizacionesList({
           <select value={estadoFiltro} onChange={(e) => setEstadoFiltro(e.target.value)} className="ml-1 rounded-md border border-neutral-300 px-2 py-1.5 text-sm">
             <option value="">Todos los estados</option>
             <option>Borrador</option>
+            <option>Pendiente por definir</option>
             <option>Enviada</option>
             <option>Aprobada</option>
             <option>Rechazada</option>
@@ -201,7 +206,7 @@ export function CotizacionesList({
                   <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${ESTADO_CLASS[c.estado]}`}>{c.estado}</span>
                 </td>
                 <td className="whitespace-nowrap px-3 py-2 text-right">
-                  {(c.estado === "Borrador" || c.estado === "Enviada") && (
+                  {(c.estado === "Borrador" || c.estado === "Pendiente por definir" || c.estado === "Enviada") && (
                     <button onClick={() => aprobar(c)} disabled={pending} className="mr-3 text-xs font-semibold text-emerald-700 hover:underline">
                       {porAprobar === c.id ? "¿Confirmar? Aprobar y crear proyecto" : "Aprobar → crear proyecto"}
                     </button>
@@ -257,11 +262,20 @@ export function CotizacionesList({
               <Campo label="Empresa atendida">
                 <select name="empresa_id" defaultValue={editing?.empresa_id ?? ""} className="in">
                   <option value="">Seleccione…</option>
-                  {empresas.map((e) => (
-                    <option key={e.id} value={e.id}>
-                      {e.nombre}
-                    </option>
-                  ))}
+                  <optgroup label="Empresas atendidas">
+                    {empresas.map((e) => (
+                      <option key={e.id} value={e.id}>
+                        {e.nombre}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Usar el cliente directamente (sin empresa intermedia)">
+                    {clientes.map((c) => (
+                      <option key={`cliente:${c.id}`} value={`cliente:${c.id}`}>
+                        {c.nombre}
+                      </option>
+                    ))}
+                  </optgroup>
                 </select>
               </Campo>
               <Campo label="Responsable comercial">
@@ -281,6 +295,7 @@ export function CotizacionesList({
                 <Campo label="Estado">
                   <select name="estado" defaultValue={editing.estado} className="in">
                     <option>Borrador</option>
+                    <option>Pendiente por definir</option>
                     <option>Enviada</option>
                     <option>Aprobada</option>
                     <option>Rechazada</option>
@@ -345,6 +360,17 @@ export function CotizacionesList({
                   className="in"
                 />
               </Campo>
+              <Campo label="Margen de utilidad (%)">
+                <input
+                  type="number"
+                  step="1"
+                  min="0"
+                  name="margen_pct"
+                  value={preview.margenPct}
+                  onChange={(e) => setPreview((p) => ({ ...p, margenPct: Number(e.target.value) }))}
+                  className="in"
+                />
+              </Campo>
               <Campo label="¿Responde por IVA?">
                 <select
                   name="resp_iva"
@@ -372,7 +398,7 @@ export function CotizacionesList({
                 <>
                   <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-emerald-900 sm:grid-cols-3">
                     <span>Costos admin. (15%): {money.format(rentabilidad.admin)}</span>
-                    <span>Utilidad esperada (30%): {money.format(rentabilidad.utilidadEsperada)}</span>
+                    <span>Utilidad esperada ({preview.margenPct}%): {money.format(rentabilidad.utilidadEsperada)}</span>
                     <span>IVA: {money.format(rentabilidad.iva)}</span>
                   </div>
                   <div className="mt-2 flex items-center justify-between border-t border-emerald-200 pt-2 font-semibold text-emerald-900">

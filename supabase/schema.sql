@@ -407,6 +407,12 @@ create table if not exists cotizaciones (
   creado_por uuid references profiles(id),
   created_at timestamptz not null default now()
 );
+-- Nota: esta tabla creció bastante desde su definición original de arriba (empresa_id,
+-- responsable_id, fecha, personas, valor_unit, val_materiales, horas, valor_hora, valor_prof,
+-- valor_sugerido, margen, costos_estimados, resp_iva) vía migraciones tempranas no
+-- documentadas en este archivo — las columnas de abajo sí quedan documentadas como ALTER
+-- idempotente para que un install nuevo desde cero también las tenga.
+alter table cotizaciones add column if not exists margen_pct numeric not null default 30;
 
 create table if not exists proyectos (
   id uuid primary key default gen_random_uuid(),
