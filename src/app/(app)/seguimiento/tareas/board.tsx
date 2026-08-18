@@ -302,8 +302,9 @@ export function TaskBoard({
                 {isAdmin && (
                   <button
                     onClick={() => run(() => archivarTarea(t.id))}
-                    disabled={pending}
-                    className="rounded-md px-3 py-1.5 text-xs text-neutral-500 hover:underline disabled:opacity-60"
+                    disabled={pending || t.calidad_pct == null}
+                    title={t.calidad_pct == null ? "Califica la calidad del entregable antes de archivar" : undefined}
+                    className="rounded-md px-3 py-1.5 text-xs text-neutral-500 hover:underline disabled:opacity-60 disabled:no-underline"
                   >
                     🗄 Archivar
                   </button>

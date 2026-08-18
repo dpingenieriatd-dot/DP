@@ -167,6 +167,10 @@ export async function eliminarTarea(id: string) {
 export async function archivarTarea(id: string) {
   if (!(await requiereAdmin())) return { error: "Solo la Directora de Proyectos puede archivar tareas." };
   const supabase = await createClient();
+  // La calidad se califica "antes de archivar" (pedido explícito de Angélica) — sin calificar, no se
+  // deja archivar, para que ninguna tarea terminada se salte la revisión de calidad en silencio.
+  const { data: tarea } = await supabase.from("tareas").select("calidad_pct").eq("id", id).single();
+  if (tarea?.calidad_pct == null) return { error: "Califica la calidad del entregable antes de archivar la tarea." };
   const { error } = await supabase.from("tareas").update({ archivado: true }).eq("id", id).eq("estado", "Terminada");
   if (error) return { error: error.message };
   revalidatePath(PATH);

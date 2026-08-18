@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { crearBloque, eliminarBloque, actualizarPreferenciasRecordatorio } from "./actions";
-import { iniciarTiempo, pausarTarea, reanudarTarea } from "../tareas/actions";
+import { iniciarTiempo, pausarTarea, reanudarTarea, terminarTarea } from "../tareas/actions";
 
 type Profile = { id: string; full_name: string | null; email: string | null; capacidad_semanal_horas: number };
 type Cliente = { id: string; nombre: string };
@@ -73,6 +73,7 @@ export function AgendaGrid({
 }) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [finishing, setFinishing] = useState<{ tareaId: string; titulo: string } | null>(null);
   const [pending, startTransition] = useTransition();
 
   function submit(formData: FormData) {
@@ -193,23 +194,31 @@ export function AgendaGrid({
                                   esMia && (estado === "En proceso" || estado === "Pausada") ? (
                                     <div className="mt-1 flex flex-wrap gap-2">
                                       {estado === "En proceso" ? (
-                                        corriendo ? (
+                                        <>
+                                          {corriendo ? (
+                                            <button
+                                              onClick={() => run(() => pausarTarea(timerActivo!.id))}
+                                              disabled={pending}
+                                              className="text-[clamp(0.65rem,6cqw,0.75rem)] font-semibold text-amber-700 hover:underline"
+                                            >
+                                              ⏸ Pausar
+                                            </button>
+                                          ) : (
+                                            <button
+                                              onClick={() => run(() => iniciarTiempo(b.tarea_id!))}
+                                              disabled={pending || !!timerActivo}
+                                              className="text-[clamp(0.65rem,6cqw,0.75rem)] font-semibold text-emerald-700 hover:underline disabled:opacity-60"
+                                            >
+                                              ▶ Tiempo
+                                            </button>
+                                          )}
                                           <button
-                                            onClick={() => run(() => pausarTarea(timerActivo!.id))}
-                                            disabled={pending}
-                                            className="text-[clamp(0.65rem,6cqw,0.75rem)] font-semibold text-amber-700 hover:underline"
+                                            onClick={() => setFinishing({ tareaId: b.tarea_id!, titulo: b.tarea ?? "" })}
+                                            className="text-[clamp(0.65rem,6cqw,0.75rem)] font-semibold text-emerald-900 hover:underline"
                                           >
-                                            ⏸ Pausar
+                                            ✓ Terminar
                                           </button>
-                                        ) : (
-                                          <button
-                                            onClick={() => run(() => iniciarTiempo(b.tarea_id!))}
-                                            disabled={pending || !!timerActivo}
-                                            className="text-[clamp(0.65rem,6cqw,0.75rem)] font-semibold text-emerald-700 hover:underline disabled:opacity-60"
-                                          >
-                                            ▶ Tiempo
-                                          </button>
-                                        )
+                                        </>
                                       ) : (
                                         <button
                                           onClick={() => run(() => reanudarTarea(b.tarea_id!))}
@@ -321,6 +330,45 @@ export function AgendaGrid({
               </button>
               <button type="submit" disabled={pending} className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60">
                 Agregar
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {finishing && (
+        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4" onClick={() => setFinishing(null)}>
+          <form
+            action={(fd) =>
+              startTransition(async () => {
+                const r = await terminarTarea(finishing.tareaId, fd);
+                if (r?.error) setError(r.error);
+                else setFinishing(null);
+              })
+            }
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-lg rounded-lg bg-white p-6 shadow-lg"
+          >
+            <h2 className="mb-1 text-lg font-semibold text-emerald-900">Terminar tarea</h2>
+            <p className="mb-4 text-sm text-neutral-500">{finishing.titulo}</p>
+            <label className="block text-sm">
+              <span className="mb-1 block text-neutral-600">Entregable / enlace</span>
+              <input name="entregable" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+            </label>
+            <label className="mt-3 block text-sm">
+              <span className="mb-1 block text-neutral-600">Observaciones</span>
+              <textarea name="notas" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+            </label>
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setFinishing(null)} className="rounded-md px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-100">
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={pending}
+                className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
+              >
+                Marcar terminada
               </button>
             </div>
           </form>
