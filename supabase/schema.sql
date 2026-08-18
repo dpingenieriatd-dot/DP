@@ -216,6 +216,39 @@ create trigger trg_tareas_guard_admin_columns
   before update on tareas
   for each row execute function guard_tareas_admin_columns();
 
+-- "Retirar tareas del Banco de tareas" (liberarTarea) y "modificar el estado" son admin-only
+-- salvo que sea la propia persona operando su propia tarea (tomar/pausar/reanudar/terminar/soltar
+-- la que es suya) — mismo problema de columna que archivado/calidad_pct.
+create or replace function guard_tareas_responsable()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if is_admin() then
+    return new;
+  end if;
+
+  if new.responsable is distinct from old.responsable then
+    if not (
+      (old.responsable is null and new.responsable = auth.uid())
+      or (old.responsable = auth.uid() and new.responsable is null)
+    ) then
+      raise exception 'Solo puedes tomar una tarea sin dueño o liberar una tarea que sea tuya.';
+    end if;
+  end if;
+
+  if new.estado is distinct from old.estado then
+    if not (old.responsable = auth.uid() or new.responsable = auth.uid()) then
+      raise exception 'Solo quien tomó la tarea puede cambiar su estado.';
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+drop trigger if exists trg_tareas_guard_responsable on tareas;
+create trigger trg_tareas_guard_responsable
+  before update on tareas
+  for each row execute function guard_tareas_responsable();
+
 -- Cada quien solo puede tocar sus propios registros de cronómetro — toda la app ya consulta
 -- siempre por usuario_id = usuario logueado, así que esto no rompe ningún flujo existente.
 drop policy if exists "seguimiento: acceso por módulo" on registros_tiempo;

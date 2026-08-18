@@ -89,6 +89,19 @@ export async function tomarTarea(id: string, formData: FormData) {
 
 export async function liberarTarea(id: string) {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "No hay sesión activa." };
+
+  // "Retirar una tarea del Banco de tareas" es una acción administrativa salvo cuando es la
+  // propia persona liberando su propia tarea (parte normal de "desarrollar" — tomarla y darse
+  // cuenta de que no se puede continuar). Cualquier otro caso queda para admin únicamente.
+  const { data: tarea } = await supabase.from("tareas").select("responsable").eq("id", id).single();
+  const esPropia = tarea?.responsable === user.id;
+  if (!esPropia && !(await requiereAdmin())) {
+    return { error: "Solo puedes liberar una tarea que hayas tomado tú, o ser Directora de Proyectos." };
+  }
 
   // Misma razón que en terminarTarea: si el cronómetro seguía corriendo, se cierra antes de
   // soltar la tarea para no dejar un registro de tiempo abierto para siempre.
@@ -107,8 +120,15 @@ export async function liberarTarea(id: string) {
 
 export async function terminarTarea(id: string, formData: FormData) {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "No hay sesión activa." };
 
   const { data: tarea } = await supabase.from("tareas").select("titulo, cliente_id, proyecto_id, responsable").eq("id", id).single();
+  if (!tarea || (tarea.responsable !== user.id && !(await requiereAdmin()))) {
+    return { error: "Solo quien tomó la tarea puede terminarla." };
+  }
 
   const entregable = (formData.get("entregable") as string) || null;
   const notas = (formData.get("notas") as string) || null;
