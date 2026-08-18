@@ -1,8 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { CrudTable, type Field } from "@/components/crud-table";
 import { createActividad, updateActividad, deleteActividad } from "./actions";
+import { CargoFilter } from "./cargo-filter";
 
-export default async function Page() {
+/** Normaliza para comparar cargos: el dato real trae variantes de mayúsculas y espacios sueltos. */
+function normCargo(s: string | null) {
+  return (s ?? "").trim().toLowerCase();
+}
+
+export default async function Page({ searchParams }: { searchParams: Promise<{ cargo?: string }> }) {
+  const { cargo: cargoFiltro } = await searchParams;
   const supabase = await createClient();
   const [{ data: rows }, { data: clientes }, { data: proyectos }] = await Promise.all([
     supabase.from("actividades").select("*").order("fecha", { ascending: false }),
@@ -33,7 +40,10 @@ export default async function Page() {
     { key: "respuesta", label: "Respuesta", type: "textarea" },
   ];
 
-  const items = rows ?? [];
+  const todos = rows ?? [];
+  const items = cargoFiltro
+    ? todos.filter((r) => normCargo(r.cargo).startsWith(normCargo(cargoFiltro)))
+    : todos;
   const cumplidas = items.filter((r) => r.estado === "Cumplido").length;
   const pendientes = items.filter((r) => r.estado === "Pendiente" || r.estado === "Parcial").length;
   const noCumplidas = items.filter((r) => r.estado === "No cumplido").length;
@@ -41,7 +51,10 @@ export default async function Page() {
   return (
     <div className="flex flex-col lg:h-full">
       <div className="px-8 pt-8">
-        <p className="text-sm text-neutral-500">Registro histórico de actividades del equipo.</p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm text-neutral-500">Registro histórico de actividades del equipo.</p>
+          <CargoFilter />
+        </div>
         <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Kpi label="Cumplidas" valor={cumplidas} />
           <Kpi label="Pendientes / parciales" valor={pendientes} />
