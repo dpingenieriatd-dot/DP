@@ -8,12 +8,13 @@ export default async function Page() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: tareas }, { data: profiles }, { data: clientes }, { data: proyectos }, { data: timerActivo }, { data: miPerfil }] =
+  const [{ data: tareas }, { data: profiles }, { data: clientes }, { data: proyectos }, { data: actividadesCatalogo }, { data: timerActivo }, { data: miPerfil }] =
     await Promise.all([
       supabase.from("tareas").select("*, clientes(nombre), proyectos(nombre)").order("created_at", { ascending: false }),
       supabase.from("profiles").select("id, full_name, email"),
       supabase.from("clientes").select("id, nombre").order("nombre"),
       supabase.from("proyectos").select("id, codigo, nombre").order("nombre"),
+      supabase.from("catalogo_actividades").select("id, codigo, subproceso, descripcion, responsable_sugerido").order("codigo"),
       user
         ? supabase
             .from("registros_tiempo")
@@ -31,6 +32,7 @@ export default async function Page() {
       profiles={profiles ?? []}
       clientes={clientes ?? []}
       proyectos={proyectos ?? []}
+      actividadesCatalogo={actividadesCatalogo ?? []}
       currentUserId={user?.id ?? null}
       timerActivo={timerActivo ?? null}
       isAdmin={miPerfil?.role === "admin"}

@@ -90,9 +90,6 @@ export function AppShell({
           )}
         </div>
         <nav className="mt-2 flex-1 overflow-y-auto">
-          <Link href="/" onClick={() => setOpen(false)} className="block px-5 py-2 text-sm font-semibold text-white/95 hover:bg-white/5">
-            Inicio
-          </Link>
           {visibleNav.map((group) => (
             <div key={group.section} className="mb-3">
               <div className="px-5 pb-1 pt-3 text-[11px] uppercase tracking-wide text-white/50">{group.section}</div>

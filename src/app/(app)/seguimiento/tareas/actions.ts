@@ -22,6 +22,8 @@ export async function crearTarea(formData: FormData) {
     horas_estimadas: formData.get("horas_estimadas") || null,
     descripcion: formData.get("descripcion") || null,
     publicado_por: user?.id ?? null,
+    catalogo_actividad_id: formData.get("catalogo_actividad_id") || null,
+    proceso_codigo: formData.get("proceso_codigo") || null,
   });
   if (error) return { error: error.message };
   revalidatePath(PATH);

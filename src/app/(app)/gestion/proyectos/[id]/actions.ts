@@ -16,7 +16,7 @@ export async function actualizarProyecto(id: string, formData: FormData) {
       cliente_id: formData.get("cliente_id") || null,
       empresa_id: formData.get("empresa_id") || null,
       responsable_id: formData.get("responsable_id") || null,
-      estado: formData.get("estado") || "Planeacion",
+      estado: formData.get("estado") || "Planeado",
       fecha_inicio: formData.get("fecha_inicio") || null,
       fecha_fin: formData.get("fecha_fin") || null,
       notas: formData.get("notas") || null,

@@ -16,7 +16,10 @@ function fromForm(formData: FormData) {
     correo: formData.get("correo") || null,
     telefono: formData.get("telefono") || null,
     ciudad: formData.get("ciudad") || null,
+    direccion: formData.get("direccion") || null,
     asesor: formData.get("asesor") || null,
+    telefono_asesor: formData.get("telefono_asesor") || null,
+    correo_asesor: formData.get("correo_asesor") || null,
     estado: formData.get("estado") || null,
     notas: formData.get("notas") || null,
   };

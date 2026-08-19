@@ -79,6 +79,7 @@ export function TaskBoard({
   profiles,
   clientes,
   proyectos,
+  actividadesCatalogo,
   currentUserId,
   timerActivo,
   isAdmin,
@@ -87,6 +88,7 @@ export function TaskBoard({
   profiles: Profile[];
   clientes: Cliente[];
   proyectos: Proyecto[];
+  actividadesCatalogo: { id: string; codigo: string; subproceso: string; descripcion: string | null; responsable_sugerido: string | null }[];
   currentUserId: string | null;
   timerActivo: TimerActivo;
   isAdmin: boolean;
@@ -354,6 +356,7 @@ export function TaskBoard({
         <CreateModal
           clientes={clientes}
           proyectos={proyectos}
+          actividadesCatalogo={actividadesCatalogo}
           onClose={() => setCreateOpen(false)}
           onSubmit={(fd) =>
             startTransition(async () => {
@@ -487,16 +490,28 @@ function CalidadRating({ tarea, onRate, disabled }: { tarea: Tarea; onRate: (cal
 function CreateModal({
   clientes,
   proyectos,
+  actividadesCatalogo,
   onClose,
   onSubmit,
   pending,
 }: {
   clientes: Cliente[];
   proyectos: Proyecto[];
+  actividadesCatalogo: { id: string; codigo: string; subproceso: string; descripcion: string | null; responsable_sugerido: string | null }[];
   onClose: () => void;
   onSubmit: (fd: FormData) => void;
   pending: boolean;
 }) {
+  const [catalogoId, setCatalogoId] = useState("");
+  const [titulo, setTitulo] = useState("");
+  const actividad = actividadesCatalogo.find((a) => a.id === catalogoId);
+
+  function elegirActividad(id: string) {
+    setCatalogoId(id);
+    const a = actividadesCatalogo.find((x) => x.id === id);
+    if (a) setTitulo(`${a.codigo}_${a.subproceso}`);
+  }
+
   return (
     <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <form
@@ -507,8 +522,37 @@ function CreateModal({
         <h2 className="mb-4 text-lg font-semibold text-emerald-900">Publicar tarea</h2>
         <div className="space-y-3">
           <label className="block text-sm">
+            <span className="mb-1 block text-neutral-600">Actividad del mapa de procesos</span>
+            <select
+              name="catalogo_actividad_id"
+              value={catalogoId}
+              onChange={(e) => elegirActividad(e.target.value)}
+              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+            >
+              <option value="">Otra actividad / no catalogada</option>
+              {actividadesCatalogo.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.codigo} · {a.subproceso}
+                </option>
+              ))}
+            </select>
+            {actividad && (
+              <span className="mt-1 block text-xs text-neutral-500">
+                {actividad.descripcion || "Sin descripción"}
+                {actividad.responsable_sugerido ? ` · Responsable sugerido: ${actividad.responsable_sugerido}` : ""}
+              </span>
+            )}
+          </label>
+          <input type="hidden" name="proceso_codigo" value={actividad?.codigo ?? ""} />
+          <label className="block text-sm">
             <span className="mb-1 block text-neutral-600">Tarea por realizar</span>
-            <textarea name="titulo" required className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+            <textarea
+              name="titulo"
+              required
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value)}
+              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+            />
           </label>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block text-sm">

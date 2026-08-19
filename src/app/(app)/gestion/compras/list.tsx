@@ -39,14 +39,17 @@ export function ComprasList({
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [estadoFiltro, setEstadoFiltro] = useState("");
+  const [proyectoFiltro, setProyectoFiltro] = useState("");
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
 
   const visibles = compras
     .filter((c) => !estadoFiltro || c.estado_pago === estadoFiltro)
+    .filter((c) => !proyectoFiltro || c.proyecto_id === proyectoFiltro)
     .filter((c) => !desde || c.fecha >= desde)
     .filter((c) => !hasta || c.fecha <= hasta);
-  const hayFiltros = !!(estadoFiltro || desde || hasta);
+  const hayFiltros = !!(estadoFiltro || proyectoFiltro || desde || hasta);
+  const proyectosOrdenados = [...proyectos].sort((a, b) => a.nombre.localeCompare(b.nombre));
 
   const proyectoNombre = (id: string | null) => {
     const p = proyectos.find((p) => p.id === id);
@@ -82,12 +85,25 @@ export function ComprasList({
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <label className="text-sm text-neutral-600">
+          Proyecto / centro de costos{" "}
+          <select value={proyectoFiltro} onChange={(e) => setProyectoFiltro(e.target.value)} className="ml-1 rounded-md border border-neutral-300 px-2 py-1.5 text-sm">
+            <option value="">Todos los proyectos</option>
+            {proyectosOrdenados.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.codigo ? `${p.codigo} · ` : ""}
+                {p.nombre}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-sm text-neutral-600">
           Estado{" "}
           <select value={estadoFiltro} onChange={(e) => setEstadoFiltro(e.target.value)} className="ml-1 rounded-md border border-neutral-300 px-2 py-1.5 text-sm">
             <option value="">Todos los estados</option>
             <option>Cotizado</option>
             <option>Aprobado</option>
             <option>Pagado</option>
+            <option>Pendiente</option>
             <option>Rechazado</option>
           </select>
         </label>
@@ -101,6 +117,7 @@ export function ComprasList({
           <button
             onClick={() => {
               setEstadoFiltro("");
+              setProyectoFiltro("");
               setDesde("");
               setHasta("");
             }}
@@ -231,6 +248,7 @@ export function ComprasList({
                   <option>Cotizado</option>
                   <option>Aprobado</option>
                   <option>Pagado</option>
+                  <option>Pendiente</option>
                   <option>Rechazado</option>
                 </select>
               </Campo>

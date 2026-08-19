@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { crearCotizacion, actualizarCotizacion, eliminarCotizacion, aprobarYCrearProyecto } from "./actions";
+import { subirSoporte, eliminarSoporte } from "./soportes-actions";
 import { calcularCotizacion, calcularPresupuesto, money } from "@/lib/finance";
 
 type Cotizacion = {
@@ -23,6 +24,7 @@ type Cotizacion = {
   costos_estimados: number | null;
   resp_iva: boolean | null;
   margen_pct: number | null;
+  admin_pct: number | null;
   estado: string;
 };
 
@@ -35,22 +37,27 @@ const ESTADO_CLASS: Record<string, string> = {
   Cancelada: "bg-red-100 text-red-700",
 };
 
+type Soporte = { id: string; cotizacion_id: string; nombre_archivo: string; storage_path: string; url: string | null };
+
 export function CotizacionesList({
   cotizaciones,
   clientes,
   empresas,
   profiles,
+  soportes,
 }: {
   cotizaciones: Cotizacion[];
   clientes: { id: string; nombre: string }[];
   empresas: { id: string; nombre: string; cliente_id: string | null }[];
   profiles: { id: string; full_name: string | null; email: string | null }[];
+  soportes: Soporte[];
 }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Cotizacion | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [porAprobar, setPorAprobar] = useState<string | null>(null);
+  const [errorSoporte, setErrorSoporte] = useState<string | null>(null);
   const [estadoFiltro, setEstadoFiltro] = useState("");
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
@@ -69,27 +76,29 @@ export function CotizacionesList({
     costos: editing?.costos_estimados ?? 0,
     respIva: editing?.resp_iva ?? true,
     margenPct: editing?.margen_pct ?? 30,
+    adminPct: editing?.admin_pct ?? 15,
   });
   const calc = useMemo(() => calcularCotizacion(preview), [preview]);
   const rentabilidad = useMemo(
     () =>
       calcularPresupuesto({
         costos: preview.costos,
-        admin_pct: 15,
+        admin_pct: preview.adminPct,
         margen_pct: preview.margenPct,
         resp_iva: preview.respIva,
         iva_pct: 19,
         valor_cotizado: calc.valorCotizado,
       }),
-    [preview.costos, preview.respIva, preview.margenPct, calc.valorCotizado]
+    [preview.costos, preview.respIva, preview.margenPct, preview.adminPct, calc.valorCotizado]
   );
 
   const clienteNombre = (id: string | null) => clientes.find((c) => c.id === id)?.nombre ?? "—";
 
   function abrirCrear() {
     setEditing(null);
-    setPreview({ personas: 0, valor_unit: 0, horas: 0, valor_hora: 0, costos: 0, respIva: true, margenPct: 30 });
+    setPreview({ personas: 0, valor_unit: 0, horas: 0, valor_hora: 0, costos: 0, respIva: true, margenPct: 30, adminPct: 15 });
     setError(null);
+    setErrorSoporte(null);
     setOpen(true);
   }
 
@@ -103,8 +112,10 @@ export function CotizacionesList({
       costos: c.costos_estimados ?? 0,
       respIva: c.resp_iva ?? true,
       margenPct: c.margen_pct ?? 30,
+      adminPct: c.admin_pct ?? 15,
     });
     setError(null);
+    setErrorSoporte(null);
     setOpen(true);
   }
 
@@ -239,7 +250,7 @@ export function CotizacionesList({
       </div>
 
       {open && (
-        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-20 flex flex-col items-center justify-center gap-4 overflow-auto bg-black/40 p-4" onClick={() => setOpen(false)}>
           <form action={submit} onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-lg">
             <h2 className="mb-4 text-lg font-semibold text-emerald-900">{editing ? "Editar" : "Nueva"} cotización</h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -360,6 +371,17 @@ export function CotizacionesList({
                   className="in"
                 />
               </Campo>
+              <Campo label="Costos administrativos (%)">
+                <input
+                  type="number"
+                  step="1"
+                  min="0"
+                  name="admin_pct"
+                  value={preview.adminPct}
+                  onChange={(e) => setPreview((p) => ({ ...p, adminPct: Number(e.target.value) }))}
+                  className="in"
+                />
+              </Campo>
               <Campo label="Margen de utilidad (%)">
                 <input
                   type="number"
@@ -397,7 +419,7 @@ export function CotizacionesList({
               ) : (
                 <>
                   <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-emerald-900 sm:grid-cols-3">
-                    <span>Costos admin. (15%): {money.format(rentabilidad.admin)}</span>
+                    <span>Costos admin. ({preview.adminPct}%): {money.format(rentabilidad.admin)}</span>
                     <span>Utilidad esperada ({preview.margenPct}%): {money.format(rentabilidad.utilidadEsperada)}</span>
                     <span>IVA: {money.format(rentabilidad.iva)}</span>
                   </div>
@@ -424,6 +446,53 @@ export function CotizacionesList({
               </button>
             </div>
           </form>
+
+          {editing && (
+            <div className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-lg" onClick={(e) => e.stopPropagation()}>
+              <h3 className="mb-2 text-sm font-semibold text-emerald-900">Soportes de la cotización</h3>
+              <ul className="mb-3 space-y-1 text-sm">
+                {soportes
+                  .filter((s) => s.cotizacion_id === editing.id)
+                  .map((s) => (
+                    <li key={s.id} className="flex items-center justify-between rounded-md border border-neutral-200 px-3 py-1.5">
+                      {s.url ? (
+                        <a href={s.url} target="_blank" rel="noreferrer" className="text-emerald-700 hover:underline">
+                          {s.nombre_archivo}
+                        </a>
+                      ) : (
+                        <span>{s.nombre_archivo}</span>
+                      )}
+                      <button
+                        onClick={() => startTransition(async () => { await eliminarSoporte(s.id, s.storage_path); })}
+                        className="text-xs font-medium text-red-600 hover:underline"
+                      >
+                        Eliminar
+                      </button>
+                    </li>
+                  ))}
+                {soportes.filter((s) => s.cotizacion_id === editing.id).length === 0 && (
+                  <li className="text-neutral-400">Sin soportes adjuntos.</li>
+                )}
+              </ul>
+              <form
+                action={(fd) => {
+                  const cotId = editing.id;
+                  startTransition(async () => {
+                    const r = await subirSoporte(cotId, fd);
+                    if (r?.error) setErrorSoporte(r.error);
+                    else setErrorSoporte(null);
+                  });
+                }}
+                className="flex items-center gap-2"
+              >
+                <input type="file" name="archivo" required className="text-sm" />
+                <button type="submit" disabled={pending} className="rounded-md bg-neutral-100 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-200 disabled:opacity-60">
+                  Subir
+                </button>
+              </form>
+              {errorSoporte && <p className="mt-2 text-sm text-red-600">{errorSoporte}</p>}
+            </div>
+          )}
         </div>
       )}
     </div>

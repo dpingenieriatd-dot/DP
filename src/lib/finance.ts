@@ -1,8 +1,12 @@
-// Motor financiero de D&P — fórmulas verificadas al centavo contra 15
-// presupuestos reales embebidos en el Anexo 2 (Panel_DP_Proyectos_Control_
-// Presupuestal.html). No son una interpretación: se reconstruyeron
-// resolviendo las ecuaciones contra esos datos históricos hasta que
-// coincidieran de forma exacta.
+// Motor financiero de D&P — fórmula alineada con el HTML de referencia V25
+// (Panel_DP_Proyectos_V25_COLUMNAS_ADMIN_E_INVENTARIO.html, la versión más
+// reciente que Angélica dio como fuente de verdad). Markup gross-up sobre
+// precio de venta, no cost-plus simple: factor = (1+admin%)/(1-margen%).
+// Con 15% admin / 30% margen: factor = 1.15/0.70 = 1.642857.
+//
+// (Versión anterior de esta fórmula —cost-plus simple, costos*margen/(1-margen)—
+// quedó reemplazada 2026-08-19 al unificar con el HTML; daba cifras ~4%
+// más bajas para los mismos costos/porcentajes.)
 
 export type PresupuestoBase = {
   costos: number;
@@ -19,11 +23,12 @@ export function calcularPresupuesto(p: PresupuestoBase) {
   const margenPct = Number(p.margen_pct ?? 30);
   const ivaPct = Number(p.iva_pct ?? 19);
 
-  const admin = costos * (adminPct / 100);
-  // Margen de cost-plus calculado SOLO sobre "costos" (no sobre costos+admin).
-  // Ej.: 30% -> costos * (30/70). Verificado exacto en los 15 registros reales.
-  const utilidadEsperada = margenPct < 100 ? costos * (margenPct / (100 - margenPct)) : 0;
-  const valor = costos + admin + utilidadEsperada;
+  const a = adminPct / 100;
+  const u = margenPct / 100;
+  const admin = costos * a;
+  const factor = u >= 0.999 ? 1 + a : (1 + a) / (1 - u);
+  const valor = costos * factor; // valor comercial antes de IVA
+  const utilidadEsperada = Math.max(0, valor - costos - admin);
   const iva = p.resp_iva ? valor * (ivaPct / 100) : 0;
   const valorSugerido = valor + iva;
 

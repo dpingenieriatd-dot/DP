@@ -14,6 +14,7 @@ export async function crearProyecto(formData: FormData) {
       cliente_id: formData.get("cliente_id") || null,
       empresa_id: formData.get("empresa_id") || null,
       responsable_id: formData.get("responsable_id") || null,
+      estado: "Planeado",
     })
     .select("id")
     .single();

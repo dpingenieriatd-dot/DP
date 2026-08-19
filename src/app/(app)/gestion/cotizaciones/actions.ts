@@ -65,18 +65,19 @@ function rentabilidadFromForm(formData: FormData, valorCotizado: number) {
   const costosEstimados = Number(formData.get("costos_estimados") || 0);
   const respIva = formData.get("resp_iva") === "true";
   const margenPct = Number(formData.get("margen_pct") || 30);
+  const adminPct = Number(formData.get("admin_pct") || 15);
   if (costosEstimados <= 0) {
-    return { costosEstimados: null, respIva, margenPct, valorSugerido: undefined, margenNeg: undefined };
+    return { costosEstimados: null, respIva, margenPct, adminPct, valorSugerido: undefined, margenNeg: undefined };
   }
   const f = calcularPresupuesto({
     costos: costosEstimados,
-    admin_pct: 15,
+    admin_pct: adminPct,
     margen_pct: margenPct,
     resp_iva: respIva,
     iva_pct: 19,
     valor_cotizado: valorCotizado,
   });
-  return { costosEstimados, respIva, margenPct, valorSugerido: f.valorSugerido, margenNeg: f.margenNeg };
+  return { costosEstimados, respIva, margenPct, adminPct, valorSugerido: f.valorSugerido, margenNeg: f.margenNeg };
 }
 
 export async function crearCotizacion(formData: FormData) {
@@ -107,6 +108,7 @@ export async function crearCotizacion(formData: FormData) {
     costos_estimados: rent.costosEstimados,
     resp_iva: rent.respIva,
     margen_pct: rent.margenPct,
+    admin_pct: rent.adminPct,
     ...(rent.valorSugerido !== undefined ? { valor_sugerido: rent.valorSugerido, margen: rent.margenNeg } : {}),
     creado_por: user?.id ?? null,
   });
@@ -149,6 +151,7 @@ export async function actualizarCotizacion(id: string, formData: FormData) {
       costos_estimados: rent.costosEstimados,
       resp_iva: rent.respIva,
       margen_pct: rent.margenPct,
+      admin_pct: rent.adminPct,
       ...(rent.valorSugerido !== undefined ? { valor_sugerido: rent.valorSugerido, margen: rent.margenNeg } : {}),
       estado: nuevoEstado,
     })
@@ -176,16 +179,22 @@ export async function eliminarCotizacion(id: string) {
 }
 
 /**
- * Código consecutivo y ascendente por año, ejemplo PROY-2026-001 — pedido explícito de
- * Cesar para que el proyecto creado al aprobar una cotización no reuse el código de la
- * cotización (COT-xxx) sino su propia numeración. Mira el máximo consecutivo ya usado ese
- * año (sea que haya salido de aquí o de la creación manual de proyectos) y sigue de ahí.
+ * Código consecutivo y ascendente por año, ejemplo PROY_2026_001 (guion bajo,
+ * como el HTML de referencia V25) — pedido explícito de Cesar para que el
+ * proyecto creado al aprobar una cotización no reuse el código de la
+ * cotización (COT-xxx) sino su propia numeración. Mira el máximo consecutivo
+ * ya usado ese año (sea que haya salido de aquí o de la creación manual de
+ * proyectos) y sigue de ahí.
  */
 async function generarCodigoProyecto(supabase: SupabaseServer): Promise<string> {
   const year = new Date().getFullYear();
-  const prefix = `PROY-${year}-`;
-  const { data } = await supabase.from("proyectos").select("codigo").ilike("codigo", `${prefix}%`);
+  const prefix = `PROY_${year}_`;
+  // "_" es comodín en LIKE/ILIKE (matchea cualquier carácter) — se escapa para que
+  // el filtro sea literal y no traiga códigos que no empiecen realmente con esto.
+  const patron = prefix.replace(/[_%]/g, (c) => `\\${c}`);
+  const { data } = await supabase.from("proyectos").select("codigo").ilike("codigo", `${patron}%`);
   const usados = (data ?? [])
+    .filter((p) => p.codigo?.startsWith(prefix))
     .map((p) => Number(p.codigo?.slice(prefix.length)))
     .filter((n) => Number.isFinite(n));
   const siguiente = (usados.length ? Math.max(...usados) : 0) + 1;
@@ -221,6 +230,7 @@ export async function aprobarYCrearProyecto(cotizacionId: string) {
       empresa_id: cot.empresa_id,
       responsable_id: cot.responsable_id,
       cotizacion_id: cot.id,
+      estado: "Planeado",
     })
     .select("id")
     .single();

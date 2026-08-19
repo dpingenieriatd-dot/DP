@@ -64,7 +64,8 @@ export function ProyectosList({
           <select value={estadoFiltro} onChange={(e) => setEstadoFiltro(e.target.value)} className="ml-1 rounded-md border border-neutral-300 px-2 py-1.5 text-sm">
             <option value="">Todos los estados</option>
             <option>Planeado</option>
-            <option>En ejecucion</option>
+            <option>En ejecución</option>
+            <option>Suspendido</option>
             <option>Finalizado</option>
             <option>Cancelado</option>
           </select>
