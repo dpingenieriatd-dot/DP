@@ -21,6 +21,8 @@ export async function crearTarea(formData: FormData) {
     fecha_limite: formData.get("fecha_limite") || null,
     horas_estimadas: formData.get("horas_estimadas") || null,
     descripcion: formData.get("descripcion") || null,
+    instrucciones: formData.get("instrucciones") || null,
+    entregable_requerido: formData.get("entregable_requerido") || null,
     publicado_por: user?.id ?? null,
     catalogo_actividad_id: formData.get("catalogo_actividad_id") || null,
     proceso_codigo: formData.get("proceso_codigo") || null,

@@ -12,7 +12,6 @@ import {
   pausarTarea,
   reanudarTarea,
   iniciarTiempo,
-  detenerTiempo,
   calificarCalidad,
 } from "./actions";
 import { reprogramarBloque } from "../agendas/actions";
@@ -29,6 +28,8 @@ type Tarea = {
   prioridad: "Alta" | "Media" | "Baja";
   fecha_limite: string | null;
   descripcion: string | null;
+  instrucciones: string | null;
+  entregable_requerido: string | null;
   publicado_por: string | null;
   responsable: string | null;
   estado: "Disponible" | "En proceso" | "Pausada" | "Terminada";
@@ -106,7 +107,6 @@ export function TaskBoard({
   const [detalle, setDetalle] = useState<Tarea | null>(null);
   const [error, setError] = useState<string | null>(null);
   const elapsed = useElapsed(timerActivo?.inicio ?? null);
-  const tareaTimer = timerActivo ? tareas.find((t) => t.id === timerActivo.tarea_id) : null;
 
   const disponibles = tareas.filter((t) => t.estado === "Disponible");
   const enProceso = tareas.filter((t) => t.estado === "En proceso");
@@ -137,23 +137,6 @@ export function TaskBoard({
       />
 
       <div className="p-8">
-        {tareaTimer && (
-          <div className="mb-4 flex items-center justify-between rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
-            <span>
-              ⏱ Cronómetro activo — <strong>{tareaTimer.titulo}</strong>
-            </span>
-            <div className="flex items-center gap-3">
-              <span className="font-mono font-semibold">{elapsed}</span>
-              <button
-                onClick={() => run(() => detenerTiempo(timerActivo!.id))}
-                className="rounded-md bg-amber-800 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-900"
-              >
-                Detener
-              </button>
-            </div>
-          </div>
-        )}
-
         {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
 
         <HelpBanner />
@@ -214,6 +197,12 @@ export function TaskBoard({
             const corriendo = timerActivo?.tarea_id === t.id;
             return (
               <Card key={t.id} t={t} profiles={profiles}>
+                {corriendo && (
+                  <div className="mb-2 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800">
+                    <span>⏱ Cronómetro activo</span>
+                    <span className="ml-auto font-mono font-semibold">{elapsed}</span>
+                  </div>
+                )}
                 <div className="flex flex-wrap gap-2">
                   {esMia && (
                     <>
@@ -604,8 +593,16 @@ function CreateModal({
             </label>
           </div>
           <label className="block text-sm">
-            <span className="mb-1 block text-neutral-600">Descripción / entregable esperado</span>
+            <span className="mb-1 block text-neutral-600">Descripción</span>
             <textarea name="descripcion" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block text-neutral-600">Instrucciones</span>
+            <textarea name="instrucciones" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block text-neutral-600">Entregable requerido</span>
+            <textarea name="entregable_requerido" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
           </label>
         </div>
         <div className="mt-5 flex justify-end gap-2">
@@ -756,7 +753,8 @@ function DetailModal({ tarea, profiles, onClose }: { tarea: Tarea; profiles: Pro
         </div>
         <h2 className="mb-3 text-lg font-semibold text-emerald-900">{tarea.titulo}</h2>
         <div>
-          <DetailRow label="Descripción / entregable esperado" value={tarea.descripcion} />
+          <DetailRow label="Descripción" value={tarea.descripcion} />
+          <DetailRow label="Instrucciones" value={tarea.instrucciones} />
           <DetailRow label="Cliente" value={tarea.clientes?.nombre} />
           <DetailRow label="Proyecto" value={tarea.proyectos?.nombre} />
           <DetailRow label="Fecha límite" value={tarea.fecha_limite} />
@@ -769,6 +767,7 @@ function DetailModal({ tarea, profiles, onClose }: { tarea: Tarea; profiles: Pro
                 : null
             }
           />
+          <DetailRow label="Entregable requerido" value={tarea.entregable_requerido} />
           <DetailRow label="Entregable entregado" value={tarea.entregable} />
           <DetailRow label="Observaciones" value={tarea.notas} />
         </div>
