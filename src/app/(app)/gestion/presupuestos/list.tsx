@@ -19,12 +19,14 @@ export function PresupuestosList({ filas, proyectos }: { filas: Fila[]; proyecto
   const [viabilidadFiltro, setViabilidadFiltro] = useState("");
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
+  const [busqueda, setBusqueda] = useState("");
 
   const visibles = filas
     .filter(({ f }) => !viabilidadFiltro || (viabilidadFiltro === "viable" ? f.viable : !f.viable))
     .filter(({ pre }) => !desde || pre.created_at.slice(0, 10) >= desde)
-    .filter(({ pre }) => !hasta || pre.created_at.slice(0, 10) <= hasta);
-  const hayFiltros = !!(viabilidadFiltro || desde || hasta);
+    .filter(({ pre }) => !hasta || pre.created_at.slice(0, 10) <= hasta)
+    .filter(({ pre, proyecto }) => !busqueda || `${pre.codigo ?? ""} ${pre.nombre} ${proyecto}`.toLowerCase().includes(busqueda.toLowerCase()));
+  const hayFiltros = !!(viabilidadFiltro || desde || hasta || busqueda);
 
   function submit(formData: FormData) {
     startTransition(async () => {
@@ -35,11 +37,28 @@ export function PresupuestosList({ filas, proyectos }: { filas: Fila[]; proyecto
 
   return (
     <div className="flex flex-col p-8 lg:h-full">
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold text-emerald-900">Presupuestos</h1>
-        <button onClick={() => setOpen(true)} className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
-          + Nuevo presupuesto
-        </button>
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold text-emerald-900">Presupuestos</h1>
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">{filas.length}</span>
+          </div>
+          <p className="mt-1 text-sm text-neutral-500">Panel principal · Control de costos y ganancia por proyecto</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar presupuesto, proyecto..."
+            className="w-56 rounded-md border border-neutral-300 px-3 py-2 text-sm"
+          />
+          <button onClick={() => setOpen(true)} className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
+            + Nuevo presupuesto
+          </button>
+          <button type="button" disabled title="Próximamente" className="rounded-md border border-neutral-300 px-3 py-2 text-sm font-semibold text-neutral-400">
+            Columnas / vistas
+          </button>
+        </div>
       </div>
       <p className="mb-4 rounded-md bg-sky-50 p-3 text-sm text-sky-800">
         <strong>Cotización y presupuesto son diferentes.</strong> La cotización es el precio ofrecido al cliente; este
@@ -68,6 +87,7 @@ export function PresupuestosList({ filas, proyectos }: { filas: Fila[]; proyecto
               setViabilidadFiltro("");
               setDesde("");
               setHasta("");
+              setBusqueda("");
             }}
             className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 hover:bg-neutral-100"
           >

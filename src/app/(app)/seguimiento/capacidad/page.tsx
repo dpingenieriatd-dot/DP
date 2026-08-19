@@ -1,11 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfileLabel } from "@/lib/current-profile";
 import { semanaActual, toISODate } from "@/lib/week";
+import { Topbar } from "@/components/topbar";
 
 function lectura(usoPct: number): [string, string] {
-  if (usoPct < 55) return ["Capacidad disponible", "bg-sky-100 text-sky-700"];
-  if (usoPct <= 90) return ["Carga equilibrada", "bg-emerald-100 text-emerald-700"];
-  if (usoPct <= 110) return ["Carga alta", "bg-amber-100 text-amber-700"];
-  return ["Sobrecarga", "bg-red-100 text-red-700"];
+  if (usoPct < 55) return ["Sin horas planificadas", "bg-neutral-300"];
+  if (usoPct <= 90) return ["Carga equilibrada", "bg-emerald-500"];
+  if (usoPct <= 110) return ["Carga alta", "bg-amber-500"];
+  return ["Sobrecarga", "bg-red-500"];
 }
 
 export default async function Page() {
@@ -14,50 +16,81 @@ export default async function Page() {
   const desde = toISODate(semana[0]);
   const hasta = toISODate(semana[6]);
 
-  const [{ data: profiles }, { data: bloques }, { data: tareas }] = await Promise.all([
+  const [{ data: profiles }, { data: bloques }, { data: tareas }, userLabel] = await Promise.all([
     supabase.from("profiles").select("id, full_name, email, cargo, capacidad_semanal_horas").order("full_name"),
     supabase.from("agenda_bloques").select("usuario_id, horas").gte("dia", desde).lte("dia", hasta),
-    supabase.from("tareas").select("responsable, estado"),
+    supabase.from("tareas").select("responsable, estado, archivado, fecha_limite"),
+    getCurrentProfileLabel(),
   ]);
 
+  const today = new Date().toISOString().slice(0, 10);
   const filas = (profiles ?? []).map((p) => {
     const planificadas = (bloques ?? [])
       .filter((b) => b.usuario_id === p.id)
       .reduce((a, b) => a + Number(b.horas), 0);
     const usoPct = p.capacidad_semanal_horas > 0 ? (planificadas / p.capacidad_semanal_horas) * 100 : 0;
     const propias = (tareas ?? []).filter((t) => t.responsable === p.id);
-    const abiertas = propias.filter((t) => t.estado !== "Terminada").length;
-    const [texto, clase] = lectura(usoPct);
-    return { p, planificadas, usoPct, abiertas, texto, clase };
+    const abiertas = propias.filter((t) => !t.archivado && t.estado !== "Terminada").length;
+    const vencidas = propias.filter((t) => !t.archivado && t.estado !== "Terminada" && t.fecha_limite && t.fecha_limite < today).length;
+    const enProceso = propias.filter((t) => !t.archivado && (t.estado === "En proceso" || t.estado === "Pausada")).length;
+    const archivadas = propias.filter((t) => t.archivado).length;
+    const [texto, barClase] = lectura(usoPct);
+    return { p, planificadas, usoPct, abiertas, vencidas, enProceso, archivadas, texto, barClase };
   });
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-semibold text-emerald-900">Capacidad del equipo</h1>
-      <p className="mt-1 text-sm text-neutral-500">
-        Semana del {desde} al {hasta}. Objetivo: identificar capacidad disponible, equilibrio o sobrecarga — no genera
-        automáticamente ninguna decisión sobre una persona.
-      </p>
+    <div>
+      <Topbar title="Equipo" subtitle="Carga semanal y pendientes por persona" userLabel={userLabel ?? undefined} />
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {filas.map(({ p, planificadas, usoPct, abiertas, texto, clase }) => (
-          <div key={p.id} className="rounded-lg border border-neutral-200 bg-white p-4">
-            <div className="font-semibold text-neutral-800">{p.full_name || p.email}</div>
-            <div className="text-xs text-neutral-500">{p.cargo || "—"}</div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-neutral-100">
-              <div
-                className="h-full bg-emerald-600"
-                style={{ width: `${Math.min(100, usoPct)}%` }}
-              />
-            </div>
-            <div className="mt-1 text-xs text-neutral-500">
-              {planificadas}h / {p.capacidad_semanal_horas}h planificadas ({Math.round(usoPct)}%)
-            </div>
-            <div className="mt-2 text-xs text-neutral-500">{abiertas} tarea(s) abiertas</div>
-            <span className={`mt-2 inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${clase}`}>{texto}</span>
-          </div>
-        ))}
-        {filas.length === 0 && <p className="text-neutral-400">Todavía no hay personas con perfil creado.</p>}
+      <div className="p-8">
+        <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+          <strong>Lectura de capacidad:</strong> se calcula con las horas estimadas de tareas abiertas programadas para la semana visible ({desde} al {hasta}). Las archivadas permanecen en el histórico y no afectan la carga actual.
+        </div>
+
+        <div className="mt-4 overflow-auto rounded-lg border border-neutral-200 bg-white">
+          <table className="w-full min-w-[800px] text-sm">
+            <thead>
+              <tr className="bg-neutral-50 text-left text-[11px] uppercase text-neutral-500">
+                <th className="px-4 py-3">Persona</th>
+                <th className="px-4 py-3">Abiertas</th>
+                <th className="px-4 py-3">Vencidas</th>
+                <th className="px-4 py-3">En proceso</th>
+                <th className="px-4 py-3">Archivadas</th>
+                <th className="px-4 py-3">Carga semanal</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filas.map(({ p, planificadas, usoPct, abiertas, vencidas, enProceso, archivadas, texto, barClase }) => (
+                <tr key={p.id} className="border-t border-neutral-100">
+                  <td className="px-4 py-3">
+                    <div className="font-semibold text-neutral-800">{p.full_name || p.email}</div>
+                    <div className="text-xs text-neutral-500">{p.cargo || "—"}</div>
+                  </td>
+                  <td className="px-4 py-3">{abiertas}</td>
+                  <td className={`px-4 py-3 ${vencidas > 0 ? "font-semibold text-red-600" : ""}`}>{vencidas}</td>
+                  <td className="px-4 py-3">{enProceso}</td>
+                  <td className="px-4 py-3">{archivadas}</td>
+                  <td className="min-w-[220px] px-4 py-3">
+                    <div className="flex items-center gap-1.5 text-xs text-neutral-600">
+                      <span className={`h-2 w-2 rounded-full ${barClase}`} />
+                      {texto} · {planificadas}/{p.capacidad_semanal_horas}h · {Math.round(usoPct)}%
+                    </div>
+                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-neutral-100">
+                      <div className={`h-full ${barClase}`} style={{ width: `${Math.min(100, usoPct)}%` }} />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filas.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-neutral-400">
+                    Todavía no hay personas con perfil creado.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

@@ -25,6 +25,8 @@ export default async function Page() {
   return (
     <CrudTable
       title="Clientes"
+      subtitle="Catálogos · Orden alfabético por cliente"
+      newLabel="Nuevo cliente"
       fields={fields}
       rows={rows ?? []}
       onCreate={createCliente}

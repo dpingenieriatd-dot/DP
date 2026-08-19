@@ -28,6 +28,8 @@ export default async function Page() {
   return (
     <CrudTable
       title="Profesionales"
+      subtitle="Catálogos · Orden alfabético por profesional"
+      newLabel="Nuevo profesional"
       fields={fields}
       rows={rows ?? []}
       onCreate={createProfesional}

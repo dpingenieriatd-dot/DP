@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { calificarCalidad, archivarTarea } from "../tareas/actions";
+import { KpiCard } from "@/components/kpi-card";
+import { Topbar } from "@/components/topbar";
 
 type Tarea = {
   id: string;
@@ -32,12 +34,14 @@ export function HistorialList({
   profiles,
   isAdmin,
   filtroProceso,
+  userLabel,
 }: {
   tareas: Tarea[];
   profiles: Profile[];
   isAdmin: boolean;
   currentUserId: string | null;
   filtroProceso: { codigo: string; nombre: string } | null;
+  userLabel: string | null;
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -51,31 +55,33 @@ export function HistorialList({
   const archivadas = tareas.filter((t) => t.archivado);
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-semibold text-emerald-900">Finalizadas y archivadas</h1>
-      <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-        <strong>Historial de cierre:</strong> aquí se revisan las actividades finalizadas y se conservan las archivadas. Solo la Directora de Proyectos puede archivar.
-      </div>
-      {filtroProceso && (
-        <div className="mt-2 flex items-center justify-between rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
-          <span>
-            <strong>Vista filtrada:</strong> Archivadas del proceso {filtroProceso.codigo} · {filtroProceso.nombre}
-          </span>
-          <Link href="/seguimiento/historial" className="font-semibold hover:underline">
-            Ver todo el historial
-          </Link>
+    <div>
+      <Topbar title="Finalizadas y archivadas" subtitle="Revisión, calificación y archivo de actividades terminadas" userLabel={userLabel ?? undefined} />
+
+      <div className="p-8">
+        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          <strong>Historial de cierre:</strong> aquí se revisan las actividades finalizadas y se conservan las archivadas. Solo la Directora de Proyectos puede archivar.
         </div>
-      )}
-      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+        {filtroProceso && (
+          <div className="mt-2 flex items-center justify-between rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+            <span>
+              <strong>Vista filtrada:</strong> Archivadas del proceso {filtroProceso.codigo} · {filtroProceso.nombre}
+            </span>
+            <Link href="/seguimiento/historial" className="font-semibold hover:underline">
+              Ver todo el historial
+            </Link>
+          </div>
+        )}
+        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-4">
-        <Kpi label="Pendientes de archivo" valor={pendientes.length} />
-        <Kpi label="Archivadas" valor={archivadas.length} />
-        <Kpi label="Total histórico" valor={tareas.length} />
-        <Kpi label="Con calidad registrada" valor={tareas.filter((t) => t.calidad_pct != null).length} />
-      </div>
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-4">
+          <KpiCard label="Pendientes de archivo" value={pendientes.length} color="blue" />
+          <KpiCard label="Archivadas" value={archivadas.length} color="violet" />
+          <KpiCard label="Total histórico" value={tareas.length} color="emerald" />
+          <KpiCard label="Con calidad registrada" value={tareas.filter((t) => t.calidad_pct != null).length} color="emerald" />
+        </div>
 
-      <Tabla
+        <Tabla
         title="Terminadas pendientes de archivo"
         sub="La Directora puede registrar la calidad y archivar desde esta misma tabla."
         rows={pendientes}
@@ -88,17 +94,18 @@ export function HistorialList({
         showArchivar
       />
 
-      <div className="mt-6">
-        <Tabla
-          title="Archivadas"
-          sub="Historial permanente de actividades revisadas y cerradas."
-          rows={archivadas}
-          nombreResponsable={nombreResponsable}
-          isAdmin={isAdmin}
-          pending={pending}
-          emptyLabel="No hay actividades archivadas."
-          showArchivar={false}
-        />
+        <div className="mt-6">
+          <Tabla
+            title="Archivadas"
+            sub="Historial permanente de actividades revisadas y cerradas."
+            rows={archivadas}
+            nombreResponsable={nombreResponsable}
+            isAdmin={isAdmin}
+            pending={pending}
+            emptyLabel="No hay actividades archivadas."
+            showArchivar={false}
+          />
+        </div>
       </div>
     </div>
   );
@@ -202,15 +209,6 @@ function Tabla({
           </tbody>
         </table>
       </div>
-    </div>
-  );
-}
-
-function Kpi({ label, valor }: { label: string; valor: string | number }) {
-  return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-4">
-      <div className="text-xs uppercase text-neutral-500">{label}</div>
-      <div className="mt-1 text-2xl font-bold text-emerald-900">{valor}</div>
     </div>
   );
 }

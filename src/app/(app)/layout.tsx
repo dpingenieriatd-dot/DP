@@ -3,7 +3,7 @@ import { AppShell } from "./shell";
 
 const NAV = [
   {
-    section: "Seguimiento",
+    section: "Fase de seguimiento",
     module: "seguimiento" as const,
     items: [
       { href: "/seguimiento", label: "Inicio" },
@@ -20,17 +20,17 @@ const NAV = [
     section: "Gestión",
     module: "gestion" as const,
     items: [
-      { href: "/gestion", label: "Inicio" },
-      { href: "/gestion/cotizaciones", label: "Cotizaciones" },
-      { href: "/gestion/proyectos", label: "Proyectos" },
-      { href: "/gestion/presupuestos", label: "Presupuestos" },
-      { href: "/gestion/compras", label: "Compras" },
-      { href: "/gestion/clientes", label: "Clientes" },
-      { href: "/gestion/empresas", label: "Empresas atendidas" },
-      { href: "/gestion/proveedores", label: "Proveedores" },
-      { href: "/gestion/insumos", label: "Banco de insumos" },
-      { href: "/gestion/materiales", label: "Inventario materiales" },
-      { href: "/gestion/profesionales", label: "Profesionales" },
+      { href: "/gestion", label: "Inicio", subsection: "Panel principal", icon: "home" as const },
+      { href: "/gestion/cotizaciones", label: "Cotizaciones", subsection: "Panel principal", icon: "file-text" as const },
+      { href: "/gestion/proyectos", label: "Proyectos", subsection: "Panel principal", icon: "folder" as const },
+      { href: "/gestion/presupuestos", label: "Presupuestos", subsection: "Panel principal", icon: "calculator" as const },
+      { href: "/gestion/compras", label: "Compras", subsection: "Panel principal", icon: "shopping-cart" as const },
+      { href: "/gestion/clientes", label: "Clientes", subsection: "Catálogos", icon: "users" as const },
+      { href: "/gestion/empresas", label: "Empresas atendidas", subsection: "Catálogos", icon: "building-2" as const },
+      { href: "/gestion/proveedores", label: "Proveedores", subsection: "Catálogos", icon: "truck" as const },
+      { href: "/gestion/insumos", label: "Banco de insumos", subsection: "Catálogos", icon: "package" as const },
+      { href: "/gestion/materiales", label: "Inventario materiales", subsection: "Catálogos", icon: "wrench" as const },
+      { href: "/gestion/profesionales", label: "Profesionales", subsection: "Catálogos", icon: "id-card" as const },
     ],
   },
   {
@@ -56,11 +56,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     data: { user },
   } = await supabase.auth.getUser();
 
-  let profile: { full_name: string | null; role: string; modules: string[] } | null = null;
+  let profile: { full_name: string | null; role: string; modules: string[]; cargo: string | null } | null = null;
   if (user) {
     const { data } = await supabase
       .from("profiles")
-      .select("full_name, role, modules")
+      .select("full_name, role, modules, cargo")
       .eq("id", user.id)
       .single();
     profile = data;

@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { crearBloque, eliminarBloque, actualizarPreferenciasRecordatorio } from "./actions";
 import { iniciarTiempo, pausarTarea, reanudarTarea, terminarTarea } from "../tareas/actions";
+import { KpiCard } from "@/components/kpi-card";
+import { Topbar } from "@/components/topbar";
 
 type Profile = { id: string; full_name: string | null; email: string | null; capacidad_semanal_horas: number };
 type Cliente = { id: string; nombre: string };
@@ -60,6 +62,7 @@ export function AgendaGrid({
   recordatorioSonido,
   currentUserId,
   timerActivo,
+  userLabel,
 }: {
   profiles: Profile[];
   clientes: Cliente[];
@@ -70,6 +73,7 @@ export function AgendaGrid({
   recordatorioSonido: boolean;
   currentUserId: string | null;
   timerActivo: TimerActivo;
+  userLabel: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,30 +101,53 @@ export function AgendaGrid({
     });
   }
 
+  const horasProgramadas = bloques.filter((b) => b.tareas?.estado !== "Terminada").reduce((s, b) => s + Number(b.horas), 0);
+  const pausadas = bloques.filter((b) => b.tareas?.estado === "Pausada").length;
+  const finalizadas = bloques.filter((b) => b.tareas?.estado === "Terminada").length;
+
   return (
-    <div className="flex flex-col p-8 lg:h-full">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-emerald-900">Agendas</h1>
-          <p className="text-sm text-neutral-500">
-            Semana del {dias[0]} al {dias[6]}. Sábado y domingo quedan disponibles solo para días extraordinarios
-            que salgan del horario habitual.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <RecordatorioSettings minutosInicial={recordatorioMinutos} sonidoInicial={recordatorioSonido} />
-          <button
-            onClick={() => setOpen(true)}
-            className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
-          >
-            + Agregar bloque
-          </button>
-        </div>
-      </div>
+    <div className="flex flex-col lg:h-full">
+      <Topbar
+        title="Agenda"
+        subtitle="Programación automática y cronómetro sincronizado"
+        userLabel={userLabel ?? undefined}
+        actions={
+          <div className="flex items-center gap-2">
+            <RecordatorioSettings minutosInicial={recordatorioMinutos} sonidoInicial={recordatorioSonido} />
+            <button
+              onClick={() => setOpen(true)}
+              className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
+            >
+              + Agregar bloque
+            </button>
+          </div>
+        }
+      />
 
-      {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
+      <div className="flex flex-col p-8 lg:min-h-0 lg:flex-1">
+        <div className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+          <strong>Integración automática:</strong> al tomar una tarea del Banco o registrar una actividad manual, se solicita fecha y hora y el bloque aparece aquí. No crea un segundo registro.
+        </div>
 
-      <div className="min-h-[420px] overflow-auto rounded-lg border border-neutral-200 bg-white lg:min-h-0 lg:flex-1">
+        <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <KpiCard label="Horas programadas" value={`${horasProgramadas.toFixed(1)}h`} subtitle="Tareas abiertas de la semana" color="emerald" />
+          <KpiCard label="Bloques visibles" value={bloques.length} subtitle="Incluye finalizados" color="blue" />
+          <KpiCard label="Pausadas" value={pausadas} subtitle="Pueden reprogramarse" color="amber" />
+          <KpiCard label="Finalizadas" value={finalizadas} subtitle="Con tiempo consolidado" color="neutral" />
+        </div>
+
+        <div className="mb-2 flex items-center justify-between">
+          <div>
+            <div className="font-semibold text-emerald-900">Agenda del equipo</div>
+            <p className="text-xs text-neutral-500">
+              Semana del {dias[0]} al {dias[6]}. Sábado y domingo quedan disponibles solo para días extraordinarios que salgan del horario habitual.
+            </p>
+          </div>
+        </div>
+
+        {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
+
+        <div className="min-h-[420px] overflow-auto rounded-lg border border-neutral-200 bg-white lg:min-h-0 lg:flex-1">
         <table className="w-full min-w-[900px] table-fixed border-collapse text-sm">
           <colgroup>
             <col className="w-[16%]" />
@@ -375,6 +402,7 @@ export function AgendaGrid({
           </form>
         </div>
       )}
+      </div>
     </div>
   );
 }

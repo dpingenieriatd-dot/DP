@@ -35,12 +35,14 @@ export function ProyectosList({
   const [estadoFiltro, setEstadoFiltro] = useState("");
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
+  const [busqueda, setBusqueda] = useState("");
 
   const visibles = filas
     .filter((f) => !estadoFiltro || f.proy.estado === estadoFiltro)
     .filter((f) => !desde || (f.proy.fecha_inicio && f.proy.fecha_inicio >= desde))
-    .filter((f) => !hasta || (f.proy.fecha_inicio && f.proy.fecha_inicio <= hasta));
-  const hayFiltros = !!(estadoFiltro || desde || hasta);
+    .filter((f) => !hasta || (f.proy.fecha_inicio && f.proy.fecha_inicio <= hasta))
+    .filter((f) => !busqueda || `${f.proy.codigo ?? ""} ${f.proy.nombre} ${f.cliente}`.toLowerCase().includes(busqueda.toLowerCase()));
+  const hayFiltros = !!(estadoFiltro || desde || hasta || busqueda);
 
   function submit(formData: FormData) {
     startTransition(async () => {
@@ -51,11 +53,28 @@ export function ProyectosList({
 
   return (
     <div className="flex flex-col p-8 lg:h-full">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold text-emerald-900">Proyectos</h1>
-        <button onClick={() => setOpen(true)} className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
-          + Nuevo proyecto
-        </button>
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold text-emerald-900">Proyectos</h1>
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">{filas.length}</span>
+          </div>
+          <p className="mt-1 text-sm text-neutral-500">Panel principal · Proyectos aprobados y su ejecución</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar proyecto, cliente..."
+            className="w-56 rounded-md border border-neutral-300 px-3 py-2 text-sm"
+          />
+          <button onClick={() => setOpen(true)} className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
+            + Nuevo proyecto
+          </button>
+          <button type="button" disabled title="Próximamente" className="rounded-md border border-neutral-300 px-3 py-2 text-sm font-semibold text-neutral-400">
+            Columnas / vistas
+          </button>
+        </div>
       </div>
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -82,6 +101,7 @@ export function ProyectosList({
               setEstadoFiltro("");
               setDesde("");
               setHasta("");
+              setBusqueda("");
             }}
             className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 hover:bg-neutral-100"
           >

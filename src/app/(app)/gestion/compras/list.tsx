@@ -42,13 +42,15 @@ export function ComprasList({
   const [proyectoFiltro, setProyectoFiltro] = useState("");
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
+  const [busqueda, setBusqueda] = useState("");
 
   const visibles = compras
     .filter((c) => !estadoFiltro || c.estado_pago === estadoFiltro)
     .filter((c) => !proyectoFiltro || c.proyecto_id === proyectoFiltro)
     .filter((c) => !desde || c.fecha >= desde)
-    .filter((c) => !hasta || c.fecha <= hasta);
-  const hayFiltros = !!(estadoFiltro || proyectoFiltro || desde || hasta);
+    .filter((c) => !hasta || c.fecha <= hasta)
+    .filter((c) => !busqueda || `${c.referencia ?? ""} ${c.categoria ?? ""}`.toLowerCase().includes(busqueda.toLowerCase()));
+  const hayFiltros = !!(estadoFiltro || proyectoFiltro || desde || hasta || busqueda);
   const proyectosOrdenados = [...proyectos].sort((a, b) => a.nombre.localeCompare(b.nombre));
 
   const proyectoNombre = (id: string | null) => {
@@ -70,17 +72,34 @@ export function ComprasList({
 
   return (
     <div className="flex flex-col p-8 lg:h-full">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold text-emerald-900">Compras</h1>
-        <button
-          onClick={() => {
-            setEditing(null);
-            setOpen(true);
-          }}
-          className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
-        >
-          + Nueva compra
-        </button>
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold text-emerald-900">Compras</h1>
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">{compras.length}</span>
+          </div>
+          <p className="mt-1 text-sm text-neutral-500">Panel principal · Compras por proyecto y estado de pago</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar referencia, categoría..."
+            className="w-56 rounded-md border border-neutral-300 px-3 py-2 text-sm"
+          />
+          <button
+            onClick={() => {
+              setEditing(null);
+              setOpen(true);
+            }}
+            className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
+          >
+            + Nueva compra
+          </button>
+          <button type="button" disabled title="Próximamente" className="rounded-md border border-neutral-300 px-3 py-2 text-sm font-semibold text-neutral-400">
+            Columnas / vistas
+          </button>
+        </div>
       </div>
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -120,6 +139,7 @@ export function ComprasList({
               setProyectoFiltro("");
               setDesde("");
               setHasta("");
+              setBusqueda("");
             }}
             className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 hover:bg-neutral-100"
           >

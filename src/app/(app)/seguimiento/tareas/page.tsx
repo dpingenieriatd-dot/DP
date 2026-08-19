@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfileLabel } from "@/lib/current-profile";
 import { TaskBoard } from "./board";
 
 export default async function Page() {
@@ -8,7 +9,7 @@ export default async function Page() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: tareas }, { data: profiles }, { data: clientes }, { data: proyectos }, { data: actividadesCatalogo }, { data: timerActivo }, { data: miPerfil }] =
+  const [{ data: tareas }, { data: profiles }, { data: clientes }, { data: proyectos }, { data: actividadesCatalogo }, { data: timerActivo }, { data: miPerfil }, userLabel] =
     await Promise.all([
       supabase.from("tareas").select("*, clientes(nombre), proyectos(nombre)").order("created_at", { ascending: false }),
       supabase.from("profiles").select("id, full_name, email"),
@@ -24,6 +25,7 @@ export default async function Page() {
             .maybeSingle()
         : Promise.resolve({ data: null }),
       user ? supabase.from("profiles").select("role").eq("id", user.id).single() : Promise.resolve({ data: null }),
+      getCurrentProfileLabel(),
     ]);
 
   return (
@@ -36,6 +38,7 @@ export default async function Page() {
       currentUserId={user?.id ?? null}
       timerActivo={timerActivo ?? null}
       isAdmin={miPerfil?.role === "admin"}
+      userLabel={userLabel}
     />
   );
 }

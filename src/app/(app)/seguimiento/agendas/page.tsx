@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfileLabel } from "@/lib/current-profile";
 import { semanaActual, toISODate } from "@/lib/week";
 import { AgendaGrid } from "./grid";
 
@@ -12,7 +13,7 @@ export default async function Page() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: profiles }, { data: clientes }, { data: proyectos }, { data: bloques }, { data: miPerfil }, { data: timerActivo }] =
+  const [{ data: profiles }, { data: clientes }, { data: proyectos }, { data: bloques }, { data: miPerfil }, { data: timerActivo }, userLabel] =
     await Promise.all([
       supabase.from("profiles").select("id, full_name, email, capacidad_semanal_horas").order("full_name"),
       supabase.from("clientes").select("id, nombre").order("nombre"),
@@ -34,6 +35,7 @@ export default async function Page() {
             .is("fin", null)
             .maybeSingle()
         : Promise.resolve({ data: null }),
+      getCurrentProfileLabel(),
     ]);
 
   return (
@@ -47,6 +49,7 @@ export default async function Page() {
       recordatorioSonido={miPerfil?.recordatorio_sonido ?? true}
       currentUserId={user?.id ?? null}
       timerActivo={timerActivo ?? null}
+      userLabel={userLabel}
     />
   );
 }

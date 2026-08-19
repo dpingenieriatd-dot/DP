@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfileLabel } from "@/lib/current-profile";
 import { PieCard } from "@/components/charts";
+import { KpiCard } from "@/components/kpi-card";
+import { Topbar } from "@/components/topbar";
 
 function isOverdue(t: { estado: string; archivado: boolean; fecha_limite: string | null }, today: string) {
   return t.estado !== "Terminada" && !t.archivado && !!t.fecha_limite && t.fecha_limite < today;
@@ -15,11 +18,12 @@ export default async function SeguimientoInicioPage() {
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
 
-  const [{ data: tareas }, { data: actividades }, { data: proyectos }, { data: profiles }] = await Promise.all([
+  const [{ data: tareas }, { data: actividades }, { data: proyectos }, { data: profiles }, userLabel] = await Promise.all([
     supabase.from("tareas").select("id, titulo, cliente, proyecto_id, responsable, estado, prioridad, fecha_limite, archivado"),
     supabase.from("actividades").select("estado"),
     supabase.from("proyectos").select("id, nombre"),
     supabase.from("profiles").select("id, full_name, email"),
+    getCurrentProfileLabel(),
   ]);
 
   const todas = tareas ?? [];
@@ -27,6 +31,9 @@ export default async function SeguimientoInicioPage() {
   const disponibles = abiertas.filter((t) => t.estado === "Disponible").length;
   const enProceso = abiertas.filter((t) => t.estado === "En proceso" || t.estado === "Pausada").length;
   const terminadas = abiertas.filter((t) => t.estado === "Terminada").length;
+  const pendientesAbiertos = disponibles + enProceso;
+  const vencidas = abiertas.filter((t) => isOverdue(t, today)).length;
+  const vencenEn3 = abiertas.filter((t) => dueSoon(t, today, 3)).length;
 
   const cumplidas = (actividades ?? []).filter((a) => a.estado === "Cumplido").length;
   const pendientesParciales = (actividades ?? []).filter((a) => a.estado === "Pendiente" || a.estado === "Parcial").length;
@@ -48,40 +55,54 @@ export default async function SeguimientoInicioPage() {
     .slice(0, 8);
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-semibold text-emerald-900">Inicio</h1>
-      <p className="mt-1 text-sm text-neutral-500">Resumen de tareas, actividades y pendientes del equipo.</p>
+    <div>
+      <Topbar title="Inicio" subtitle="Resumen con porcentajes, pendientes y carga" userLabel={userLabel ?? undefined} />
 
-      <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
-        <strong>Regla principal:</strong> la actividad se registra una sola vez. Los cambios en Banco de tareas o Actividades se reflejan en Agenda y Efectividad.
-      </div>
+      <div className="p-8">
+        <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+          <strong>Regla principal:</strong> la actividad se registra una sola vez. Los cambios realizados en Banco de tareas o Actividades se reflejan en Agenda y Efectividad.
+        </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Kpi label="Disponibles" valor={disponibles} />
-        <Kpi label="En proceso" valor={enProceso} />
-        <Kpi label="Terminadas" valor={terminadas} />
-      </div>
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <KpiCard label="Pendientes abiertos" value={pendientesAbiertos} subtitle="Requieren acción" color="emerald" />
+          <KpiCard label="Vencidas" value={vencidas} subtitle="Requieren decisión" color="red" />
+          <KpiCard label="Vencen en 3 días" value={vencenEn3} subtitle="Próximos compromisos" color="amber" />
+          <KpiCard
+            label="Terminadas activas"
+            value={terminadas}
+            color="blue"
+            action={
+              <Link href="/seguimiento/historial" className="inline-block rounded-md border border-neutral-300 px-2 py-1 text-xs font-semibold text-neutral-600 hover:bg-neutral-50">
+                Ver historial
+              </Link>
+            }
+          />
+        </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <PieCard
-          title="Tareas por estado"
-          data={[
-            { name: "Disponibles", value: disponibles },
-            { name: "En proceso", value: enProceso },
-            { name: "Terminadas", value: terminadas },
-          ]}
-        />
-        <PieCard
-          title="Resultado de actividades"
-          data={[
-            { name: "Cumplidas", value: cumplidas },
-            { name: "Pendientes/Parciales", value: pendientesParciales },
-            { name: "No cumplidas", value: noCumplidas },
-          ]}
-        />
-      </div>
+        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <PieCard
+            title="Tareas por estado"
+            subtitle="Los porcentajes se muestran directamente en el gráfico."
+            centerLabel="tareas"
+            data={[
+              { name: "Disponibles", value: disponibles },
+              { name: "En proceso", value: enProceso },
+              { name: "Terminadas", value: terminadas },
+            ]}
+          />
+          <PieCard
+            title="Resultado de actividades"
+            subtitle="Cumplidas, pendientes/parciales y no cumplidas."
+            centerLabel="actividades"
+            data={[
+              { name: "Cumplidas", value: cumplidas },
+              { name: "Pendientes/Parciales", value: pendientesParciales },
+              { name: "No cumplidas", value: noCumplidas },
+            ]}
+          />
+        </div>
 
-      <div className="mt-4 rounded-lg border border-neutral-200 bg-white p-4">
+        <div className="mt-4 rounded-lg border border-neutral-200 bg-white p-4">
         <div className="mb-3 flex items-center justify-between">
           <div>
             <div className="font-semibold text-emerald-900">Qué requiere atención</div>
@@ -124,16 +145,8 @@ export default async function SeguimientoInicioPage() {
             </tbody>
           </table>
         </div>
+        </div>
       </div>
-    </div>
-  );
-}
-
-function Kpi({ label, valor }: { label: string; valor: string | number }) {
-  return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-4">
-      <div className="text-xs uppercase text-neutral-500">{label}</div>
-      <div className="mt-1 text-2xl font-bold text-emerald-900">{valor}</div>
     </div>
   );
 }

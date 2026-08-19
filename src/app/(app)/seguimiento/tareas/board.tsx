@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import {
   crearTarea,
@@ -15,6 +16,8 @@ import {
   calificarCalidad,
 } from "./actions";
 import { reprogramarBloque } from "../agendas/actions";
+import { KpiCard } from "@/components/kpi-card";
+import { Topbar } from "@/components/topbar";
 
 type Tarea = {
   id: string;
@@ -83,6 +86,7 @@ export function TaskBoard({
   currentUserId,
   timerActivo,
   isAdmin,
+  userLabel,
 }: {
   tareas: Tarea[];
   profiles: Profile[];
@@ -92,6 +96,7 @@ export function TaskBoard({
   currentUserId: string | null;
   timerActivo: TimerActivo;
   isAdmin: boolean;
+  userLabel: string | null;
 }) {
   const [pending, startTransition] = useTransition();
   const [createOpen, setCreateOpen] = useState(false);
@@ -116,58 +121,60 @@ export function TaskBoard({
   }
 
   return (
-    <div className="p-8">
-      {tareaTimer && (
-        <div className="mb-4 flex items-center justify-between rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
-          <span>
-            ⏱ Cronómetro activo — <strong>{tareaTimer.titulo}</strong>
-          </span>
-          <div className="flex items-center gap-3">
-            <span className="font-mono font-semibold">{elapsed}</span>
-            <button
-              onClick={() => run(() => detenerTiempo(timerActivo!.id))}
-              className="rounded-md bg-amber-800 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-900"
-            >
-              Detener
-            </button>
+    <div>
+      <Topbar
+        title="Banco de tareas"
+        subtitle="Disponibles, en proceso y terminadas"
+        userLabel={userLabel ?? undefined}
+        actions={
+          <button
+            onClick={() => setCreateOpen(true)}
+            className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
+          >
+            + Publicar tarea
+          </button>
+        }
+      />
+
+      <div className="p-8">
+        {tareaTimer && (
+          <div className="mb-4 flex items-center justify-between rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+            <span>
+              ⏱ Cronómetro activo — <strong>{tareaTimer.titulo}</strong>
+            </span>
+            <div className="flex items-center gap-3">
+              <span className="font-mono font-semibold">{elapsed}</span>
+              <button
+                onClick={() => run(() => detenerTiempo(timerActivo!.id))}
+                className="rounded-md bg-amber-800 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-900"
+              >
+                Detener
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-emerald-900">Banco de tareas</h1>
-        <button
-          onClick={() => setCreateOpen(true)}
-          className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
-        >
-          + Publicar tarea
-        </button>
-      </div>
+        {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
 
-      {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
+        <HelpBanner />
 
-      <HelpBanner />
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <KpiCard label="Disponibles" value={disponibles.length} color="emerald" />
+          <KpiCard label="En proceso" value={enProceso.length} color="amber" />
+          <KpiCard label="Pausadas" value={pausadas.length} color="neutral" />
+          <KpiCard
+            label="Terminadas pendientes de archivo"
+            value={terminadas.length}
+            color="blue"
+            action={
+              <Link href="/seguimiento/historial" className="inline-block rounded-md border border-neutral-300 px-2 py-1 text-xs font-semibold text-neutral-600 hover:bg-neutral-50">
+                Ver finalizadas y archivadas
+              </Link>
+            }
+          />
+        </div>
 
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-lg border border-neutral-200 bg-white p-4">
-          <div className="text-xs uppercase text-neutral-500">Disponibles</div>
-          <div className="mt-1 text-2xl font-bold text-emerald-900">{disponibles.length}</div>
-        </div>
-        <div className="rounded-lg border border-neutral-200 bg-white p-4">
-          <div className="text-xs uppercase text-neutral-500">En proceso</div>
-          <div className="mt-1 text-2xl font-bold text-emerald-900">{enProceso.length}</div>
-        </div>
-        <div className="rounded-lg border border-neutral-200 bg-white p-4">
-          <div className="text-xs uppercase text-neutral-500">Pausadas</div>
-          <div className="mt-1 text-2xl font-bold text-amber-700">{pausadas.length}</div>
-        </div>
-        <div className="rounded-lg border border-neutral-200 bg-white p-4">
-          <div className="text-xs uppercase text-neutral-500">Terminadas</div>
-          <div className="mt-1 text-2xl font-bold text-emerald-900">{terminadas.length}</div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
         <Column title="Disponibles" count={disponibles.length}>
           {disponibles.map((t) => (
             <Card key={t.id} t={t} profiles={profiles}>
@@ -383,6 +390,7 @@ export function TaskBoard({
           pending={pending}
         />
       )}
+      </div>
     </div>
   );
 }

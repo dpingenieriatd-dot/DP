@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfileLabel } from "@/lib/current-profile";
+import { Topbar } from "@/components/topbar";
 
-const CATEGORIAS = ["Transversal", "Estratégico", "Misional", "Apoyo"];
+const CATEGORIAS = ["Estratégico", "Misional", "Apoyo"];
 const CATEGORIAS_PLURAL: Record<string, string> = {
   Transversal: "transversales",
   Estratégico: "estratégicos",
@@ -13,9 +15,10 @@ export default async function ProcesosPage() {
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
 
-  const [{ data: procesos }, { data: tareas }] = await Promise.all([
+  const [{ data: procesos }, { data: tareas }, userLabel] = await Promise.all([
     supabase.from("procesos").select("codigo, nombre, categoria").order("codigo"),
     supabase.from("tareas").select("proceso_codigo, estado, archivado, fecha_limite"),
+    getCurrentProfileLabel(),
   ]);
 
   const conteos = new Map<string, { abiertas: number; vencidas: number; archivadas: number; total: number }>();
@@ -32,10 +35,10 @@ export default async function ProcesosPage() {
   }
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-semibold text-emerald-900">Procesos</h1>
-      <p className="mt-1 text-sm text-neutral-500">Clasificación de las tareas según el mapa de procesos de D&amp;P.</p>
+    <div>
+      <Topbar title="Procesos" subtitle="Clasificación de las tareas según el mapa de procesos de D&P" userLabel={userLabel ?? undefined} />
 
+      <div className="p-8">
       {CATEGORIAS.map((cat) => {
         const deLaCategoria = (procesos ?? []).filter((p) => p.categoria === cat);
         if (deLaCategoria.length === 0) return null;
@@ -78,6 +81,7 @@ export default async function ProcesosPage() {
           Todavía no se ha cargado el catálogo de procesos.
         </p>
       )}
+      </div>
     </div>
   );
 }

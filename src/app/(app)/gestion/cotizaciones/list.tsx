@@ -61,12 +61,16 @@ export function CotizacionesList({
   const [estadoFiltro, setEstadoFiltro] = useState("");
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
+  const [busqueda, setBusqueda] = useState("");
+
+  const clienteNombre = (id: string | null) => clientes.find((c) => c.id === id)?.nombre ?? "—";
 
   const visibles = cotizaciones
     .filter((c) => !estadoFiltro || c.estado === estadoFiltro)
     .filter((c) => !desde || (c.fecha && c.fecha >= desde))
-    .filter((c) => !hasta || (c.fecha && c.fecha <= hasta));
-  const hayFiltros = !!(estadoFiltro || desde || hasta);
+    .filter((c) => !hasta || (c.fecha && c.fecha <= hasta))
+    .filter((c) => !busqueda || `${c.codigo ?? ""} ${c.nombre} ${clienteNombre(c.cliente_id)}`.toLowerCase().includes(busqueda.toLowerCase()));
+  const hayFiltros = !!(estadoFiltro || desde || hasta || busqueda);
 
   const [preview, setPreview] = useState({
     personas: editing?.personas ?? 0,
@@ -91,8 +95,6 @@ export function CotizacionesList({
       }),
     [preview.costos, preview.respIva, preview.margenPct, preview.adminPct, calc.valorCotizado]
   );
-
-  const clienteNombre = (id: string | null) => clientes.find((c) => c.id === id)?.nombre ?? "—";
 
   function abrirCrear() {
     setEditing(null);
@@ -142,11 +144,28 @@ export function CotizacionesList({
 
   return (
     <div className="flex flex-col p-8 lg:h-full">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold text-emerald-900">Cotizaciones</h1>
-        <button onClick={abrirCrear} className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
-          + Nueva cotización
-        </button>
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold text-emerald-900">Cotizaciones</h1>
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">{cotizaciones.length}</span>
+          </div>
+          <p className="mt-1 text-sm text-neutral-500">Panel principal · Códigos únicos, margen individual y seguimiento por estado</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar cotización, cliente..."
+            className="w-56 rounded-md border border-neutral-300 px-3 py-2 text-sm"
+          />
+          <button onClick={abrirCrear} className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
+            + Nueva cotización
+          </button>
+          <button type="button" disabled title="Próximamente" className="rounded-md border border-neutral-300 px-3 py-2 text-sm font-semibold text-neutral-400">
+            Columnas / vistas
+          </button>
+        </div>
       </div>
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -174,12 +193,17 @@ export function CotizacionesList({
               setEstadoFiltro("");
               setDesde("");
               setHasta("");
+              setBusqueda("");
             }}
             className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 hover:bg-neutral-100"
           >
             Limpiar filtros
           </button>
         )}
+      </div>
+
+      <div className="mb-3 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+        <strong>Control comercial de cotizaciones.</strong> El código no se puede repetir; la empresa atendida puede ser el mismo cliente; cada cotización conserva su propio margen de utilidad y puede clasificarse como Pendiente por definir, Enviada, Aprobada o Rechazada.
       </div>
 
       <div className="min-h-[360px] overflow-auto rounded-lg border border-neutral-200 bg-white lg:min-h-0 lg:flex-1">

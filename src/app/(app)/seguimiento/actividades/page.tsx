@@ -1,5 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfileLabel } from "@/lib/current-profile";
 import { CrudTable, type Field } from "@/components/crud-table";
+import { KpiCard } from "@/components/kpi-card";
+import { Topbar } from "@/components/topbar";
 import { createActividad, updateActividad, deleteActividad } from "./actions";
 import { CargoFilter } from "./cargo-filter";
 
@@ -15,10 +18,11 @@ export default async function Page({
 }) {
   const { cargo: cargoFiltro, estado: estadoFiltro, desde, hasta } = await searchParams;
   const supabase = await createClient();
-  const [{ data: rows }, { data: clientes }, { data: proyectos }] = await Promise.all([
+  const [{ data: rows }, { data: clientes }, { data: proyectos }, userLabel] = await Promise.all([
     supabase.from("actividades").select("*").order("fecha", { ascending: false }),
     supabase.from("clientes").select("id, nombre").order("nombre"),
     supabase.from("proyectos").select("id, codigo, nombre").order("nombre"),
+    getCurrentProfileLabel(),
   ]);
 
   const fields: Field[] = [
@@ -56,15 +60,16 @@ export default async function Page({
 
   return (
     <div className="flex flex-col lg:h-full">
-      <div className="px-8 pt-8">
+      <Topbar title="Actividades" subtitle="Registro histórico con filtro por cargo" userLabel={userLabel ?? undefined} />
+      <div className="px-8 pt-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-sm text-neutral-500">Registro histórico de actividades del equipo.</p>
           <CargoFilter />
         </div>
         <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Kpi label="Cumplidas" valor={cumplidas} />
-          <Kpi label="Pendientes / parciales" valor={pendientes} />
-          <Kpi label="No cumplidas" valor={noCumplidas} />
+          <KpiCard label="Cumplidas" value={cumplidas} color="emerald" />
+          <KpiCard label="Pendientes / parciales" value={pendientes} color="amber" />
+          <KpiCard label="No cumplidas" value={noCumplidas} color="red" />
         </div>
       </div>
       <div className="lg:min-h-0 lg:flex-1">
@@ -78,15 +83,6 @@ export default async function Page({
           emptyLabel="Sin actividades registradas todavía."
         />
       </div>
-    </div>
-  );
-}
-
-function Kpi({ label, valor }: { label: string; valor: string | number }) {
-  return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-4">
-      <div className="text-xs uppercase text-neutral-500">{label}</div>
-      <div className="mt-1 text-2xl font-bold text-emerald-900">{valor}</div>
     </div>
   );
 }

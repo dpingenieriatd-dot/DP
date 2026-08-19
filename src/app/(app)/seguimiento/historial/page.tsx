@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { requiereAdmin } from "@/lib/auth";
+import { getCurrentProfileLabel } from "@/lib/current-profile";
 import { HistorialList } from "./list";
 
 export default async function HistorialPage({ searchParams }: { searchParams: Promise<{ proceso?: string }> }) {
@@ -12,7 +13,7 @@ export default async function HistorialPage({ searchParams }: { searchParams: Pr
     .order("fecha_cierre", { ascending: false });
   if (proceso) query = query.eq("proceso_codigo", proceso);
 
-  const [{ data: tareas }, isAdmin] = await Promise.all([query, requiereAdmin()]);
+  const [{ data: tareas }, isAdmin, userLabel] = await Promise.all([query, requiereAdmin(), getCurrentProfileLabel()]);
 
   const {
     data: { user },
@@ -27,6 +28,7 @@ export default async function HistorialPage({ searchParams }: { searchParams: Pr
       isAdmin={isAdmin}
       currentUserId={user?.id ?? null}
       filtroProceso={proceso ? { codigo: proceso, nombre: procesoInfo?.nombre ?? proceso } : null}
+      userLabel={userLabel}
     />
   );
 }

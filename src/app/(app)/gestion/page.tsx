@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { calcularPresupuesto, calcularControlCostos, money } from "@/lib/finance";
 import { CrecimientoFiltro } from "./crecimiento-filtro";
 import { MESES } from "@/lib/meses";
+import { KpiCard } from "@/components/kpi-card";
 
 /** Cascada de fecha del proyecto, igual intención que el HTML V24: fecha_inicio del proyecto, si no fecha de creación. */
 function fechaProyecto(p: { fecha_inicio: string | null; created_at: string }) {
@@ -112,7 +113,7 @@ export default async function GestionInicioPage({
   return (
     <div className="p-8">
       <h1 className="text-2xl font-semibold text-emerald-900">Inicio</h1>
-      <p className="mt-1 text-sm text-neutral-500">Crecimiento y rentabilidad con la información registrada.</p>
+      <p className="mt-1 text-sm text-neutral-500">Panel principal · Crecimiento y rentabilidad con la información registrada</p>
 
       <div className="mt-4 rounded-lg border border-neutral-200 bg-white p-4">
         <div className="mb-1 font-semibold text-emerald-900">Analizar crecimiento</div>
@@ -127,11 +128,11 @@ export default async function GestionInicioPage({
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-        <Kpi label="Utilidad del período" valor={money.format(utilidadPeriodo)} sub={`${pctTexto(utilidadPeriodo, utilidadPrevio)} ${compareLabel}`} />
-        <Kpi label="Valor aprobado" valor={money.format(valorAprobado)} sub="Proyectos del filtro" />
-        <Kpi label="Proyectos" valor={delPeriodo.length} sub="En el período seleccionado" />
-        <Kpi label="Clientes atendidos" valor={clientesAtendidos} sub={`Base general: ${clientes?.length ?? 0}`} />
-        <Kpi label="Empresas atendidas" valor={empresasAtendidas} sub={`Base general: ${empresas?.length ?? 0}`} />
+        <KpiCard label="Utilidad del período" value={money.format(utilidadPeriodo)} subtitle={`${pctTexto(utilidadPeriodo, utilidadPrevio)} ${compareLabel}`} />
+        <KpiCard label="Valor aprobado" value={money.format(valorAprobado)} subtitle="Proyectos del filtro" />
+        <KpiCard label="Proyectos" value={delPeriodo.length} subtitle="En el período seleccionado" />
+        <KpiCard label="Clientes atendidos" value={clientesAtendidos} subtitle={`Base general: ${clientes?.length ?? 0}`} />
+        <KpiCard label="Empresas atendidas" value={empresasAtendidas} subtitle={`Base general: ${empresas?.length ?? 0}`} />
       </div>
 
       <div className="mt-6 rounded-lg border border-neutral-200 bg-white p-4">
@@ -215,16 +216,6 @@ export default async function GestionInicioPage({
           </table>
         </div>
       </div>
-    </div>
-  );
-}
-
-function Kpi({ label, valor, sub }: { label: string; valor: string | number; sub: string }) {
-  return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-4">
-      <div className="text-xs uppercase text-neutral-500">{label}</div>
-      <div className="mt-1 text-xl font-bold text-emerald-900">{valor}</div>
-      <div className="text-xs text-neutral-400">{sub}</div>
     </div>
   );
 }

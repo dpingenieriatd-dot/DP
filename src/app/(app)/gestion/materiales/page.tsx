@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { CrudTable, type Field } from "@/components/crud-table";
+import { KpiCard } from "@/components/kpi-card";
 import { createMaterial, updateMaterial, deleteMaterial } from "./actions";
 
 const money = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
@@ -26,9 +27,19 @@ export default async function Page() {
     return { ...r, costo_jornada };
   });
 
+  const valorTotal = items.reduce((s, r) => s + Number(r.valor_reposicion || 0), 0);
+
   return (
     <CrudTable
       title="Inventario materiales"
+      subtitle="Catálogos · Orden alfabético por material"
+      newLabel="Nuevo material"
+      banner={
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <KpiCard label="Referencias" value={items.length} color="emerald" />
+          <KpiCard label="Valor reposición" value={money.format(valorTotal)} color="emerald" />
+        </div>
+      }
       fields={fields}
       rows={items}
       onCreate={createMaterial}

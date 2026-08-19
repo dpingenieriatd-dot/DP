@@ -24,6 +24,7 @@ export type Row = Record<string, string | number | boolean | null>;
 
 export function CrudTable({
   title,
+  subtitle,
   fields,
   rows,
   idKey = "id",
@@ -31,8 +32,11 @@ export function CrudTable({
   onUpdate,
   onDelete,
   emptyLabel = "Sin registros todavía.",
+  banner,
+  newLabel,
 }: {
   title: string;
+  subtitle?: string;
   fields: Field[];
   rows: Row[];
   idKey?: string;
@@ -40,12 +44,30 @@ export function CrudTable({
   onUpdate: (id: string, formData: FormData) => Promise<{ error?: string } | void>;
   onDelete: (id: string) => Promise<{ error?: string } | void>;
   emptyLabel?: string;
+  banner?: React.ReactNode;
+  newLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Row | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [busqueda, setBusqueda] = useState("");
+  const [columnaFiltro, setColumnaFiltro] = useState("");
+  const [valorFiltro, setValorFiltro] = useState("");
+
+  const visibles = rows.filter((row) => {
+    if (busqueda) {
+      const texto = fields.map((f) => displayValue(f, row[f.key])).join(" ").toLowerCase();
+      if (!texto.includes(busqueda.toLowerCase())) return false;
+    }
+    if (columnaFiltro && valorFiltro) {
+      const f = fields.find((f) => f.key === columnaFiltro);
+      if (!f) return true;
+      if (!displayValue(f, row[f.key]).toLowerCase().includes(valorFiltro.toLowerCase())) return false;
+    }
+    return true;
+  });
 
   function openCreate() {
     setEditing(null);
@@ -83,15 +105,71 @@ export function CrudTable({
 
   return (
     <div className="flex flex-col p-8 lg:h-full">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-emerald-900">{title}</h1>
-        <button
-          onClick={openCreate}
-          className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold text-emerald-900">{title}</h1>
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">{rows.length}</span>
+          </div>
+          {subtitle && <p className="mt-1 text-sm text-neutral-500">{subtitle}</p>}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder={`Buscar ${title.toLowerCase()}...`}
+            className="w-56 rounded-md border border-neutral-300 px-3 py-2 text-sm"
+          />
+          <button
+            onClick={openCreate}
+            className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
+          >
+            + {newLabel ?? `Nuevo`}
+          </button>
+          <button
+            type="button"
+            disabled
+            title="Próximamente"
+            className="rounded-md border border-neutral-300 px-3 py-2 text-sm font-semibold text-neutral-400"
+          >
+            Columnas / vistas
+          </button>
+        </div>
+      </div>
+
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <select
+          value={columnaFiltro}
+          onChange={(e) => setColumnaFiltro(e.target.value)}
+          className="rounded-md border border-neutral-300 px-3 py-2 text-sm"
         >
-          + Nuevo
+          <option value="">Todas las columnas</option>
+          {fields.map((f) => (
+            <option key={f.key} value={f.key}>
+              {f.label}
+            </option>
+          ))}
+        </select>
+        <input
+          value={valorFiltro}
+          onChange={(e) => setValorFiltro(e.target.value)}
+          placeholder="Valor a buscar"
+          className="min-w-[200px] flex-1 rounded-md border border-neutral-300 px-3 py-2 text-sm"
+        />
+        <button
+          type="button"
+          onClick={() => {
+            setColumnaFiltro("");
+            setValorFiltro("");
+            setBusqueda("");
+          }}
+          className="rounded-md border border-neutral-300 px-3 py-2 text-sm font-semibold text-neutral-600 hover:bg-neutral-50"
+        >
+          Limpiar filtro
         </button>
       </div>
+
+      {banner && <div className="mb-3">{banner}</div>}
 
       <div className="min-h-[360px] overflow-auto rounded-lg border border-neutral-200 bg-white lg:min-h-0 lg:flex-1">
         <table className="w-full min-w-max text-xs">
@@ -106,14 +184,14 @@ export function CrudTable({
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 && (
+            {visibles.length === 0 && (
               <tr>
                 <td colSpan={fields.length + 1} className="px-3 py-8 text-center text-neutral-400">
                   {emptyLabel}
                 </td>
               </tr>
             )}
-            {rows.map((row) => (
+            {visibles.map((row) => (
               <tr key={String(row[idKey])} className="border-t border-neutral-100 hover:bg-neutral-50">
                 {fields.map((f) => (
                   <td key={f.key} className="px-3 py-2">

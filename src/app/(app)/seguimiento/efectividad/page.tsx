@@ -1,12 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfileLabel } from "@/lib/current-profile";
+import { Topbar } from "@/components/topbar";
 
 export default async function Page() {
   const supabase = await createClient();
 
-  const [{ data: profiles }, { data: tareas }, { data: params }] = await Promise.all([
+  const [{ data: profiles }, { data: tareas }, { data: params }, userLabel] = await Promise.all([
     supabase.from("profiles").select("id, full_name, email, cargo").order("full_name"),
     supabase.from("tareas").select("responsable, estado, fecha_limite, fecha_cierre, horas_estimadas, horas_reales, calidad_pct"),
     supabase.from("efectividad_parametros").select("*").eq("id", 1).single(),
+    getCurrentProfileLabel(),
   ]);
 
   const pesoCumplimiento = Number(params?.peso_cumplimiento ?? 50);
@@ -47,38 +50,46 @@ export default async function Page() {
   });
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-semibold text-emerald-900">Efectividad</h1>
-      <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-        Combina <strong>cumplimiento</strong> ({pesoCumplimiento}%), <strong>oportunidad</strong> ({pesoOportunidad}%),{" "}
-        <strong>eficiencia de tiempo</strong> ({pesoEficiencia}% — horas reales vs. estimadas) y <strong>calidad del entregable</strong> (
-        {pesoCalidad}% — calificada por un admin al revisar cada tarea terminada), ajustado a 100. Mientras una persona no
-        tenga ninguna tarea calificada, su puntaje se muestra como <strong>provisional</strong> (sin el componente de
-        calidad). Los pesos se editan en Configuración por un administrador. Esto no debe usarse para comparar personas
-        entre sí ni para decisiones automáticas.
-      </div>
+    <div>
+      <Topbar title="Efectividad" subtitle="Cumplimiento, oportunidad, eficiencia y calidad por persona" userLabel={userLabel ?? undefined} />
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {filas.map(({ p, cumplimiento, oportunidad, eficiencia, calidad, provisional, score, totalTareas }) => (
-          <div key={p.id} className="rounded-lg border border-neutral-200 bg-white p-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="font-semibold text-neutral-800">{p.full_name || p.email}</div>
-                <div className="text-xs text-neutral-500">{p.cargo || "—"}</div>
+      <div className="p-8">
+        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          Combina <strong>cumplimiento</strong> ({pesoCumplimiento}%), <strong>oportunidad</strong> ({pesoOportunidad}%),{" "}
+          <strong>eficiencia de tiempo</strong> ({pesoEficiencia}% — horas reales vs. estimadas) y <strong>calidad del entregable</strong> (
+          {pesoCalidad}% — calificada por un admin al revisar cada tarea terminada), ajustado a 100. Mientras una persona no
+          tenga ninguna tarea calificada, su puntaje se muestra como <strong>provisional</strong> (sin el componente de
+          calidad). Los pesos se editan en Configuración por un administrador. Esto no debe usarse para comparar personas
+          entre sí ni para decisiones automáticas.
+        </div>
+
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {filas.map(({ p, cumplimiento, oportunidad, eficiencia, calidad, provisional, score, totalTareas }) => (
+            <div
+              key={p.id}
+              className={`rounded-lg border border-neutral-200 border-t-4 bg-white p-4 ${
+                provisional ? "border-t-amber-500" : score >= 80 ? "border-t-emerald-600" : score >= 50 ? "border-t-amber-500" : "border-t-red-600"
+              }`}
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="font-semibold text-neutral-800">{p.full_name || p.email}</div>
+                  <div className="text-xs text-neutral-500">{p.cargo || "—"}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-emerald-900">{Math.round(score)}%</div>
+                  {provisional && <div className="text-[11px] font-semibold text-amber-600">Efectividad provisional</div>}
+                </div>
               </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-emerald-900">{Math.round(score)}%</div>
-                {provisional && <div className="text-[11px] font-semibold text-amber-600">Efectividad provisional</div>}
-              </div>
+              <Barra label="Cumplimiento" valor={cumplimiento} />
+              <Barra label="Oportunidad" valor={oportunidad} />
+              <Barra label="Eficiencia de tiempo" valor={eficiencia} />
+              <Barra label="Calidad del entregable" valor={calidad} atenuada={provisional} />
+              <div className="mt-2 text-xs text-neutral-400">{totalTareas} tarea(s) asignadas en total</div>
             </div>
-            <Barra label="Cumplimiento" valor={cumplimiento} />
-            <Barra label="Oportunidad" valor={oportunidad} />
-            <Barra label="Eficiencia de tiempo" valor={eficiencia} />
-            <Barra label="Calidad del entregable" valor={calidad} atenuada={provisional} />
-            <div className="mt-2 text-xs text-neutral-400">{totalTareas} tarea(s) asignadas en total</div>
-          </div>
-        ))}
-        {filas.length === 0 && <p className="text-neutral-400">Todavía no hay personas con perfil creado.</p>}
+          ))}
+          {filas.length === 0 && <p className="text-neutral-400">Todavía no hay personas con perfil creado.</p>}
+        </div>
       </div>
     </div>
   );
