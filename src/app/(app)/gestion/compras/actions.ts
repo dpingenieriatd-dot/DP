@@ -29,7 +29,15 @@ function revalidateAll(proyectoId: FormDataEntryValue | null) {
   if (proyectoId) revalidatePath(`/gestion/proyectos/${proyectoId}`);
 }
 
+/** El proyecto es el centro de costos — sin él, la compra no se puede vincular al control de costos del presupuesto. */
+function requiereProyecto(formData: FormData) {
+  if (!formData.get("proyecto_id")) return "Selecciona el proyecto al que pertenece esta compra.";
+  return null;
+}
+
 export async function crearCompra(formData: FormData) {
+  const faltaProyecto = requiereProyecto(formData);
+  if (faltaProyecto) return { error: faltaProyecto };
   const supabase = await createClient();
   const { error } = await supabase.from("compras").insert(fromForm(formData));
   if (error) return { error: error.message };
@@ -37,6 +45,8 @@ export async function crearCompra(formData: FormData) {
 }
 
 export async function actualizarCompra(id: string, formData: FormData) {
+  const faltaProyecto = requiereProyecto(formData);
+  if (faltaProyecto) return { error: faltaProyecto };
   const supabase = await createClient();
   const { error } = await supabase.from("compras").update(fromForm(formData)).eq("id", id);
   if (error) return { error: error.message };

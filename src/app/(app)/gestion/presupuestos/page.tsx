@@ -6,7 +6,7 @@ export default async function Page() {
   const supabase = await createClient();
 
   const [{ data: presupuestos }, { data: proyectos }, { data: costos }] = await Promise.all([
-    supabase.from("presupuestos").select("*").order("created_at", { ascending: false }),
+    supabase.from("presupuestos").select("*").order("nombre"),
     supabase.from("proyectos").select("id, codigo, nombre").eq("archivado", false).order("nombre"),
     supabase.from("presupuesto_costos").select("presupuesto_id, presupuestado, real"),
   ]);

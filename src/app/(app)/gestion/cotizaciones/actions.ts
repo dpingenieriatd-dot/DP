@@ -176,6 +176,23 @@ export async function eliminarCotizacion(id: string) {
 }
 
 /**
+ * Código consecutivo y ascendente por año, ejemplo PROY-2026-001 — pedido explícito de
+ * Cesar para que el proyecto creado al aprobar una cotización no reuse el código de la
+ * cotización (COT-xxx) sino su propia numeración. Mira el máximo consecutivo ya usado ese
+ * año (sea que haya salido de aquí o de la creación manual de proyectos) y sigue de ahí.
+ */
+async function generarCodigoProyecto(supabase: SupabaseServer): Promise<string> {
+  const year = new Date().getFullYear();
+  const prefix = `PROY-${year}-`;
+  const { data } = await supabase.from("proyectos").select("codigo").ilike("codigo", `${prefix}%`);
+  const usados = (data ?? [])
+    .map((p) => Number(p.codigo?.slice(prefix.length)))
+    .filter((n) => Number.isFinite(n));
+  const siguiente = (usados.length ? Math.max(...usados) : 0) + 1;
+  return `${prefix}${String(siguiente).padStart(3, "0")}`;
+}
+
+/**
  * Aprobar crea el Proyecto Y un primer Presupuesto sembrado con los
  * componentes de la cotización (materiales + profesional) como costo
  * inicial. Ese presupuesto luego se ajusta con costos reales en el
@@ -194,10 +211,11 @@ export async function aprobarYCrearProyecto(cotizacionId: string) {
 
   await supabase.from("cotizaciones").update({ estado: "Aprobada" }).eq("id", cotizacionId);
 
+  const codigoProyecto = await generarCodigoProyecto(supabase);
   const { data: proyecto, error: proyError } = await supabase
     .from("proyectos")
     .insert({
-      codigo: cot.codigo,
+      codigo: codigoProyecto,
       nombre: cot.nombre,
       cliente_id: cot.cliente_id,
       empresa_id: cot.empresa_id,
@@ -215,17 +233,42 @@ export async function aprobarYCrearProyecto(cotizacionId: string) {
     cot.costos_estimados != null && Number(cot.costos_estimados) > 0
       ? Number(cot.costos_estimados)
       : Number(cot.val_materiales || 0) + Number(cot.valor_prof || 0);
-  const { error: preError } = await supabase.from("presupuestos").insert({
-    proyecto_id: proyecto.id,
-    cotizacion_id: cot.id,
-    codigo: cot.codigo,
-    nombre: cot.nombre,
-    empresa_id: cot.empresa_id,
-    costos: costosSemilla,
-    resp_iva: cot.resp_iva ?? true,
-    valor_cotizado: cot.valor_cotizado,
-  });
+  const { data: nuevoPresupuesto, error: preError } = await supabase
+    .from("presupuestos")
+    .insert({
+      proyecto_id: proyecto.id,
+      cotizacion_id: cot.id,
+      codigo: cot.codigo,
+      nombre: cot.nombre,
+      empresa_id: cot.empresa_id,
+      costos: costosSemilla,
+      resp_iva: cot.resp_iva ?? true,
+      valor_cotizado: cot.valor_cotizado,
+    })
+    .select("id")
+    .single();
   if (preError) return { error: preError.message };
+
+  // Semilla el control de costos con los ítems que ya estaban contemplados en la
+  // cotización (materiales y profesional cobrado) — quedan como filas normales,
+  // editables/eliminables igual que cualquier otro costo del presupuesto.
+  const itemsSemilla = [
+    Number(cot.val_materiales) > 0 && {
+      presupuesto_id: nuevoPresupuesto.id,
+      categoria: "Materiales / desgaste",
+      descripcion: "Materiales (de la cotización)",
+      presupuestado: Number(cot.val_materiales),
+      origen: "Presupuesto",
+    },
+    Number(cot.valor_prof) > 0 && {
+      presupuesto_id: nuevoPresupuesto.id,
+      categoria: "Servicios / profesionales",
+      descripcion: "Profesional (de la cotización)",
+      presupuestado: Number(cot.valor_prof),
+      origen: "Presupuesto",
+    },
+  ].filter(Boolean);
+  if (itemsSemilla.length) await supabase.from("presupuesto_costos").insert(itemsSemilla);
 
   revalidatePath(PATH);
   revalidatePath("/gestion/proyectos");

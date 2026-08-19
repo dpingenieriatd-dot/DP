@@ -69,18 +69,27 @@ export async function eliminarCosto(presupuestoId: string, costoId: string) {
   revalidatePath("/gestion/presupuestos");
 }
 
-/** Trae las compras ya registradas del proyecto como líneas de costo iniciales. */
+/**
+ * Trae las compras del proyecto como líneas de costo. Solo importa las que
+ * todavía no se habían traído (compra_id no repetido) — se puede volver a
+ * usar después de registrar compras nuevas sin duplicar las que ya estaban.
+ */
 export async function importarDesdeCompras(presupuestoId: string, proyectoId: string) {
   const supabase = await createClient();
-  const { data: compras } = await supabase
-    .from("compras")
-    .select("*, proveedores(nombre), insumos(descripcion)")
-    .eq("proyecto_id", proyectoId);
+  const [{ data: compras }, { data: yaImportadas }] = await Promise.all([
+    supabase.from("compras").select("*, proveedores(nombre), insumos(descripcion)").eq("proyecto_id", proyectoId),
+    supabase.from("presupuesto_costos").select("compra_id").eq("presupuesto_id", presupuestoId).not("compra_id", "is", null),
+  ]);
 
   if (!compras || compras.length === 0) return { error: "Este proyecto no tiene compras registradas todavía." };
 
-  const filas = compras.map((c) => ({
+  const idsImportados = new Set((yaImportadas ?? []).map((c) => c.compra_id));
+  const nuevas = compras.filter((c) => !idsImportados.has(c.id));
+  if (nuevas.length === 0) return { error: "Ya se importaron todas las compras de este proyecto — no hay ninguna nueva." };
+
+  const filas = nuevas.map((c) => ({
     presupuesto_id: presupuestoId,
+    compra_id: c.id,
     categoria: c.categoria === "Servicios profesionales" ? "Servicios / profesionales" : "Compras / insumos",
     descripcion: c.insumos?.descripcion || c.categoria || "Costo del proyecto",
     proveedor: c.proveedores?.nombre || null,

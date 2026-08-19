@@ -8,8 +8,10 @@ import { money } from "@/lib/finance";
 type Fila = {
   proy: { id: string; codigo: string | null; nombre: string; estado: string; fecha_inicio: string | null; fecha_fin: string | null };
   cliente: string;
+  nitCliente: string;
   empresa: string;
   responsable: string;
+  cotizacionCodigo: string;
   numPresupuestos: number;
   gananciaTotal: number;
   viableTodos: boolean | null;
@@ -88,12 +90,14 @@ export function ProyectosList({
       </div>
 
       <div className="min-h-[360px] overflow-auto rounded-lg border border-neutral-200 bg-white lg:min-h-0 lg:flex-1">
-        <table className="w-full min-w-[1000px] text-xs">
+        <table className="w-full min-w-[1250px] text-xs">
           <thead>
             <tr className="text-left text-[11px] uppercase text-neutral-500">
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Código</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Cotización</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Proyecto</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Cliente</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">NIT</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Empresa atendida</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Responsable</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Presupuestos</th>
@@ -103,15 +107,17 @@ export function ProyectosList({
             </tr>
           </thead>
           <tbody>
-            {visibles.map(({ proy, cliente, empresa, responsable, numPresupuestos, gananciaTotal, viableTodos }) => (
+            {visibles.map(({ proy, cliente, nitCliente, empresa, responsable, cotizacionCodigo, numPresupuestos, gananciaTotal, viableTodos }) => (
               <tr key={proy.id} className="border-t border-neutral-100 hover:bg-neutral-50">
                 <td className="px-3 py-2">
                   <Link href={`/gestion/proyectos/${proy.id}`} className="font-medium text-emerald-700 hover:underline">
                     {proy.codigo || "(sin código)"}
                   </Link>
                 </td>
+                <td className="px-3 py-2 text-neutral-500">{cotizacionCodigo}</td>
                 <td className="px-3 py-2">{proy.nombre}</td>
                 <td className="px-3 py-2">{cliente}</td>
+                <td className="px-3 py-2 text-neutral-500">{nitCliente}</td>
                 <td className="px-3 py-2">{empresa}</td>
                 <td className="px-3 py-2">{responsable}</td>
                 <td className="px-3 py-2">
@@ -153,7 +159,7 @@ export function ProyectosList({
             ))}
             {visibles.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-3 py-8 text-center text-neutral-400">
+                <td colSpan={11} className="px-3 py-8 text-center text-neutral-400">
                   {filas.length === 0 ? "No hay proyectos registrados." : "Ningún registro coincide con los filtros."}
                 </td>
               </tr>

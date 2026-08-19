@@ -16,6 +16,7 @@ type Presupuesto = {
   iva_pct: number;
   valor_cotizado: number;
   proyectos: { id: string; codigo: string | null; nombre: string } | null;
+  cotizaciones: { id: string; codigo: string | null; estado: string } | null;
 };
 type Costo = {
   id: string;
@@ -25,6 +26,7 @@ type Costo = {
   presupuestado: number;
   real: number;
   estado: string;
+  origen: string;
 };
 
 const CATEGORIAS = ["Compras / insumos", "Servicios / profesionales", "Materiales / desgaste", "Transporte / logistica", "Viáticos", "Otros costos", "Costos directos"];
@@ -81,6 +83,15 @@ export function PresupuestoDetalle({
             {presupuesto.proyectos.codigo ? `${presupuesto.proyectos.codigo} · ` : ""}
             {presupuesto.proyectos.nombre}
           </Link>
+        </p>
+      )}
+      {presupuesto.cotizaciones && (
+        <p className="text-sm text-neutral-500">
+          Cotización base aprobada por el cliente:{" "}
+          <Link href="/gestion/cotizaciones" className="text-emerald-700 hover:underline">
+            {presupuesto.cotizaciones.codigo || "(sin código)"}
+          </Link>{" "}
+          <span className="text-xs text-neutral-400">({presupuesto.cotizaciones.estado})</span>
         </p>
       )}
 
@@ -187,6 +198,7 @@ export function PresupuestoDetalle({
               <th className="py-1 text-right">Real</th>
               <th className="py-1 text-right">Disponible</th>
               <th className="py-1">Estado</th>
+              <th className="py-1">Origen</th>
               <th />
             </tr>
           </thead>
@@ -200,6 +212,7 @@ export function PresupuestoDetalle({
                 <td className="py-1.5 text-right">{money.format(c.real)}</td>
                 <td className={`py-1.5 text-right ${c.presupuestado - c.real < 0 ? "text-red-600" : ""}`}>{money.format(c.presupuestado - c.real)}</td>
                 <td className="py-1.5">{c.estado}</td>
+                <td className="py-1.5 text-neutral-400">{c.origen}</td>
                 <td className="py-1.5 text-right">
                   <button
                     onClick={() => {
@@ -225,7 +238,7 @@ export function PresupuestoDetalle({
             ))}
             {costos.length === 0 && (
               <tr>
-                <td colSpan={8} className="py-6 text-center text-neutral-400">
+                <td colSpan={9} className="py-6 text-center text-neutral-400">
                   No hay costos registrados. Usa &quot;Agregar costo&quot; o &quot;Importar desde Compras&quot;.
                 </td>
               </tr>

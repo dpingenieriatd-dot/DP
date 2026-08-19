@@ -184,7 +184,7 @@ export function ComprasList({
             <h2 className="mb-4 text-lg font-semibold text-emerald-900">{editing ? "Editar" : "Nueva"} compra</h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <Campo label="Proyecto">
-                <select name="proyecto_id" defaultValue={editing?.proyecto_id ?? ""} className="in">
+                <select name="proyecto_id" defaultValue={editing?.proyecto_id ?? ""} required className="in">
                   <option value="">Seleccione…</option>
                   {proyectos.map((p) => (
                     <option key={p.id} value={p.id}>
