@@ -5,6 +5,19 @@ import { createClient } from "@/lib/supabase/server";
 
 const PATH = "/gestion/compras";
 
+type SupabaseServer = Awaited<ReturnType<typeof createClient>>;
+
+/** Código consecutivo simple (COM-0001, COM-0002...) — solo informativo, no se edita a mano. */
+async function generarCodigoCompra(supabase: SupabaseServer): Promise<string> {
+  const prefix = "COM-";
+  const { data } = await supabase.from("compras").select("codigo").not("codigo", "is", null).ilike("codigo", `${prefix}%`);
+  const usados = (data ?? [])
+    .map((c) => Number(c.codigo?.slice(prefix.length)))
+    .filter((n) => Number.isFinite(n));
+  const siguiente = (usados.length ? Math.max(...usados) : 0) + 1;
+  return `${prefix}${String(siguiente).padStart(4, "0")}`;
+}
+
 function fromForm(formData: FormData) {
   return {
     proyecto_id: formData.get("proyecto_id") || null,
@@ -39,7 +52,8 @@ export async function crearCompra(formData: FormData) {
   const faltaProyecto = requiereProyecto(formData);
   if (faltaProyecto) return { error: faltaProyecto };
   const supabase = await createClient();
-  const { error } = await supabase.from("compras").insert(fromForm(formData));
+  const codigo = await generarCodigoCompra(supabase);
+  const { error } = await supabase.from("compras").insert({ ...fromForm(formData), codigo });
   if (error) return { error: error.message };
   revalidateAll(formData.get("proyecto_id"));
 }
