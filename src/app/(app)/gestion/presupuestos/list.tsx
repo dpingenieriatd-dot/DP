@@ -109,13 +109,16 @@ export function PresupuestosList({ filas, proyectos }: { filas: Fila[]; proyecto
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Disponible</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Ganancia estimada</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Viabilidad</th>
-              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2" />
             </tr>
           </thead>
           <tbody>
             {visibles.map(({ pre, f, control, proyecto }) => (
               <tr key={pre.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                <td className="px-3 py-2">{pre.codigo || "—"}</td>
+                <td className="px-3 py-2">
+                  <Link href={`/gestion/presupuestos/${pre.id}`} className="font-medium text-emerald-700 hover:underline">
+                    {pre.codigo || "—"}
+                  </Link>
+                </td>
                 <td className="px-3 py-2">{proyecto}</td>
                 <td className="px-3 py-2">{pre.nombre}</td>
                 <td className="px-3 py-2 text-right">{money.format(f.valorCotizado)}</td>
@@ -130,16 +133,11 @@ export function PresupuestosList({ filas, proyectos }: { filas: Fila[]; proyecto
                     {f.viable ? "✅ Viable" : "❌ No viable"}
                   </span>
                 </td>
-                <td className="px-3 py-2 text-right">
-                  <Link href={`/gestion/presupuestos/${pre.id}`} className="text-xs font-medium text-emerald-700 hover:underline">
-                    Gestionar
-                  </Link>
-                </td>
               </tr>
             ))}
             {visibles.length === 0 && (
               <tr>
-                <td colSpan={10} className="px-3 py-8 text-center text-neutral-400">
+                <td colSpan={9} className="px-3 py-8 text-center text-neutral-400">
                   {filas.length === 0 ? "No hay presupuestos registrados." : "Ningún registro coincide con los filtros."}
                 </td>
               </tr>
