@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import {
   crearTarea,
   tomarTarea,
@@ -17,6 +17,7 @@ import {
 import { reprogramarBloque } from "../agendas/actions";
 import { KpiCard } from "@/components/kpi-card";
 import { Topbar } from "@/components/topbar";
+import { useElapsed } from "@/lib/use-elapsed";
 
 type Tarea = {
   id: string;
@@ -57,25 +58,6 @@ function nombreDe(profiles: Profile[], id: string | null) {
   if (!id) return null;
   const p = profiles.find((p) => p.id === id);
   return p?.full_name || p?.email || "—";
-}
-
-function useElapsed(inicio: string | null) {
-  const [elapsed, setElapsed] = useState("00:00:00");
-  useEffect(() => {
-    if (!inicio) return;
-    const start = new Date(inicio).getTime();
-    const tick = () => {
-      const s = Math.max(0, Math.floor((Date.now() - start) / 1000));
-      const h = String(Math.floor(s / 3600)).padStart(2, "0");
-      const m = String(Math.floor((s % 3600) / 60)).padStart(2, "0");
-      const sec = String(s % 60).padStart(2, "0");
-      setElapsed(`${h}:${m}:${sec}`);
-    };
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [inicio]);
-  return elapsed;
 }
 
 export function TaskBoard({

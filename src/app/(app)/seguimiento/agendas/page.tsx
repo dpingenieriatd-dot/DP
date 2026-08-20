@@ -20,7 +20,7 @@ export default async function Page() {
       supabase.from("proyectos").select("id, codigo, nombre").order("nombre"),
       supabase
         .from("agenda_bloques")
-        .select("*, clientes(nombre), proyectos(nombre), tareas(id, estado, responsable)")
+        .select("*, clientes(nombre), proyectos(nombre), tareas(id, estado, responsable, horas_reales)")
         .gte("dia", desde)
         .lte("dia", hasta)
         .order("hora_inicio"),

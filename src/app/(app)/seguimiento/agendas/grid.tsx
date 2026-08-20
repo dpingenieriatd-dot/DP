@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { crearBloque, eliminarBloque, actualizarPreferenciasRecordatorio } from "./actions";
+import { crearBloque, eliminarBloque, actualizarPreferenciasRecordatorio, reprogramarBloque } from "./actions";
 import { iniciarTiempo, pausarTarea, reanudarTarea, terminarTarea } from "../tareas/actions";
 import { KpiCard } from "@/components/kpi-card";
 import { Topbar } from "@/components/topbar";
+import { useElapsed, formatHoras } from "@/lib/use-elapsed";
 
 type Profile = { id: string; full_name: string | null; email: string | null; capacidad_semanal_horas: number };
 type Cliente = { id: string; nombre: string };
@@ -20,7 +21,7 @@ type Bloque = {
   clientes?: { nombre: string } | null;
   proyectos?: { nombre: string } | null;
   tarea_id?: string | null;
-  tareas?: { id: string; estado: string; responsable: string | null } | null;
+  tareas?: { id: string; estado: string; responsable: string | null; horas_reales: number } | null;
 };
 
 const ESTADO_CLASS: Record<string, string> = {
@@ -78,7 +79,9 @@ export function AgendaGrid({
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [finishing, setFinishing] = useState<{ tareaId: string; titulo: string } | null>(null);
+  const [reprogramando, setReprogramando] = useState<{ tareaId: string; titulo: string; dia: string; hora: string } | null>(null);
   const [pending, startTransition] = useTransition();
+  const elapsed = useElapsed(timerActivo?.inicio ?? null);
 
   function submit(formData: FormData) {
     startTransition(async () => {
@@ -218,6 +221,18 @@ export function AgendaGrid({
                                 {b.proyectos?.nombre && (
                                   <div className="text-[clamp(0.65rem,6.5cqw,0.8rem)] text-neutral-500">{b.proyectos.nombre}</div>
                                 )}
+                                {corriendo ? (
+                                  <div className="mt-1 font-mono text-[clamp(0.65rem,6.5cqw,0.8rem)] font-semibold text-amber-700">⏱ {elapsed}</div>
+                                ) : (
+                                  b.tareas && Number(b.tareas.horas_reales) > 0 && (
+                                    <div className="mt-1 text-[clamp(0.65rem,6.5cqw,0.8rem)] text-neutral-500">
+                                      ⏱ {formatHoras(Number(b.tareas.horas_reales))} {estado === "Terminada" ? "consolidado" : "acumulado"}
+                                    </div>
+                                  )
+                                )}
+                                <div className="mt-0.5 text-[clamp(0.55rem,5.5cqw,0.7rem)] text-neutral-400">
+                                  Inicio: {b.dia} {b.hora_inicio.slice(0, 5)}
+                                </div>
                                 {b.tarea_id ? (
                                   esMia && (estado === "En proceso" || estado === "Pausada") ? (
                                     <div className="mt-1 flex flex-wrap gap-2">
@@ -248,13 +263,23 @@ export function AgendaGrid({
                                           </button>
                                         </>
                                       ) : (
-                                        <button
-                                          onClick={() => run(() => reanudarTarea(b.tarea_id!))}
-                                          disabled={pending || !!timerActivo}
-                                          className="text-[clamp(0.65rem,6cqw,0.75rem)] font-semibold text-emerald-700 hover:underline disabled:opacity-60"
-                                        >
-                                          ▶ Reanudar
-                                        </button>
+                                        <>
+                                          <button
+                                            onClick={() => run(() => reanudarTarea(b.tarea_id!))}
+                                            disabled={pending || !!timerActivo}
+                                            className="text-[clamp(0.65rem,6cqw,0.75rem)] font-semibold text-emerald-700 hover:underline disabled:opacity-60"
+                                          >
+                                            ▶ Reanudar
+                                          </button>
+                                          <button
+                                            onClick={() =>
+                                              setReprogramando({ tareaId: b.tarea_id!, titulo: b.tarea ?? "", dia: b.dia, hora: b.hora_inicio.slice(0, 5) })
+                                            }
+                                            className="text-[clamp(0.65rem,6cqw,0.75rem)] font-semibold text-neutral-600 hover:underline"
+                                          >
+                                            📅 Reprogramar
+                                          </button>
+                                        </>
                                       )}
                                     </div>
                                   ) : null
@@ -397,6 +422,48 @@ export function AgendaGrid({
                 className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
               >
                 Marcar terminada
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {reprogramando && (
+        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4" onClick={() => setReprogramando(null)}>
+          <form
+            action={(fd) =>
+              startTransition(async () => {
+                const r = await reprogramarBloque(reprogramando.tareaId, String(fd.get("dia")), String(fd.get("hora_inicio")));
+                if (r?.error) setError(r.error);
+                else setReprogramando(null);
+              })
+            }
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg"
+          >
+            <h2 className="mb-1 text-lg font-semibold text-emerald-900">Reprogramar bloque de Agenda</h2>
+            <p className="mb-4 text-sm text-neutral-500">{reprogramando.titulo}</p>
+            <p className="mb-3 text-xs text-neutral-400">El bloque conserva el mismo registro en Agenda, solo cambia la fecha y hora.</p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <label className="block text-sm">
+                <span className="mb-1 block text-neutral-600">Día</span>
+                <input type="date" name="dia" defaultValue={reprogramando.dia} required className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block text-neutral-600">Hora inicio</span>
+                <input type="time" name="hora_inicio" defaultValue={reprogramando.hora} required className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+              </label>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setReprogramando(null)} className="rounded-md px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-100">
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={pending}
+                className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
+              >
+                Reprogramar
               </button>
             </div>
           </form>
