@@ -195,20 +195,16 @@ export async function eliminarCotizacion(id: string) {
 }
 
 /**
- * Código consecutivo y ascendente por año, ejemplo PROY_2026_001 (guion bajo,
- * como el HTML de referencia V25) — pedido explícito de Cesar para que el
- * proyecto creado al aprobar una cotización no reuse el código de la
- * cotización (COT-xxx) sino su propia numeración. Mira el máximo consecutivo
- * ya usado ese año (sea que haya salido de aquí o de la creación manual de
- * proyectos) y sigue de ahí.
+ * Código consecutivo y ascendente por año, ejemplo PROY-2026-001, como pide el
+ * documento de ajustes — el proyecto creado al aprobar una cotización no
+ * reusa el código de la cotización (COT-xxx), tiene su propia numeración.
+ * Mira el máximo consecutivo ya usado ese año (sea que haya salido de aquí o
+ * de la creación manual de proyectos) y sigue de ahí.
  */
 async function generarCodigoProyecto(supabase: SupabaseServer): Promise<string> {
   const year = new Date().getFullYear();
-  const prefix = `PROY_${year}_`;
-  // "_" es comodín en LIKE/ILIKE (matchea cualquier carácter) — se escapa para que
-  // el filtro sea literal y no traiga códigos que no empiecen realmente con esto.
-  const patron = prefix.replace(/[_%]/g, (c) => `\\${c}`);
-  const { data } = await supabase.from("proyectos").select("codigo").ilike("codigo", `${patron}%`);
+  const prefix = `PROY-${year}-`;
+  const { data } = await supabase.from("proyectos").select("codigo").ilike("codigo", `${prefix}%`);
   const usados = (data ?? [])
     .filter((p) => p.codigo?.startsWith(prefix))
     .map((p) => Number(p.codigo?.slice(prefix.length)))
