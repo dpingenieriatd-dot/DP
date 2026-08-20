@@ -61,9 +61,39 @@ export async function createActividad(formData: FormData) {
 
 export async function updateActividad(id: string, formData: FormData) {
   const supabase = await createClient();
-  const { error } = await supabase.from(TABLE).update(fromForm(formData)).eq("id", id);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const payload = fromForm(formData);
+  const { error } = await supabase.from(TABLE).update(payload).eq("id", id);
   if (error) return { error: error.message };
+
+  // Mismo criterio que createActividad: el bloque en Agenda debe reflejar la hora vigente de la
+  // actividad, no la que tenía al crearse — si no, quedan desincronizados.
+  if (payload.hora && user) {
+    const { error: agendaError } = await supabase.from("agenda_bloques").upsert(
+      {
+        actividad_id: id,
+        usuario_id: user.id,
+        dia: payload.fecha,
+        hora_inicio: payload.hora,
+        horas: 1,
+        tarea: payload.actividad,
+        cliente_id: payload.cliente_id,
+        proyecto_id: payload.proyecto_id,
+      },
+      { onConflict: "actividad_id" },
+    );
+    if (agendaError) return { error: agendaError.message };
+  } else if (!payload.hora) {
+    // Se borró la hora: ya no hay dato válido para el bloque, se retira en vez de dejarlo con una hora vieja.
+    await supabase.from("agenda_bloques").delete().eq("actividad_id", id);
+  }
+
   revalidatePath(PATH);
+  revalidatePath("/seguimiento/agendas");
+  revalidatePath("/seguimiento/capacidad");
 }
 
 export async function deleteActividad(id: string) {
