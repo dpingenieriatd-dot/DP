@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 
 export type Field = {
   key: string;
@@ -12,6 +13,8 @@ export type Field = {
   required?: boolean;
   /** Columna calculada que solo se muestra en la tabla, sin campo propio en el formulario de crear/editar. */
   tableOnly?: boolean;
+  /** Si se define, la celda de esta columna se muestra como enlace hacia la URL guardada en row[linkKey] (o texto plano si esa fila no la tiene). La URL se precalcula del lado del servidor porque este es un Client Component y no puede recibir funciones desde el Server Component que lo llama. */
+  linkKey?: string;
 };
 
 /** Muestra el label de optionEntries en vez del id crudo de una FK (no puede ser una función: este componente es client y las props vienen de un Server Component). */
@@ -34,6 +37,9 @@ export function CrudTable({
   emptyLabel = "Sin registros todavía.",
   banner,
   newLabel,
+  initialFiltro,
+  presetNuevo,
+  rowActionsById,
 }: {
   title: string;
   subtitle?: string;
@@ -46,15 +52,21 @@ export function CrudTable({
   emptyLabel?: string;
   banner?: React.ReactNode;
   newLabel?: string;
+  /** Pre-filtra la tabla al montar (p. ej. al llegar desde el enlace "Ver empresas" de otro catálogo). */
+  initialFiltro?: { columna: string; valor: string };
+  /** Si se define, abre el modal de creación al montar con estos valores precargados (p. ej. cliente_id ya seleccionado). */
+  presetNuevo?: Record<string, string>;
+  /** Acciones extra por fila, junto a Editar/Eliminar (p. ej. un enlace de navegación cruzada a otro catálogo), indexadas por idKey — se pasan ya renderizadas porque este es un Client Component y no puede recibir funciones desde el Server Component que lo llama. */
+  rowActionsById?: Record<string, React.ReactNode>;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(Boolean(presetNuevo));
   const [editing, setEditing] = useState<Row | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [busqueda, setBusqueda] = useState("");
-  const [columnaFiltro, setColumnaFiltro] = useState("");
-  const [valorFiltro, setValorFiltro] = useState("");
+  const [columnaFiltro, setColumnaFiltro] = useState(initialFiltro?.columna ?? "");
+  const [valorFiltro, setValorFiltro] = useState(initialFiltro?.valor ?? "");
 
   const visibles = rows.filter((row) => {
     if (busqueda) {
@@ -193,11 +205,20 @@ export function CrudTable({
             )}
             {visibles.map((row) => (
               <tr key={String(row[idKey])} className="border-t border-neutral-100 hover:bg-neutral-50">
-                {fields.map((f) => (
-                  <td key={f.key} className="px-3 py-2">
-                    {displayValue(f, row[f.key])}
-                  </td>
-                ))}
+                {fields.map((f) => {
+                  const href = f.linkKey ? (row[f.linkKey] as string | null | undefined) : null;
+                  return (
+                    <td key={f.key} className="px-3 py-2">
+                      {href ? (
+                        <Link href={href} className="font-medium text-emerald-700 hover:underline">
+                          {displayValue(f, row[f.key])}
+                        </Link>
+                      ) : (
+                        displayValue(f, row[f.key])
+                      )}
+                    </td>
+                  );
+                })}
                 <td className="whitespace-nowrap px-3 py-2 text-right">
                   {confirmingId === String(row[idKey]) ? (
                     <span className="inline-flex items-center gap-2 text-xs">
@@ -218,6 +239,7 @@ export function CrudTable({
                     </span>
                   ) : (
                     <>
+                      {rowActionsById?.[String(row[idKey])]}
                       <button
                         onClick={() => openEdit(row)}
                         className="mr-2 text-xs font-medium text-emerald-700 hover:underline"
@@ -270,7 +292,7 @@ export function CrudTable({
                   ) : f.type === "select" ? (
                     <select
                       name={f.key}
-                      defaultValue={editing ? String(editing[f.key] ?? "") : (f.optionEntries ? "" : f.options?.[0])}
+                      defaultValue={editing ? String(editing[f.key] ?? "") : (presetNuevo?.[f.key] ?? (f.optionEntries ? "" : f.options?.[0]))}
                       className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
                     >
                       {f.optionEntries ? (
@@ -305,7 +327,7 @@ export function CrudTable({
                       }
                       name={f.key}
                       step={f.type === "number" ? "any" : undefined}
-                      defaultValue={editing ? String(editing[f.key] ?? "") : ""}
+                      defaultValue={editing ? String(editing[f.key] ?? "") : (presetNuevo?.[f.key] ?? "")}
                       required={f.required}
                       className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
                     />

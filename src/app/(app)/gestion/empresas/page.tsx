@@ -2,7 +2,12 @@ import { createClient } from "@/lib/supabase/server";
 import { CrudTable, type Field } from "@/components/crud-table";
 import { createEmpresa, updateEmpresa, deleteEmpresa } from "./actions";
 
-export default async function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ cliente?: string; cliente_id?: string; nuevo?: string }>;
+}) {
+  const { cliente, cliente_id, nuevo } = await searchParams;
   const supabase = await createClient();
   const [{ data: rows }, { data: clientes }] = await Promise.all([
     supabase.from("empresas_atendidas").select("*").order("nombre"),
@@ -16,6 +21,7 @@ export default async function Page() {
       label: "Cliente",
       type: "select",
       optionEntries: (clientes ?? []).map((c) => ({ value: c.id, label: c.nombre })),
+      linkKey: "_cliente_href",
     },
     { key: "nit", label: "NIT" },
     { key: "sector", label: "Sector" },
@@ -31,16 +37,26 @@ export default async function Page() {
     { key: "notas", label: "Observaciones", type: "textarea" },
   ];
 
+  const rowsConLink = (rows ?? []).map((row) => {
+    const nombreCliente = clientes?.find((c) => c.id === row.cliente_id)?.nombre;
+    return {
+      ...row,
+      _cliente_href: nombreCliente ? `/gestion/clientes?columna=nombre&valor=${encodeURIComponent(nombreCliente)}` : null,
+    };
+  });
+
   return (
     <CrudTable
       title="Empresas atendidas"
       subtitle="Catálogos · Orden alfabético por empresa"
       newLabel="Nueva empresa"
       fields={fields}
-      rows={rows ?? []}
+      rows={rowsConLink}
       onCreate={createEmpresa}
       onUpdate={updateEmpresa}
       onDelete={deleteEmpresa}
+      initialFiltro={cliente ? { columna: "cliente_id", valor: cliente } : undefined}
+      presetNuevo={nuevo === "1" ? { cliente_id: cliente_id ?? "" } : undefined}
     />
   );
 }

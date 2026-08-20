@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { CrudTable, type Field } from "@/components/crud-table";
+import { CrudTable, type Field, type Row } from "@/components/crud-table";
 import { createCliente, updateCliente, deleteCliente } from "./actions";
 
 const fields: Field[] = [
@@ -18,9 +19,35 @@ const fields: Field[] = [
   { key: "notas", label: "Observaciones", type: "textarea" },
 ];
 
-export default async function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ columna?: string; valor?: string }>;
+}) {
+  const { columna, valor } = await searchParams;
   const supabase = await createClient();
   const { data: rows } = await supabase.from("clientes").select("*").order("nombre");
+
+  const rowActionsById: Record<string, React.ReactNode> = {};
+  for (const row of (rows ?? []) as Row[]) {
+    const id = String(row.id);
+    rowActionsById[id] = (
+      <>
+        <Link
+          href={`/gestion/empresas?cliente=${encodeURIComponent(String(row.nombre ?? ""))}`}
+          className="mr-2 text-xs font-medium text-blue-700 hover:underline"
+        >
+          Ver empresas
+        </Link>
+        <Link
+          href={`/gestion/empresas?nuevo=1&cliente_id=${id}`}
+          className="mr-2 text-xs font-medium text-blue-700 hover:underline"
+        >
+          + Empresa
+        </Link>
+      </>
+    );
+  }
 
   return (
     <CrudTable
@@ -32,6 +59,8 @@ export default async function Page() {
       onCreate={createCliente}
       onUpdate={updateCliente}
       onDelete={deleteCliente}
+      initialFiltro={columna && valor ? { columna, valor } : undefined}
+      rowActionsById={rowActionsById}
     />
   );
 }
