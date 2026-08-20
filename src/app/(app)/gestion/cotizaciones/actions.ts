@@ -290,7 +290,10 @@ export async function aprobarYCrearProyecto(cotizacionId: string) {
       origen: "Presupuesto",
     },
   ].filter(Boolean);
-  if (itemsSemilla.length) await supabase.from("presupuesto_costos").insert(itemsSemilla);
+  if (itemsSemilla.length) {
+    const { error: semillaError } = await supabase.from("presupuesto_costos").insert(itemsSemilla);
+    if (semillaError) return { error: semillaError.message };
+  }
 
   revalidatePath(PATH);
   revalidatePath("/gestion/proyectos");

@@ -70,6 +70,50 @@ export async function eliminarCosto(presupuestoId: string, costoId: string) {
 }
 
 /**
+ * "Restaurar base": vuelve a traer los ítems originales de la cotización aprobada
+ * (materiales + profesional) tal como quedaron sembrados al crear el proyecto.
+ * Solo toca las filas marcadas origen="Presupuesto" (las que sembró
+ * aprobarYCrearProyecto) — si el usuario editó el valor presupuestado de una de
+ * esas filas, o la eliminó, esto la repone con el valor vigente de la cotización.
+ * No toca costos manuales ni importados de Compras.
+ */
+export async function restaurarBase(presupuestoId: string) {
+  const supabase = await createClient();
+  const { data: presupuesto } = await supabase.from("presupuestos").select("cotizacion_id").eq("id", presupuestoId).single();
+  if (!presupuesto?.cotizacion_id) return { error: "Este presupuesto no está vinculado a ninguna cotización." };
+
+  const { data: cot } = await supabase.from("cotizaciones").select("val_materiales, valor_prof").eq("id", presupuesto.cotizacion_id).single();
+  if (!cot) return { error: "No se encontró la cotización base." };
+
+  const { error: delError } = await supabase.from("presupuesto_costos").delete().eq("presupuesto_id", presupuestoId).eq("origen", "Presupuesto");
+  if (delError) return { error: delError.message };
+
+  const items = [
+    Number(cot.val_materiales) > 0 && {
+      presupuesto_id: presupuestoId,
+      categoria: "Materiales / desgaste",
+      descripcion: "Materiales (de la cotización)",
+      presupuestado: Number(cot.val_materiales),
+      origen: "Presupuesto",
+    },
+    Number(cot.valor_prof) > 0 && {
+      presupuesto_id: presupuestoId,
+      categoria: "Servicios / profesionales",
+      descripcion: "Profesional (de la cotización)",
+      presupuestado: Number(cot.valor_prof),
+      origen: "Presupuesto",
+    },
+  ].filter(Boolean);
+
+  if (items.length === 0) return { error: "La cotización base no tiene materiales ni profesional para restaurar." };
+
+  const { error } = await supabase.from("presupuesto_costos").insert(items);
+  if (error) return { error: error.message };
+  revalidatePath(ruta(presupuestoId));
+  revalidatePath("/gestion/presupuestos");
+}
+
+/**
  * Trae las compras del proyecto como líneas de costo. Solo importa las que
  * todavía no se habían traído (compra_id no repetido) — se puede volver a
  * usar después de registrar compras nuevas sin duplicar las que ya estaban.

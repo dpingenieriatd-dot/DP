@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { actualizarPresupuesto, agregarCosto, actualizarCosto, eliminarCosto, importarDesdeCompras } from "./actions";
+import { actualizarPresupuesto, agregarCosto, actualizarCosto, eliminarCosto, importarDesdeCompras, restaurarBase } from "./actions";
 import { money, type calcularPresupuesto, type calcularControlCostos } from "@/lib/finance";
 
 type Presupuesto = {
@@ -95,19 +95,18 @@ export function PresupuestoDetalle({
         </p>
       )}
 
-      <div className={`mt-4 rounded-lg border p-4 ${f.viable ? "border-emerald-300 bg-emerald-50" : "border-red-300 bg-red-50"}`}>
-        <div className="text-xs font-semibold uppercase opacity-70">{f.viable ? "✅ Viable" : "❌ No viable"}</div>
+      <div className={`mt-4 rounded-lg border p-4 ${control.disponible >= 0 ? "border-emerald-300 bg-emerald-50" : "border-red-300 bg-red-50"}`}>
         <p className="text-sm">
-          Valor cotizado {money.format(f.valorCotizado)} {f.viable ? "alcanza" : "no alcanza"} el valor sugerido{" "}
-          {money.format(f.valorSugerido)} (diferencia {money.format(f.margenNeg)}).
+          {control.disponible >= 0
+            ? "✅ El costo real se encuentra dentro del presupuesto vigente."
+            : `⚠ El costo real superó el presupuesto vigente por ${money.format(-control.disponible)}.`}
         </p>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Kpi label="Valor cotizado" valor={money.format(f.valorCotizado)} sub="Precio de venta al cliente" />
-        <Kpi label="Presupuesto vigente" valor={money.format(control.plan)} sub="Costo planeado" />
-        <Kpi label="Costo real acumulado" valor={money.format(control.real)} warn={control.real > control.plan} />
-        <Kpi label="Ganancia estimada" valor={money.format(control.gananciaEst)} warn={control.gananciaEst < 0} />
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Kpi label="Disponible" valor={money.format(control.disponible)} warn={control.disponible < 0} />
+        <Kpi label="Ganancia según costos reales" valor={money.format(control.gananciaActual)} warn={control.gananciaActual < 0} />
+        <Kpi label="Costos admin. + IVA" valor={money.format(f.admin + f.iva)} />
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1fr]">
@@ -162,8 +161,24 @@ export function PresupuestoDetalle({
 
       <div className="mt-6 rounded-lg border border-neutral-200 bg-white p-5">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-semibold text-emerald-900">Costos del proyecto</h2>
+          <div>
+            <h2 className="font-semibold text-emerald-900">Costos del proyecto</h2>
+            <p className="text-xs text-neutral-500">Modifica el valor presupuestado y registra el valor real a medida que se ejecuta.</p>
+          </div>
           <div className="flex gap-2">
+            {presupuesto.cotizaciones && (
+              <button
+                onClick={() =>
+                  startTransition(async () => {
+                    const r = await restaurarBase(presupuesto.id);
+                    if (r?.error) setError(r.error);
+                  })
+                }
+                className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-50"
+              >
+                ↻ Restaurar base
+              </button>
+            )}
             {presupuesto.proyectos && (
               <button
                 onClick={() =>
@@ -193,58 +208,43 @@ export function PresupuestoDetalle({
             <tr className="text-left text-xs uppercase text-neutral-500">
               <th className="py-1">Categoría</th>
               <th className="py-1">Descripción</th>
-              <th className="py-1">Proveedor</th>
+              <th className="py-1">Proveedor / responsable</th>
               <th className="py-1 text-right">Presupuestado</th>
-              <th className="py-1 text-right">Real</th>
+              <th className="py-1 text-right">Real ejecutado</th>
               <th className="py-1 text-right">Disponible</th>
               <th className="py-1">Estado</th>
-              <th className="py-1">Origen</th>
               <th />
             </tr>
           </thead>
           <tbody>
             {costos.map((c) => (
-              <tr key={c.id} className="border-t border-neutral-100">
-                <td className="py-1.5">{c.categoria}</td>
-                <td className="py-1.5">{c.descripcion || "—"}</td>
-                <td className="py-1.5">{c.proveedor || "—"}</td>
-                <td className="py-1.5 text-right">{money.format(c.presupuestado)}</td>
-                <td className="py-1.5 text-right">{money.format(c.real)}</td>
-                <td className={`py-1.5 text-right ${c.presupuestado - c.real < 0 ? "text-red-600" : ""}`}>{money.format(c.presupuestado - c.real)}</td>
-                <td className="py-1.5">{c.estado}</td>
-                <td className="py-1.5 text-neutral-400">{c.origen}</td>
-                <td className="py-1.5 text-right">
-                  <button
-                    onClick={() => {
-                      setEditingItem(c);
-                      setItemOpen(true);
-                    }}
-                    className="mr-2 text-xs text-emerald-700 hover:underline"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    onClick={() =>
-                      startTransition(async () => {
-                        await eliminarCosto(presupuesto.id, c.id);
-                      })
-                    }
-                    className="text-xs text-red-600 hover:underline"
-                  >
-                    Quitar
-                  </button>
-                </td>
-              </tr>
+              <CostoRow
+                key={c.id}
+                costo={c}
+                presupuestoId={presupuesto.id}
+                onDelete={() => startTransition(async () => { await eliminarCosto(presupuesto.id, c.id); })}
+                pending={pending}
+              />
             ))}
             {costos.length === 0 && (
               <tr>
-                <td colSpan={9} className="py-6 text-center text-neutral-400">
-                  No hay costos registrados. Usa &quot;Agregar costo&quot; o &quot;Importar desde Compras&quot;.
+                <td colSpan={8} className="py-6 text-center text-neutral-400">
+                  No hay costos registrados. Usa &quot;Restaurar base&quot;, &quot;Agregar costo&quot; o &quot;Importar desde Compras&quot;.
                 </td>
               </tr>
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="mt-6 rounded-lg border border-neutral-200 bg-white p-5 text-sm">
+        <Fila label="Total presupuesto vigente" valor={money.format(control.plan)} />
+        <Fila label="Total costo real" valor={money.format(control.real)} />
+        <Fila label="Costos administrativos" valor={money.format(f.admin)} />
+        <Fila label="IVA de los costos del proyecto" valor={money.format(f.iva)} />
+        <div className="my-2 border-t border-neutral-100" />
+        <Fila label="Ganancia estimada del proyecto" valor={money.format(control.gananciaEst)} bold />
+        <Fila label="Ganancia según costos reales registrados" valor={money.format(control.gananciaActual)} bold />
       </div>
 
       {itemOpen && (
@@ -321,5 +321,75 @@ function Kpi({ label, valor, sub, warn }: { label: string; valor: string; sub?: 
       <div className={`mt-1 text-xl font-bold ${warn ? "text-red-600" : "text-emerald-900"}`}>{valor}</div>
       {sub && <div className="text-xs text-neutral-400">{sub}</div>}
     </div>
+  );
+}
+
+/** Cada campo se edita en línea directo en la fila — categoría/estado guardan al cambiar, texto/números al perder foco. */
+function CostoRow({
+  costo,
+  presupuestoId,
+  onDelete,
+  pending,
+}: {
+  costo: Costo;
+  presupuestoId: string;
+  onDelete: () => void;
+  pending: boolean;
+}) {
+  const [pendingRow, startTransition] = useTransition();
+  const [categoria, setCategoria] = useState(costo.categoria);
+  const [descripcion, setDescripcion] = useState(costo.descripcion ?? "");
+  const [proveedor, setProveedor] = useState(costo.proveedor ?? "");
+  const [presupuestado, setPresupuestado] = useState(String(costo.presupuestado));
+  const [real, setReal] = useState(String(costo.real));
+  const [estado, setEstado] = useState(costo.estado);
+
+  function guardar(overrides: Partial<Record<"categoria" | "descripcion" | "proveedor" | "presupuestado" | "real" | "estado", string>> = {}) {
+    const valores = { categoria, descripcion, proveedor, presupuestado, real, estado, ...overrides };
+    const fd = new FormData();
+    for (const [k, v] of Object.entries(valores)) fd.set(k, v);
+    startTransition(async () => {
+      await actualizarCosto(presupuestoId, costo.id, fd);
+    });
+  }
+
+  const disponible = Number(presupuestado || 0) - Number(real || 0);
+  const inputClass = "w-full rounded-md border border-neutral-300 px-2 py-1 text-xs";
+
+  return (
+    <tr className="border-t border-neutral-100">
+      <td className="py-1.5 pr-2">
+        <select value={categoria} onChange={(e) => { setCategoria(e.target.value); guardar({ categoria: e.target.value }); }} className={inputClass}>
+          {CATEGORIAS.map((c) => (
+            <option key={c}>{c}</option>
+          ))}
+        </select>
+      </td>
+      <td className="py-1.5 pr-2">
+        <input value={descripcion} onChange={(e) => setDescripcion(e.target.value)} onBlur={() => guardar()} className={inputClass} />
+      </td>
+      <td className="py-1.5 pr-2">
+        <input value={proveedor} onChange={(e) => setProveedor(e.target.value)} onBlur={() => guardar()} className={inputClass} />
+      </td>
+      <td className="py-1.5 pr-2">
+        <input type="number" step="0.01" value={presupuestado} onChange={(e) => setPresupuestado(e.target.value)} onBlur={() => guardar()} className={`${inputClass} text-right`} />
+      </td>
+      <td className="py-1.5 pr-2">
+        <input type="number" step="0.01" value={real} onChange={(e) => setReal(e.target.value)} onBlur={() => guardar()} className={`${inputClass} text-right`} />
+      </td>
+      <td className={`py-1.5 pr-2 text-right ${disponible < 0 ? "text-red-600" : ""}`}>{money.format(disponible)}</td>
+      <td className="py-1.5 pr-2">
+        <select value={estado} onChange={(e) => { setEstado(e.target.value); guardar({ estado: e.target.value }); }} className={inputClass}>
+          {ESTADOS.map((e) => (
+            <option key={e}>{e}</option>
+          ))}
+        </select>
+      </td>
+      <td className="py-1.5 text-right">
+        <button onClick={onDelete} disabled={pending || pendingRow} title="Quitar" className="text-red-600 hover:text-red-800 disabled:opacity-50">
+          🗑
+        </button>
+      </td>
+    </tr>
   );
 }
