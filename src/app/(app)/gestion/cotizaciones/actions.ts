@@ -80,11 +80,22 @@ function rentabilidadFromForm(formData: FormData, valorCotizado: number) {
   return { costosEstimados, respIva, margenPct, adminPct, valorSugerido: f.valorSugerido, margenNeg: f.margenNeg };
 }
 
+/** El código no se puede reusar ni siquiera si la cotización que lo tenía ya se borró o le cambiaron el código (migration_25). */
+async function codigoLiberado(supabase: SupabaseServer, codigo: string) {
+  const { data } = await supabase.from("cotizaciones_codigos_usados").select("codigo").eq("codigo", codigo).maybeSingle();
+  return !!data;
+}
+
 export async function crearCotizacion(formData: FormData) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  const codigo = (formData.get("codigo") as string) || null;
+  if (codigo && (await codigoLiberado(supabase, codigo))) {
+    return { error: "Ya existe una cotización con este código. Usa un código diferente." };
+  }
 
   const inputs = inputsFromForm(formData);
   const calc = calcularCotizacion(inputs);
@@ -130,7 +141,12 @@ export async function actualizarCotizacion(id: string, formData: FormData) {
   const nuevoEstado = (formData.get("estado") as string) || "Borrador";
   const empresaId = await resolveEmpresaId(supabase, formData.get("empresa_id"));
 
-  const { data: previa } = await supabase.from("cotizaciones").select("estado, creado_por, nombre").eq("id", id).single();
+  const { data: previa } = await supabase.from("cotizaciones").select("estado, creado_por, nombre, codigo").eq("id", id).single();
+
+  const codigo = (formData.get("codigo") as string) || null;
+  if (codigo && codigo !== previa?.codigo && (await codigoLiberado(supabase, codigo))) {
+    return { error: "Ya existe una cotización con este código. Usa un código diferente." };
+  }
 
   const { error } = await supabase
     .from("cotizaciones")
