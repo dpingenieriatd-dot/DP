@@ -1,16 +1,22 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfileLabel } from "@/lib/current-profile";
 import { Topbar } from "@/components/topbar";
+import { FechaFiltro } from "./fecha-filtro";
 
-export default async function Page() {
+export default async function Page({ searchParams }: { searchParams: Promise<{ desde?: string; hasta?: string }> }) {
+  const { desde, hasta } = await searchParams;
   const supabase = await createClient();
 
-  const [{ data: profiles }, { data: tareas }, { data: params }, userLabel] = await Promise.all([
+  const [{ data: profiles }, { data: todasLasTareas }, { data: params }, userLabel] = await Promise.all([
     supabase.from("profiles").select("id, full_name, email, cargo").order("full_name"),
-    supabase.from("tareas").select("responsable, estado, fecha_limite, fecha_cierre, horas_estimadas, horas_reales, calidad_pct"),
+    supabase.from("tareas").select("responsable, estado, fecha_limite, fecha_cierre, horas_estimadas, horas_reales, calidad_pct, created_at"),
     supabase.from("efectividad_parametros").select("*").eq("id", 1).single(),
     getCurrentProfileLabel(),
   ]);
+
+  const tareas = (todasLasTareas ?? [])
+    .filter((t) => !desde || t.created_at.slice(0, 10) >= desde)
+    .filter((t) => !hasta || t.created_at.slice(0, 10) <= hasta);
 
   const pesoCumplimiento = Number(params?.peso_cumplimiento ?? 50);
   const pesoOportunidad = Number(params?.peso_oportunidad ?? 25);
@@ -61,6 +67,10 @@ export default async function Page() {
           tenga ninguna tarea calificada, su puntaje se muestra como <strong>provisional</strong> (sin el componente de
           calidad). Los pesos se editan en Configuración por un administrador. Esto no debe usarse para comparar personas
           entre sí ni para decisiones automáticas.
+        </div>
+
+        <div className="mt-4">
+          <FechaFiltro />
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">

@@ -88,12 +88,18 @@ export function TaskBoard({
   const [reprogramando, setReprogramando] = useState<Tarea | null>(null);
   const [detalle, setDetalle] = useState<Tarea | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [desde, setDesde] = useState("");
+  const [hasta, setHasta] = useState("");
   const elapsed = useElapsed(timerActivo?.inicio ?? null);
 
-  const disponibles = tareas.filter((t) => t.estado === "Disponible");
-  const enProceso = tareas.filter((t) => t.estado === "En proceso");
-  const pausadas = tareas.filter((t) => t.estado === "Pausada");
-  const terminadas = tareas.filter((t) => t.estado === "Terminada" && !t.archivado);
+  const enRango = tareas
+    .filter((t) => !desde || (t.fecha_limite && t.fecha_limite >= desde))
+    .filter((t) => !hasta || (t.fecha_limite && t.fecha_limite <= hasta));
+  const hayFiltros = !!(desde || hasta);
+  const disponibles = enRango.filter((t) => t.estado === "Disponible");
+  const enProceso = enRango.filter((t) => t.estado === "En proceso");
+  const pausadas = enRango.filter((t) => t.estado === "Pausada");
+  const terminadas = enRango.filter((t) => t.estado === "Terminada" && !t.archivado);
 
   function run(fn: () => Promise<{ error?: string } | void>) {
     startTransition(async () => {
@@ -122,6 +128,26 @@ export function TaskBoard({
         {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
 
         <HelpBanner />
+
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <label className="text-sm text-neutral-600">
+            Vence desde <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} className="ml-1 rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
+          </label>
+          <label className="text-sm text-neutral-600">
+            Vence hasta <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} className="ml-1 rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
+          </label>
+          {hayFiltros && (
+            <button
+              onClick={() => {
+                setDesde("");
+                setHasta("");
+              }}
+              className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 hover:bg-neutral-100"
+            >
+              Limpiar filtro
+            </button>
+          )}
+        </div>
 
         <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard label="Disponibles" value={disponibles.length} color="emerald" />

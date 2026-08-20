@@ -45,14 +45,20 @@ export function HistorialList({
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [desde, setDesde] = useState("");
+  const [hasta, setHasta] = useState("");
 
   const nombreResponsable = (id: string | null) => {
     const p = profiles.find((p) => p.id === id);
     return p ? p.full_name || p.email || "—" : "Sin asignar";
   };
 
-  const pendientes = tareas.filter((t) => !t.archivado);
-  const archivadas = tareas.filter((t) => t.archivado);
+  const enRango = tareas
+    .filter((t) => !desde || (t.fecha_cierre && t.fecha_cierre >= desde))
+    .filter((t) => !hasta || (t.fecha_cierre && t.fecha_cierre <= hasta));
+  const hayFiltros = !!(desde || hasta);
+  const pendientes = enRango.filter((t) => !t.archivado);
+  const archivadas = enRango.filter((t) => t.archivado);
 
   return (
     <div>
@@ -74,11 +80,31 @@ export function HistorialList({
         )}
         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-4">
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <label className="text-sm text-neutral-600">
+            Terminada desde <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} className="ml-1 rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
+          </label>
+          <label className="text-sm text-neutral-600">
+            Terminada hasta <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} className="ml-1 rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
+          </label>
+          {hayFiltros && (
+            <button
+              onClick={() => {
+                setDesde("");
+                setHasta("");
+              }}
+              className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 hover:bg-neutral-100"
+            >
+              Limpiar filtro
+            </button>
+          )}
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-4">
           <KpiCard label="Pendientes de archivo" value={pendientes.length} color="blue" />
           <KpiCard label="Archivadas" value={archivadas.length} color="violet" />
-          <KpiCard label="Total histórico" value={tareas.length} color="emerald" />
-          <KpiCard label="Con calidad registrada" value={tareas.filter((t) => t.calidad_pct != null).length} color="emerald" />
+          <KpiCard label="Total histórico" value={enRango.length} color="emerald" />
+          <KpiCard label="Con calidad registrada" value={enRango.filter((t) => t.calidad_pct != null).length} color="emerald" />
         </div>
 
         <Tabla
