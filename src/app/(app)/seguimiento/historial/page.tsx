@@ -13,13 +13,16 @@ export default async function HistorialPage({ searchParams }: { searchParams: Pr
     .order("fecha_cierre", { ascending: false });
   if (proceso) query = query.eq("proceso_codigo", proceso);
 
-  const [{ data: tareas }, isAdmin, userLabel] = await Promise.all([query, requiereAdmin(), getCurrentProfileLabel()]);
-
-  const {
+  const [{ data: tareas }, isAdmin, userLabel, {
     data: { user },
-  } = await supabase.auth.getUser();
-  const { data: profiles } = await supabase.from("profiles").select("id, full_name, email");
-  const { data: procesoInfo } = proceso ? await supabase.from("procesos").select("nombre").eq("codigo", proceso).single() : { data: null };
+  }, { data: profiles }, { data: procesoInfo }] = await Promise.all([
+    query,
+    requiereAdmin(),
+    getCurrentProfileLabel(),
+    supabase.auth.getUser(),
+    supabase.from("profiles").select("id, full_name, email"),
+    proceso ? supabase.from("procesos").select("nombre").eq("codigo", proceso).single() : Promise.resolve({ data: null }),
+  ]);
 
   return (
     <HistorialList
