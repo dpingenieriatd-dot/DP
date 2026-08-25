@@ -10,6 +10,8 @@ type Fila = {
   f: ReturnType<typeof calcularPresupuesto>;
   control: ReturnType<typeof calcularControlCostos>;
   proyecto: string;
+  cliente: string;
+  nit: string;
 };
 
 export function PresupuestosList({ filas, proyectos }: { filas: Fila[]; proyectos: { id: string; codigo: string | null; nombre: string }[] }) {
@@ -25,7 +27,10 @@ export function PresupuestosList({ filas, proyectos }: { filas: Fila[]; proyecto
     .filter(({ f }) => !viabilidadFiltro || (viabilidadFiltro === "viable" ? f.viable : !f.viable))
     .filter(({ pre }) => !desde || pre.created_at.slice(0, 10) >= desde)
     .filter(({ pre }) => !hasta || pre.created_at.slice(0, 10) <= hasta)
-    .filter(({ pre, proyecto }) => !busqueda || `${pre.codigo ?? ""} ${pre.nombre} ${proyecto}`.toLowerCase().includes(busqueda.toLowerCase()));
+    .filter(
+      ({ pre, proyecto, cliente, nit }) =>
+        !busqueda || `${pre.codigo ?? ""} ${pre.nombre} ${proyecto} ${cliente} ${nit}`.toLowerCase().includes(busqueda.toLowerCase())
+    );
   const hayFiltros = !!(viabilidadFiltro || desde || hasta || busqueda);
 
   function submit(formData: FormData) {
@@ -102,6 +107,8 @@ export function PresupuestosList({ filas, proyectos }: { filas: Fila[]; proyecto
             <tr className="text-left text-[11px] uppercase text-neutral-500">
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Código</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Proyecto</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Cliente</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">NIT</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Nombre</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Valor cotizado</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Presupuesto vigente</th>
@@ -112,7 +119,7 @@ export function PresupuestosList({ filas, proyectos }: { filas: Fila[]; proyecto
             </tr>
           </thead>
           <tbody>
-            {visibles.map(({ pre, f, control, proyecto }) => (
+            {visibles.map(({ pre, f, control, proyecto, cliente, nit }) => (
               <tr key={pre.id} className="border-t border-neutral-100 hover:bg-neutral-50">
                 <td className="px-3 py-2">
                   <Link href={`/gestion/presupuestos/${pre.id}`} className="font-medium text-emerald-700 hover:underline">
@@ -120,6 +127,8 @@ export function PresupuestosList({ filas, proyectos }: { filas: Fila[]; proyecto
                   </Link>
                 </td>
                 <td className="px-3 py-2">{proyecto}</td>
+                <td className="px-3 py-2">{cliente}</td>
+                <td className="px-3 py-2 text-neutral-500">{nit}</td>
                 <td className="px-3 py-2">{pre.nombre}</td>
                 <td className="px-3 py-2 text-right">{money.format(f.valorCotizado)}</td>
                 <td className="px-3 py-2 text-right">{money.format(control.plan)}</td>
@@ -137,7 +146,7 @@ export function PresupuestosList({ filas, proyectos }: { filas: Fila[]; proyecto
             ))}
             {visibles.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-3 py-8 text-center text-neutral-400">
+                <td colSpan={11} className="px-3 py-8 text-center text-neutral-400">
                   {filas.length === 0 ? "No hay presupuestos registrados." : "Ningún registro coincide con los filtros."}
                 </td>
               </tr>
