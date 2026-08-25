@@ -22,14 +22,17 @@
  * usando estas mismas clases (bg-emerald-900, text-neutral-600, etc.)
  * sin ningún cambio de código: el color se propaga solo.
  *
- * 800/900 de "emerald" y 600 de "amber" son los hex EXACTOS de marca;
+ * 800 de "emerald" y 600 de "amber" son los hex EXACTOS de marca;
  * el resto de cada escala se interpoló para dar tintes/tonos coherentes.
+ * emerald-900 es el verde exacto de los HTML de referencia del cliente
+ * (Panel_DP_gestiondeproyectos.html / Panel_DP_seguimiento.html), pedido
+ * explícitamente por Cesar aunque no coincida con el hex de marca de 800.
  * Nota: emerald-700 quedó deliberadamente más oscuro que emerald-800
  * (se necesitaba oscuro para que el texto en emerald-700 cumpliera
  * contraste AA — ver auditoría de contraste de esta sesión).
  */
 @theme {
-  /* Verde de marca (principal #639922 en 800, oscuro #27500A en 900) */
+  /* Verde de marca (principal #639922 en 800); #005A1E en 900 = HTML de referencia */
   --color-emerald-50: #f7faf5;
   --color-emerald-100: #edf4e6;
   --color-emerald-200: #d9eac8;
@@ -39,7 +42,7 @@
   --color-emerald-600: #70b42d;
   --color-emerald-700: #477915;
   --color-emerald-800: #639922;
-  --color-emerald-900: #27500a;
+  --color-emerald-900: #005a1e;
   --color-emerald-950: #1a3607;
 
   /* Ámbar de marca (#BA7517 en 600) — solo para acentos/alertas/badges */
