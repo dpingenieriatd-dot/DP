@@ -1,9 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfileLabel } from "@/lib/current-profile";
-import { CrudTable, type Field } from "@/components/crud-table";
 import { KpiCard } from "@/components/kpi-card";
 import { Topbar } from "@/components/topbar";
-import { createActividad, updateActividad, deleteActividad } from "./actions";
+import { ActividadesList } from "./list";
 import { CargoFilter } from "./cargo-filter";
 
 /** Normaliza para comparar cargos: el dato real trae variantes de mayúsculas y espacios sueltos. */
@@ -18,35 +17,16 @@ export default async function Page({
 }) {
   const { cargo: cargoFiltro, estado: estadoFiltro, desde, hasta } = await searchParams;
   const supabase = await createClient();
-  const [{ data: rows }, { data: clientes }, { data: proyectos }, userLabel] = await Promise.all([
-    supabase.from("actividades").select("*").order("fecha", { ascending: false }),
-    supabase.from("clientes").select("id, nombre").order("nombre"),
-    supabase.from("proyectos").select("id, codigo, nombre").order("nombre"),
-    getCurrentProfileLabel(),
-  ]);
-
-  const fields: Field[] = [
-    { key: "fecha", label: "Fecha", type: "date", required: true },
-    { key: "hora", label: "Hora de inicio (crea el bloque en Agenda)", type: "time" },
-    { key: "cargo", label: "Cargo" },
-    { key: "actividad", label: "Actividad", required: true },
-    {
-      key: "cliente_id",
-      label: "Cliente",
-      type: "select",
-      optionEntries: (clientes ?? []).map((c) => ({ value: c.id, label: c.nombre })),
-    },
-    {
-      key: "proyecto_id",
-      label: "Proyecto",
-      type: "select",
-      optionEntries: (proyectos ?? []).map((p) => ({ value: p.id, label: p.codigo ? `${p.codigo} · ${p.nombre}` : p.nombre })),
-    },
-    { key: "estado", label: "Estado", type: "select", options: ["Cumplido", "Parcial", "Pendiente", "No cumplido"] },
-    { key: "origen", label: "Origen", tableOnly: true },
-    { key: "observaciones", label: "Observaciones", type: "textarea" },
-    { key: "respuesta", label: "Respuesta", type: "textarea" },
-  ];
+  const [{ data: rows }, { data: clientes }, { data: proyectos }, { data: empresas }, { data: actividadesCatalogo }, { data: procesos }, userLabel] =
+    await Promise.all([
+      supabase.from("actividades").select("*").order("fecha", { ascending: false }),
+      supabase.from("clientes").select("id, nombre").order("nombre"),
+      supabase.from("proyectos").select("id, codigo, nombre").order("nombre"),
+      supabase.from("empresas_atendidas").select("id, nombre").order("nombre"),
+      supabase.from("catalogo_actividades").select("id, codigo, subproceso, descripcion, responsable_sugerido").order("codigo"),
+      supabase.from("procesos").select("codigo, nombre").order("codigo"),
+      getCurrentProfileLabel(),
+    ]);
 
   const todos = rows ?? [];
   const items = todos
@@ -73,14 +53,13 @@ export default async function Page({
         </div>
       </div>
       <div className="lg:min-h-0 lg:flex-1">
-        <CrudTable
-          title="Actividades"
-          fields={fields}
+        <ActividadesList
           rows={items}
-          onCreate={createActividad}
-          onUpdate={updateActividad}
-          onDelete={deleteActividad}
-          emptyLabel="Sin actividades registradas todavía."
+          clientes={clientes ?? []}
+          proyectos={proyectos ?? []}
+          empresas={empresas ?? []}
+          actividadesCatalogo={actividadesCatalogo ?? []}
+          procesos={procesos ?? []}
         />
       </div>
     </div>
