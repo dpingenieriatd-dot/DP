@@ -14,6 +14,7 @@ import {
   iniciarTiempo,
   calificarCalidad,
 } from "./actions";
+import { AgregarActividadCatalogo } from "@/components/agregar-actividad-catalogo";
 import { reprogramarBloque } from "../agendas/actions";
 import { KpiCard } from "@/components/kpi-card";
 import { Topbar } from "@/components/topbar";
@@ -50,6 +51,8 @@ type Profile = { id: string; full_name: string | null; email: string | null };
 type Cliente = { id: string; nombre: string };
 type Proyecto = { id: string; codigo: string | null; nombre: string };
 type Empresa = { id: string; nombre: string };
+type Proceso = { codigo: string; nombre: string };
+type ActividadCatalogo = { id: string; codigo: string; subproceso: string; descripcion: string | null; responsable_sugerido: string | null };
 type TimerActivo = { id: string; tarea_id: string; inicio: string } | null;
 
 const PRIORIDAD_CLASS: Record<string, string> = {
@@ -71,6 +74,7 @@ export function TaskBoard({
   proyectos,
   empresas,
   actividadesCatalogo,
+  procesos,
   currentUserId,
   timerActivo,
   isAdmin,
@@ -81,7 +85,8 @@ export function TaskBoard({
   clientes: Cliente[];
   proyectos: Proyecto[];
   empresas: Empresa[];
-  actividadesCatalogo: { id: string; codigo: string; subproceso: string; descripcion: string | null; responsable_sugerido: string | null }[];
+  actividadesCatalogo: ActividadCatalogo[];
+  procesos: Proceso[];
   currentUserId: string | null;
   timerActivo: TimerActivo;
   isAdmin: boolean;
@@ -369,6 +374,7 @@ export function TaskBoard({
           empresas={empresas}
           profiles={profiles}
           actividadesCatalogo={actividadesCatalogo}
+          procesos={procesos}
           onClose={() => setCreateOpen(false)}
           onSubmit={(fd) =>
             startTransition(async () => {
@@ -506,6 +512,7 @@ function CreateModal({
   empresas,
   profiles,
   actividadesCatalogo,
+  procesos,
   onClose,
   onSubmit,
   pending,
@@ -514,19 +521,21 @@ function CreateModal({
   proyectos: Proyecto[];
   empresas: Empresa[];
   profiles: Profile[];
-  actividadesCatalogo: { id: string; codigo: string; subproceso: string; descripcion: string | null; responsable_sugerido: string | null }[];
+  actividadesCatalogo: ActividadCatalogo[];
+  procesos: Proceso[];
   onClose: () => void;
   onSubmit: (fd: FormData) => void;
   pending: boolean;
 }) {
+  const [catalogoLocal, setCatalogoLocal] = useState(actividadesCatalogo);
   const [catalogoId, setCatalogoId] = useState("");
   const [titulo, setTitulo] = useState("");
   const [responsableId, setResponsableId] = useState("");
-  const actividad = actividadesCatalogo.find((a) => a.id === catalogoId);
+  const actividad = catalogoLocal.find((a) => a.id === catalogoId);
 
   function elegirActividad(id: string) {
     setCatalogoId(id);
-    const a = actividadesCatalogo.find((x) => x.id === id);
+    const a = catalogoLocal.find((x) => x.id === id);
     if (a) setTitulo(`${a.codigo}_${a.subproceso}`);
   }
 
@@ -548,7 +557,7 @@ function CreateModal({
               className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
             >
               <option value="">Otra actividad / no catalogada</option>
-              {actividadesCatalogo.map((a) => (
+              {catalogoLocal.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.codigo} · {a.subproceso}
                 </option>
@@ -560,6 +569,13 @@ function CreateModal({
                 {actividad.responsable_sugerido ? ` · Responsable sugerido: ${actividad.responsable_sugerido}` : ""}
               </span>
             )}
+            <AgregarActividadCatalogo
+              procesos={procesos}
+              onAdded={(nueva) => {
+                setCatalogoLocal((prev) => [...prev, nueva]);
+                elegirActividad(nueva.id);
+              }}
+            />
           </label>
           <input type="hidden" name="proceso_codigo" value={actividad?.codigo ?? ""} />
           <label className="block text-sm">
