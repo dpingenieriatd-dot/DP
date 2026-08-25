@@ -13,22 +13,64 @@ export async function crearTarea(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { error } = await supabase.from("tareas").insert({
-    titulo: formData.get("titulo"),
-    cliente_id: formData.get("cliente_id") || null,
-    proyecto_id: formData.get("proyecto_id") || null,
-    prioridad: formData.get("prioridad") || "Media",
-    fecha_limite: formData.get("fecha_limite") || null,
-    horas_estimadas: formData.get("horas_estimadas") || null,
-    descripcion: formData.get("descripcion") || null,
-    instrucciones: formData.get("instrucciones") || null,
-    entregable_requerido: formData.get("entregable_requerido") || null,
-    publicado_por: user?.id ?? null,
-    catalogo_actividad_id: formData.get("catalogo_actividad_id") || null,
-    proceso_codigo: formData.get("proceso_codigo") || null,
-  });
+  const responsableId = (formData.get("responsable_id") as string) || null;
+  const tituloTarea = formData.get("titulo") as string;
+  const clienteId = (formData.get("cliente_id") as string) || null;
+  const proyectoId = (formData.get("proyecto_id") as string) || null;
+  const horasEstimadas = (formData.get("horas_estimadas") as string) || null;
+
+  const { data: nueva, error } = await supabase
+    .from("tareas")
+    .insert({
+      titulo: tituloTarea,
+      cliente_id: clienteId,
+      proyecto_id: proyectoId,
+      empresa_atendida_id: formData.get("empresa_atendida_id") || null,
+      prioridad: formData.get("prioridad") || "Media",
+      fecha_limite: formData.get("fecha_limite") || null,
+      horas_estimadas: horasEstimadas,
+      descripcion: formData.get("descripcion") || null,
+      instrucciones: formData.get("instrucciones") || null,
+      entregable_requerido: formData.get("entregable_requerido") || null,
+      entregable_soporte_url: formData.get("entregable_soporte_url") || null,
+      notas_publicacion: formData.get("notas_publicacion") || null,
+      publicado_por: user?.id ?? null,
+      catalogo_actividad_id: formData.get("catalogo_actividad_id") || null,
+      proceso_codigo: formData.get("proceso_codigo") || null,
+      // Si se asigna un responsable desde la publicación, la tarea nace tomada por esa
+      // persona (igual que si la hubiera tomado ella misma desde Disponibles).
+      ...(responsableId
+        ? { responsable: responsableId, estado: "En proceso", fecha_toma: new Date().toISOString().slice(0, 10) }
+        : {}),
+    })
+    .select("id")
+    .single();
   if (error) return { error: error.message };
+
+  // Misma lógica que tomarTarea: si queda asignada desde el inicio, se crea el bloque de
+  // Agenda de una vez usando la fecha/hora de inicio indicadas en el formulario.
+  if (responsableId && nueva) {
+    const dia = (formData.get("fecha_inicio_agenda") as string) || new Date().toISOString().slice(0, 10);
+    const horaInicio = (formData.get("hora_inicio_agenda") as string) || "08:00";
+    const { error: agendaError } = await supabase.from("agenda_bloques").upsert(
+      {
+        tarea_id: nueva.id,
+        usuario_id: responsableId,
+        dia,
+        hora_inicio: horaInicio,
+        horas: Number(horasEstimadas) || 1,
+        tarea: tituloTarea,
+        cliente_id: clienteId,
+        proyecto_id: proyectoId,
+      },
+      { onConflict: "tarea_id" },
+    );
+    if (agendaError) return { error: agendaError.message };
+  }
+
   revalidatePath(PATH);
+  revalidatePath("/seguimiento/agendas");
+  revalidatePath("/seguimiento/capacidad");
 }
 
 export async function tomarTarea(id: string, formData: FormData) {

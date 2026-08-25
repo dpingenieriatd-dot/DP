@@ -24,6 +24,7 @@ type Tarea = {
   titulo: string;
   cliente_id: string | null;
   proyecto_id: string | null;
+  empresa_atendida_id: string | null;
   clientes?: { nombre: string } | null;
   proyectos?: { nombre: string } | null;
   prioridad: "Alta" | "Media" | "Baja";
@@ -31,6 +32,8 @@ type Tarea = {
   descripcion: string | null;
   instrucciones: string | null;
   entregable_requerido: string | null;
+  entregable_soporte_url: string | null;
+  notas_publicacion: string | null;
   publicado_por: string | null;
   responsable: string | null;
   estado: "Disponible" | "En proceso" | "Pausada" | "Terminada";
@@ -46,6 +49,7 @@ type Tarea = {
 type Profile = { id: string; full_name: string | null; email: string | null };
 type Cliente = { id: string; nombre: string };
 type Proyecto = { id: string; codigo: string | null; nombre: string };
+type Empresa = { id: string; nombre: string };
 type TimerActivo = { id: string; tarea_id: string; inicio: string } | null;
 
 const PRIORIDAD_CLASS: Record<string, string> = {
@@ -65,6 +69,7 @@ export function TaskBoard({
   profiles,
   clientes,
   proyectos,
+  empresas,
   actividadesCatalogo,
   currentUserId,
   timerActivo,
@@ -75,6 +80,7 @@ export function TaskBoard({
   profiles: Profile[];
   clientes: Cliente[];
   proyectos: Proyecto[];
+  empresas: Empresa[];
   actividadesCatalogo: { id: string; codigo: string; subproceso: string; descripcion: string | null; responsable_sugerido: string | null }[];
   currentUserId: string | null;
   timerActivo: TimerActivo;
@@ -321,7 +327,7 @@ export function TaskBoard({
         </Column>
       </div>
 
-      {detalle && <DetailModal tarea={detalle} profiles={profiles} onClose={() => setDetalle(null)} />}
+      {detalle && <DetailModal tarea={detalle} profiles={profiles} empresas={empresas} onClose={() => setDetalle(null)} />}
 
       {tomando && (
         <TomarModal
@@ -360,6 +366,8 @@ export function TaskBoard({
         <CreateModal
           clientes={clientes}
           proyectos={proyectos}
+          empresas={empresas}
+          profiles={profiles}
           actividadesCatalogo={actividadesCatalogo}
           onClose={() => setCreateOpen(false)}
           onSubmit={(fd) =>
@@ -495,6 +503,8 @@ function CalidadRating({ tarea, onRate, disabled }: { tarea: Tarea; onRate: (cal
 function CreateModal({
   clientes,
   proyectos,
+  empresas,
+  profiles,
   actividadesCatalogo,
   onClose,
   onSubmit,
@@ -502,6 +512,8 @@ function CreateModal({
 }: {
   clientes: Cliente[];
   proyectos: Proyecto[];
+  empresas: Empresa[];
+  profiles: Profile[];
   actividadesCatalogo: { id: string; codigo: string; subproceso: string; descripcion: string | null; responsable_sugerido: string | null }[];
   onClose: () => void;
   onSubmit: (fd: FormData) => void;
@@ -509,6 +521,7 @@ function CreateModal({
 }) {
   const [catalogoId, setCatalogoId] = useState("");
   const [titulo, setTitulo] = useState("");
+  const [responsableId, setResponsableId] = useState("");
   const actividad = actividadesCatalogo.find((a) => a.id === catalogoId);
 
   function elegirActividad(id: string) {
@@ -584,6 +597,33 @@ function CreateModal({
               </select>
             </label>
             <label className="block text-sm">
+              <span className="mb-1 block text-neutral-600">Empresa atendida</span>
+              <select name="empresa_atendida_id" defaultValue="" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
+                <option value="">Cliente directo / Sin empresa atendida</option>
+                {empresas.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.nombre}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block text-neutral-600">Responsable</span>
+              <select
+                name="responsable_id"
+                value={responsableId}
+                onChange={(e) => setResponsableId(e.target.value)}
+                className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+              >
+                <option value="">Sin asignar / Disponible</option>
+                {profiles.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.full_name || p.email}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm">
               <span className="mb-1 block text-neutral-600">Prioridad</span>
               <select name="prioridad" defaultValue="Media" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
                 <option>Alta</option>
@@ -599,6 +639,23 @@ function CreateModal({
               <span className="mb-1 block text-neutral-600">Horas estimadas</span>
               <input type="number" step="0.5" name="horas_estimadas" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
             </label>
+            {responsableId && (
+              <>
+                <label className="block text-sm">
+                  <span className="mb-1 block text-neutral-600">Fecha de inicio (Agenda)</span>
+                  <input
+                    type="date"
+                    name="fecha_inicio_agenda"
+                    defaultValue={new Date().toISOString().slice(0, 10)}
+                    className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+                  />
+                </label>
+                <label className="block text-sm">
+                  <span className="mb-1 block text-neutral-600">Hora de inicio (Agenda)</span>
+                  <input type="time" name="hora_inicio_agenda" defaultValue="08:00" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+                </label>
+              </>
+            )}
           </div>
           <label className="block text-sm">
             <span className="mb-1 block text-neutral-600">Descripción</span>
@@ -611,6 +668,19 @@ function CreateModal({
           <label className="block text-sm">
             <span className="mb-1 block text-neutral-600">Entregable requerido</span>
             <textarea name="entregable_requerido" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block text-neutral-600">Observaciones</span>
+            <textarea name="notas_publicacion" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block text-neutral-600">Entregable / soporte final</span>
+            <input
+              type="text"
+              name="entregable_soporte_url"
+              placeholder="Enlace o referencia"
+              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+            />
           </label>
         </div>
         <div className="mt-5 flex justify-end gap-2">
@@ -749,7 +819,8 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
   );
 }
 
-function DetailModal({ tarea, profiles, onClose }: { tarea: Tarea; profiles: Profile[]; onClose: () => void }) {
+function DetailModal({ tarea, profiles, empresas, onClose }: { tarea: Tarea; profiles: Profile[]; empresas: Empresa[]; onClose: () => void }) {
+  const empresaNombre = empresas.find((e) => e.id === tarea.empresa_atendida_id)?.nombre;
   return (
     <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} className="w-full max-w-lg rounded-lg bg-white p-6 shadow-lg">
@@ -764,6 +835,7 @@ function DetailModal({ tarea, profiles, onClose }: { tarea: Tarea; profiles: Pro
           <DetailRow label="Descripción" value={tarea.descripcion} />
           <DetailRow label="Instrucciones" value={tarea.instrucciones} />
           <DetailRow label="Cliente" value={tarea.clientes?.nombre} />
+          <DetailRow label="Empresa atendida" value={empresaNombre} />
           <DetailRow label="Proyecto" value={tarea.proyectos?.nombre} />
           <DetailRow label="Fecha límite" value={tarea.fecha_limite} />
           <DetailRow label="Responsable" value={nombreDe(profiles, tarea.responsable)} />
@@ -776,8 +848,10 @@ function DetailModal({ tarea, profiles, onClose }: { tarea: Tarea; profiles: Pro
             }
           />
           <DetailRow label="Entregable requerido" value={tarea.entregable_requerido} />
+          <DetailRow label="Entregable / soporte final" value={tarea.entregable_soporte_url} />
           <DetailRow label="Entregable entregado" value={tarea.entregable} />
-          <DetailRow label="Observaciones" value={tarea.notas} />
+          <DetailRow label="Observaciones de publicación" value={tarea.notas_publicacion} />
+          <DetailRow label="Observaciones de cierre" value={tarea.notas} />
         </div>
         <div className="mt-5 flex justify-end">
           <button onClick={onClose} className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
