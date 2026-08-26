@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfileLabel } from "@/lib/current-profile";
 import { getResponsableFiltro } from "@/lib/responsable-filtro";
+import { requiereAdmin } from "@/lib/auth";
 import { Topbar } from "@/components/topbar";
 import { ResponsableFiltro } from "@/components/responsable-filtro";
 
@@ -17,12 +18,13 @@ export default async function ProcesosPage() {
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
 
-  const [{ data: procesos }, { data: tareas }, { data: profiles }, userLabel, filtro] = await Promise.all([
+  const [{ data: procesos }, { data: tareas }, { data: profiles }, userLabel, filtro, isAdmin] = await Promise.all([
     supabase.from("procesos").select("codigo, nombre, categoria").order("codigo"),
     supabase.from("tareas").select("proceso_codigo, estado, archivado, fecha_limite, responsable"),
     supabase.from("profiles").select("id, full_name, email"),
     getCurrentProfileLabel(),
     getResponsableFiltro(),
+    requiereAdmin(),
   ]);
 
   const tareasFiltradas = filtro ? (tareas ?? []).filter((t) => t.responsable === filtro) : tareas ?? [];
@@ -74,12 +76,14 @@ export default async function ProcesosPage() {
                       <span className="rounded-full bg-violet-100 px-2 py-0.5 font-semibold text-violet-700">{c.archivadas} archivadas</span>
                       <span className="rounded-full bg-neutral-100 px-2 py-0.5 font-semibold text-neutral-600">{c.total} total histórico</span>
                     </div>
-                    <Link
-                      href={`/seguimiento/historial?proceso=${p.codigo}`}
-                      className="mt-3 inline-block text-xs font-semibold text-emerald-700 hover:underline"
-                    >
-                      Ver archivadas del proceso
-                    </Link>
+                    {isAdmin && (
+                      <Link
+                        href={`/seguimiento/historial?proceso=${p.codigo}`}
+                        className="mt-3 inline-block text-xs font-semibold text-emerald-700 hover:underline"
+                      >
+                        Ver archivadas del proceso
+                      </Link>
+                    )}
                   </div>
                 );
               })}

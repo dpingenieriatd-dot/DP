@@ -2,15 +2,17 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfileLabel } from "@/lib/current-profile";
 import { getResponsableFiltro } from "@/lib/responsable-filtro";
+import { requiereAdmin } from "@/lib/auth";
 import { semanaActual, toISODate } from "@/lib/week";
 import { Topbar } from "@/components/topbar";
 import { ResponsableFiltro } from "@/components/responsable-filtro";
 
-function lectura(usoPct: number): [string, string] {
-  if (usoPct < 55) return ["Sin horas planificadas", "bg-neutral-300"];
-  if (usoPct <= 90) return ["Carga equilibrada", "bg-emerald-500"];
-  if (usoPct <= 110) return ["Carga alta", "bg-amber-500"];
-  return ["Sobrecarga", "bg-red-500"];
+function lectura(horasPlanificadas: number, pct: number): [string, string] {
+  if (horasPlanificadas === 0) return ["Sin horas planificadas", "bg-neutral-300"];
+  if (pct > 100) return ["Sobrecarga", "bg-red-500"];
+  if (pct >= 80) return ["Carga alta", "bg-amber-500"];
+  if (pct >= 50) return ["Carga equilibrada", "bg-blue-500"];
+  return ["Capacidad disponible", "bg-blue-500"];
 }
 
 export default async function Page() {
@@ -19,12 +21,13 @@ export default async function Page() {
   const desde = toISODate(semana[0]);
   const hasta = toISODate(semana[6]);
 
-  const [{ data: profiles }, { data: bloques }, { data: tareas }, userLabel, filtro] = await Promise.all([
+  const [{ data: profiles }, { data: bloques }, { data: tareas }, userLabel, filtro, isAdmin] = await Promise.all([
     supabase.from("profiles").select("id, full_name, email, cargo, capacidad_semanal_horas").order("full_name"),
     supabase.from("agenda_bloques").select("usuario_id, horas").gte("dia", desde).lte("dia", hasta),
     supabase.from("tareas").select("responsable, estado, archivado, fecha_limite"),
     getCurrentProfileLabel(),
     getResponsableFiltro(),
+    requiereAdmin(),
   ]);
 
   const profilesFiltrados = filtro ? (profiles ?? []).filter((p) => p.id === filtro) : profiles ?? [];
@@ -33,13 +36,13 @@ export default async function Page() {
     const planificadas = (bloques ?? [])
       .filter((b) => b.usuario_id === p.id)
       .reduce((a, b) => a + Number(b.horas), 0);
-    const usoPct = p.capacidad_semanal_horas > 0 ? (planificadas / p.capacidad_semanal_horas) * 100 : 0;
+    const usoPct = p.capacidad_semanal_horas > 0 ? Math.round((planificadas / p.capacidad_semanal_horas) * 100) : 0;
     const propias = (tareas ?? []).filter((t) => t.responsable === p.id);
     const abiertas = propias.filter((t) => !t.archivado && t.estado !== "Terminada").length;
     const vencidas = propias.filter((t) => !t.archivado && t.estado !== "Terminada" && t.fecha_limite && t.fecha_limite < today).length;
     const enProceso = propias.filter((t) => !t.archivado && (t.estado === "En proceso" || t.estado === "Pausada")).length;
     const archivadas = propias.filter((t) => t.archivado).length;
-    const [texto, barClase] = lectura(usoPct);
+    const [texto, barClase] = lectura(planificadas, usoPct);
     return { p, planificadas, usoPct, abiertas, vencidas, enProceso, archivadas, texto, barClase };
   });
 
@@ -54,7 +57,7 @@ export default async function Page() {
 
       <div className="p-8">
         <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
-          <strong>Lectura de capacidad:</strong> se calcula con las horas estimadas de tareas abiertas programadas para la semana visible ({desde} al {hasta}). Las archivadas permanecen en el histórico y no afectan la carga actual.
+          <strong>Lectura de capacidad:</strong> se calcula con las horas estimadas de tareas abiertas programadas para la semana visible. Las archivadas permanecen en el histórico y no afectan la carga actual.
         </div>
 
         <div className="mt-4 overflow-auto rounded-lg border border-neutral-200 bg-white">
@@ -81,12 +84,14 @@ export default async function Page() {
                   <td className="px-4 py-3">{enProceso}</td>
                   <td className="px-4 py-3">
                     <div>{archivadas}</div>
-                    <Link
-                      href={`/seguimiento/historial?responsable=${p.id}`}
-                      className="mt-1 inline-block rounded-md border border-neutral-300 px-2 py-1 text-xs font-semibold text-neutral-600 hover:bg-neutral-50"
-                    >
-                      Ver archivadas
-                    </Link>
+                    {isAdmin && (
+                      <Link
+                        href={`/seguimiento/historial?responsable=${p.id}`}
+                        className="mt-1 inline-block rounded-md border border-neutral-300 px-2 py-1 text-xs font-semibold text-neutral-600 hover:bg-neutral-50"
+                      >
+                        Ver archivadas
+                      </Link>
+                    )}
                   </td>
                   <td className="min-w-[220px] px-4 py-3">
                     <div className="flex items-center gap-1.5 text-xs text-neutral-600">
