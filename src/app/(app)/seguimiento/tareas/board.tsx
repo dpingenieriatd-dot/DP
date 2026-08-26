@@ -21,7 +21,7 @@ import { Topbar } from "@/components/topbar";
 import { ResponsableFiltro } from "@/components/responsable-filtro";
 import { useTiempoTotal } from "@/lib/use-elapsed";
 
-type Tarea = {
+export type Tarea = {
   id: string;
   titulo: string;
   cliente_id: string | null;
@@ -51,14 +51,14 @@ type Tarea = {
   catalogo_actividad_id: string | null;
 };
 
-type Profile = { id: string; full_name: string | null; email: string | null };
-type Cliente = { id: string; nombre: string };
-type Proyecto = { id: string; codigo: string | null; nombre: string };
-type Empresa = { id: string; nombre: string; cliente_id: string | null };
-type Proceso = { codigo: string; nombre: string };
-type ActividadCatalogo = { id: string; codigo: string; subproceso: string; descripcion: string | null; responsable_sugerido: string | null };
-type Profesional = { id: string; nombre: string; perfil: string | null; especialidad: string | null; ciudad?: string | null; correo?: string | null; telefono?: string | null };
-type AgendaBloque = { tarea_id: string; dia: string; hora_inicio: string | null };
+export type Profile = { id: string; full_name: string | null; email: string | null };
+export type Cliente = { id: string; nombre: string };
+export type Proyecto = { id: string; codigo: string | null; nombre: string };
+export type Empresa = { id: string; nombre: string; cliente_id: string | null };
+export type Proceso = { codigo: string; nombre: string };
+export type ActividadCatalogo = { id: string; codigo: string; subproceso: string; descripcion: string | null; responsable_sugerido: string | null };
+export type Profesional = { id: string; nombre: string; perfil: string | null; especialidad: string | null; ciudad?: string | null; correo?: string | null; telefono?: string | null };
+export type AgendaBloque = { tarea_id: string; dia: string; hora_inicio: string | null };
 type TimerActivo = { id: string; tarea_id: string; inicio: string } | null;
 
 const PRIORIDAD_CLASS: Record<string, string> = {
@@ -547,7 +547,7 @@ function CalidadRating({ tarea, onRate, disabled }: { tarea: Tarea; onRate: (cal
   );
 }
 
-function CreateModal({
+export function CreateModal({
   clientes,
   proyectos,
   empresas,
@@ -558,6 +558,9 @@ function CreateModal({
   onClose,
   onSubmit,
   pending,
+  modoManual = false,
+  currentUserId = null,
+  isAdmin = false,
 }: {
   clientes: Cliente[];
   proyectos: Proyecto[];
@@ -569,6 +572,10 @@ function CreateModal({
   onClose: () => void;
   onSubmit: (fd: FormData) => void;
   pending: boolean;
+  /** "Registrar actividad manual" (abre desde Actividades) en vez de "Publicar tarea" — mismo formulario, origen distinto. */
+  modoManual?: boolean;
+  currentUserId?: string | null;
+  isAdmin?: boolean;
 }) {
   const [catalogoLocal, setCatalogoLocal] = useState(actividadesCatalogo);
   // "" = sin elegir (placeholder) · "custom" = "Otra actividad temporal / no guardar en
@@ -581,8 +588,10 @@ function CreateModal({
   const [empresaId, setEmpresaId] = useState("");
   // "INT|<id de profile>" o "EXT|<id de profesional>" — un solo select para equipo interno
   // y profesionales externos, igual que el HTML de referencia.
-  const [responsableValue, setResponsableValue] = useState("");
+  const [responsableValue, setResponsableValue] = useState(modoManual && currentUserId ? `INT|${currentUserId}` : "");
   const [estado, setEstado] = useState("Disponible");
+  const hoy = new Date().toISOString().slice(0, 10);
+  const puedeElegirResponsable = !modoManual || isAdmin;
   const actividad = catalogoLocal.find((a) => a.id === catalogoId);
 
   function elegirActividad(id: string) {
@@ -608,7 +617,8 @@ function CreateModal({
         onClick={(e) => e.stopPropagation()}
         className="max-h-[90vh] w-full max-w-lg overflow-auto rounded-lg bg-white p-6 shadow-lg"
       >
-        <h2 className="mb-3 text-lg font-semibold text-emerald-900">Publicar tarea</h2>
+        <h2 className="mb-3 text-lg font-semibold text-emerald-900">{modoManual ? "Registrar actividad manual" : "Publicar tarea"}</h2>
+        <input type="hidden" name="origen" value={modoManual ? "Actividad manual" : "Banco de tareas"} />
         <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-emerald-800">Definición</div>
         <div className="mb-3 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
           <strong>Catálogos integrados:</strong> Cliente, Empresa atendida y Profesionales externos se toman de los catálogos de Gestión.
@@ -732,7 +742,8 @@ function CreateModal({
             <select
               value={responsableValue}
               onChange={(e) => setResponsableValue(e.target.value)}
-              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+              disabled={!puedeElegirResponsable}
+              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm disabled:bg-neutral-100"
             >
               <option value="">Sin asignar / Disponible</option>
               <optgroup label="Equipo interno">
@@ -777,11 +788,11 @@ function CreateModal({
             </label>
             <label className="block text-sm">
               <span className="mb-1 block text-neutral-600">Fecha de inicio / Agenda</span>
-              <input type="date" name="fecha_inicio_agenda" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+              <input type="date" name="fecha_inicio_agenda" defaultValue={modoManual ? hoy : ""} className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
             </label>
             <label className="block text-sm">
               <span className="mb-1 block text-neutral-600">Hora de inicio / Agenda</span>
-              <input type="time" name="hora_inicio_agenda" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+              <input type="time" name="hora_inicio_agenda" defaultValue={modoManual ? "08:00" : ""} className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
             </label>
           </div>
           <label className="block text-sm">
@@ -806,32 +817,36 @@ function CreateModal({
             <textarea name="notas_publicacion" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
           </label>
 
-          <div className="mt-2 border-t border-neutral-200 pt-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">
-            Control administrativo
-          </div>
-          <label className="block text-sm">
-            <span className="mb-1 block text-neutral-600">Estado</span>
-            <select
-              name="estado"
-              value={estado}
-              onChange={(e) => setEstado(e.target.value)}
-              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
-            >
-              <option>Disponible</option>
-              <option>En proceso</option>
-              <option>Pausada</option>
-              <option>Terminada</option>
-            </select>
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1 block text-neutral-600">Entregable / soporte final</span>
-            <input
-              type="text"
-              name="entregable_soporte_url"
-              placeholder="Enlace o referencia"
-              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
-            />
-          </label>
+          {(!modoManual || isAdmin) && (
+            <>
+              <div className="mt-2 border-t border-neutral-200 pt-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                Control administrativo
+              </div>
+              <label className="block text-sm">
+                <span className="mb-1 block text-neutral-600">Estado</span>
+                <select
+                  name="estado"
+                  value={estado}
+                  onChange={(e) => setEstado(e.target.value)}
+                  className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+                >
+                  <option>Disponible</option>
+                  <option>En proceso</option>
+                  <option>Pausada</option>
+                  <option>Terminada</option>
+                </select>
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block text-neutral-600">Entregable / soporte final</span>
+                <input
+                  type="text"
+                  name="entregable_soporte_url"
+                  placeholder="Enlace o referencia"
+                  className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+                />
+              </label>
+            </>
+          )}
         </div>
         <div className="mt-5 flex justify-end gap-2">
           <button type="button" onClick={onClose} className="rounded-md px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-100">
@@ -966,7 +981,7 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
   );
 }
 
-function DetailModal({
+export function DetailModal({
   tarea,
   profiles,
   profesionales,

@@ -1,61 +1,74 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfileLabel } from "@/lib/current-profile";
 import { getResponsableFiltro } from "@/lib/responsable-filtro";
+import { requiereAdmin } from "@/lib/auth";
+import { esActividad, resultadoActividad } from "@/lib/actividad-tarea";
 import { KpiCard } from "@/components/kpi-card";
 import { Topbar } from "@/components/topbar";
 import { ResponsableFiltro } from "@/components/responsable-filtro";
 import { ActividadesList } from "./list";
-import { CargoFilter } from "./cargo-filter";
 
-/** Normaliza para comparar cargos: el dato real trae variantes de mayúsculas y espacios sueltos. */
-function normCargo(s: string | null) {
-  return (s ?? "").trim().toLowerCase();
-}
-
-export default async function Page({
-  searchParams,
-}: {
-  searchParams: Promise<{ cargo?: string; estado?: string; desde?: string; hasta?: string }>;
-}) {
-  const { cargo: cargoFiltro, estado: estadoFiltro, desde, hasta } = await searchParams;
+export default async function Page({ searchParams }: { searchParams: Promise<{ cargo?: string }> }) {
+  const { cargo: cargoFiltro } = await searchParams;
   const supabase = await createClient();
-  const [{ data: rows }, { data: clientes }, { data: proyectos }, { data: empresas }, { data: actividadesCatalogo }, { data: procesos }, { data: profiles }, userLabel, filtro] =
-    await Promise.all([
-      supabase.from("actividades").select("*").order("fecha", { ascending: false }),
-      supabase.from("clientes").select("id, nombre").order("nombre"),
-      supabase.from("proyectos").select("id, codigo, nombre").order("nombre"),
-      supabase.from("empresas_atendidas").select("id, nombre").order("nombre"),
-      supabase.from("catalogo_actividades").select("id, codigo, subproceso, descripcion, responsable_sugerido").order("codigo"),
-      supabase.from("procesos").select("codigo, nombre").order("codigo"),
-      supabase.from("profiles").select("id, full_name, email"),
-      getCurrentProfileLabel(),
-      getResponsableFiltro(),
-    ]);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const todos = rows ?? [];
-  const items = todos
-    .filter((r) => !filtro || r.usuario_id === filtro)
-    .filter((r) => !cargoFiltro || normCargo(r.cargo).startsWith(normCargo(cargoFiltro)))
-    .filter((r) => !estadoFiltro || r.estado === estadoFiltro)
-    .filter((r) => !desde || (r.fecha && r.fecha >= desde))
-    .filter((r) => !hasta || (r.fecha && r.fecha <= hasta));
-  const cumplidas = items.filter((r) => r.estado === "Cumplido").length;
-  const pendientes = items.filter((r) => r.estado === "Pendiente" || r.estado === "Parcial").length;
-  const noCumplidas = items.filter((r) => r.estado === "No cumplido").length;
+  const [
+    { data: tareas },
+    { data: clientes },
+    { data: proyectos },
+    { data: empresas },
+    { data: actividadesCatalogo },
+    { data: procesos },
+    { data: profiles },
+    { data: profesionales },
+    { data: agendaBloques },
+    userLabel,
+    filtro,
+    isAdmin,
+  ] = await Promise.all([
+    supabase.from("tareas").select("*, clientes(nombre), proyectos(nombre)").order("created_at", { ascending: false }),
+    supabase.from("clientes").select("id, nombre").order("nombre"),
+    supabase.from("proyectos").select("id, codigo, nombre").order("nombre"),
+    supabase.from("empresas_atendidas").select("id, nombre, cliente_id").order("nombre"),
+    supabase.from("catalogo_actividades").select("id, codigo, subproceso, descripcion, responsable_sugerido").order("codigo"),
+    supabase.from("procesos").select("codigo, nombre").order("codigo"),
+    supabase.from("profiles").select("id, full_name, email, cargo"),
+    supabase.from("profesionales").select("id, nombre, perfil, especialidad, ciudad, correo, telefono").eq("estado", "Activo").order("nombre"),
+    supabase.from("agenda_bloques").select("tarea_id, dia, hora_inicio"),
+    getCurrentProfileLabel(),
+    getResponsableFiltro(),
+    requiereAdmin(),
+  ]);
+
+  const cargoDe = (t: { responsable: string | null; responsable_externo_id: string | null }) => {
+    if (t.responsable_externo_id) return "Profesional externo";
+    const p = profiles?.find((p) => p.id === t.responsable);
+    return p?.cargo || "Sin asignar";
+  };
+
+  const todas = (tareas ?? []).filter((t) => !filtro || t.responsable === filtro).filter(esActividad);
+  const items = todas
+    .filter((t) => !cargoFiltro || cargoDe(t) === cargoFiltro)
+    .map((t) => ({ ...t, _cargo: cargoDe(t), _fecha: t.fecha_cierre || t.fecha_toma || t.created_at?.slice(0, 10) || "" }))
+    .sort((a, b) => b._fecha.localeCompare(a._fecha));
+
+  const resultados = items.map(resultadoActividad);
+  const cumplidas = resultados.filter((r) => r === "Cumplida").length;
+  const pendientes = resultados.filter((r) => r === "Pendiente/Parcial").length;
+  const noCumplidas = resultados.filter((r) => r === "No cumplida").length;
 
   return (
     <div className="flex flex-col lg:h-full">
       <Topbar
         title="Actividades"
-        subtitle="Registro histórico con filtro por cargo"
+        subtitle="La tabla y los contadores se actualizan según el cargo seleccionado."
         userLabel={userLabel ?? undefined}
         filter={<ResponsableFiltro profiles={profiles ?? []} value={filtro} />}
       />
       <div className="px-8 pt-6">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm text-neutral-500">Registro histórico de actividades del equipo.</p>
-          <CargoFilter />
-        </div>
         <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <KpiCard label="Cumplidas" value={cumplidas} color="emerald" />
           <KpiCard label="Pendientes / parciales" value={pendientes} color="amber" />
@@ -64,12 +77,17 @@ export default async function Page({
       </div>
       <div className="lg:min-h-0 lg:flex-1">
         <ActividadesList
-          rows={items}
+          items={items}
           clientes={clientes ?? []}
           proyectos={proyectos ?? []}
           empresas={empresas ?? []}
           actividadesCatalogo={actividadesCatalogo ?? []}
           procesos={procesos ?? []}
+          profiles={profiles ?? []}
+          profesionales={profesionales ?? []}
+          agendaBloques={agendaBloques ?? []}
+          currentUserId={user?.id ?? null}
+          isAdmin={isAdmin}
         />
       </div>
     </div>

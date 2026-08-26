@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfileLabel } from "@/lib/current-profile";
 import { getResponsableFiltro } from "@/lib/responsable-filtro";
+import { esActividad, resultadoActividad } from "@/lib/actividad-tarea";
 import { PieCard } from "@/components/charts";
 import { KpiCard } from "@/components/kpi-card";
 import { Topbar } from "@/components/topbar";
@@ -20,9 +21,10 @@ export default async function SeguimientoInicioPage() {
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
 
-  const [{ data: tareas }, { data: actividades }, { data: proyectos }, { data: profiles }, userLabel, filtro] = await Promise.all([
-    supabase.from("tareas").select("id, titulo, cliente, proyecto_id, responsable, estado, prioridad, fecha_limite, archivado"),
-    supabase.from("actividades").select("estado, usuario_id"),
+  const [{ data: tareas }, { data: proyectos }, { data: profiles }, userLabel, filtro] = await Promise.all([
+    supabase
+      .from("tareas")
+      .select("id, titulo, cliente, proyecto_id, responsable, responsable_externo_id, estado, prioridad, fecha_limite, archivado, origen"),
     supabase.from("proyectos").select("id, nombre"),
     supabase.from("profiles").select("id, full_name, email"),
     getCurrentProfileLabel(),
@@ -30,7 +32,6 @@ export default async function SeguimientoInicioPage() {
   ]);
 
   const todas = (tareas ?? []).filter((t) => !filtro || t.responsable === filtro);
-  const actividadesFiltradas = (actividades ?? []).filter((a) => !filtro || a.usuario_id === filtro);
   const abiertas = todas.filter((t) => !t.archivado);
   const disponibles = abiertas.filter((t) => t.estado === "Disponible").length;
   const enProceso = abiertas.filter((t) => t.estado === "En proceso" || t.estado === "Pausada").length;
@@ -39,9 +40,12 @@ export default async function SeguimientoInicioPage() {
   const vencidas = abiertas.filter((t) => isOverdue(t, today)).length;
   const vencenEn3 = abiertas.filter((t) => dueSoon(t, today, 3)).length;
 
-  const cumplidas = actividadesFiltradas.filter((a) => a.estado === "Cumplido").length;
-  const pendientesParciales = actividadesFiltradas.filter((a) => a.estado === "Pendiente" || a.estado === "Parcial").length;
-  const noCumplidas = actividadesFiltradas.filter((a) => a.estado === "No cumplido").length;
+  // "Resultado de actividades": mismo historial derivado de tareas que usa la página Actividades
+  // (tomadas, terminadas o registradas manualmente) — no una tabla aparte.
+  const resultadosActividad = todas.filter(esActividad).map(resultadoActividad);
+  const cumplidas = resultadosActividad.filter((r) => r === "Cumplida").length;
+  const pendientesParciales = resultadosActividad.filter((r) => r === "Pendiente/Parcial").length;
+  const noCumplidas = resultadosActividad.filter((r) => r === "No cumplida").length;
 
   const nombreProyecto = (id: string | null) => proyectos?.find((p) => p.id === id)?.nombre ?? "—";
   const nombreResponsable = (id: string | null) => {

@@ -47,6 +47,7 @@ export async function crearTarea(formData: FormData) {
       responsable: responsableId,
       responsable_externo_id: responsableExternoId,
       estado: estadoFinal,
+      origen: (formData.get("origen") as string) || "Banco de tareas",
       ...(asignado ? { fecha_toma: new Date().toISOString().slice(0, 10) } : {}),
     })
     .select("id")
