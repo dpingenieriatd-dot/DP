@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfileLabel } from "@/lib/current-profile";
+import { getResponsableFiltro } from "@/lib/responsable-filtro";
 import { Topbar } from "@/components/topbar";
+import { ResponsableFiltro } from "@/components/responsable-filtro";
 
 const CATEGORIAS = ["Estratégico", "Misional", "Apoyo"];
 const CATEGORIAS_PLURAL: Record<string, string> = {
@@ -15,14 +17,18 @@ export default async function ProcesosPage() {
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
 
-  const [{ data: procesos }, { data: tareas }, userLabel] = await Promise.all([
+  const [{ data: procesos }, { data: tareas }, { data: profiles }, userLabel, filtro] = await Promise.all([
     supabase.from("procesos").select("codigo, nombre, categoria").order("codigo"),
-    supabase.from("tareas").select("proceso_codigo, estado, archivado, fecha_limite"),
+    supabase.from("tareas").select("proceso_codigo, estado, archivado, fecha_limite, responsable"),
+    supabase.from("profiles").select("id, full_name, email"),
     getCurrentProfileLabel(),
+    getResponsableFiltro(),
   ]);
 
+  const tareasFiltradas = filtro ? (tareas ?? []).filter((t) => t.responsable === filtro) : tareas ?? [];
+
   const conteos = new Map<string, { abiertas: number; vencidas: number; archivadas: number; total: number }>();
-  for (const t of tareas ?? []) {
+  for (const t of tareasFiltradas) {
     if (!t.proceso_codigo) continue;
     const c = conteos.get(t.proceso_codigo) ?? { abiertas: 0, vencidas: 0, archivadas: 0, total: 0 };
     c.total += 1;
@@ -36,7 +42,12 @@ export default async function ProcesosPage() {
 
   return (
     <div>
-      <Topbar title="Procesos" subtitle="Clasificación de las tareas según el mapa de procesos de D&P" userLabel={userLabel ?? undefined} />
+      <Topbar
+        title="Procesos"
+        subtitle="Clasificación de las tareas según el mapa de procesos de D&P"
+        userLabel={userLabel ?? undefined}
+        filter={<ResponsableFiltro profiles={profiles ?? []} value={filtro} />}
+      />
 
       <div className="p-8">
       {CATEGORIAS.map((cat) => {

@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfileLabel } from "@/lib/current-profile";
+import { getResponsableFiltro } from "@/lib/responsable-filtro";
 import { PieCard } from "@/components/charts";
 import { KpiCard } from "@/components/kpi-card";
 import { Topbar } from "@/components/topbar";
+import { ResponsableFiltro } from "@/components/responsable-filtro";
 
 function isOverdue(t: { estado: string; archivado: boolean; fecha_limite: string | null }, today: string) {
   return t.estado !== "Terminada" && !t.archivado && !!t.fecha_limite && t.fecha_limite < today;
@@ -18,15 +20,17 @@ export default async function SeguimientoInicioPage() {
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
 
-  const [{ data: tareas }, { data: actividades }, { data: proyectos }, { data: profiles }, userLabel] = await Promise.all([
+  const [{ data: tareas }, { data: actividades }, { data: proyectos }, { data: profiles }, userLabel, filtro] = await Promise.all([
     supabase.from("tareas").select("id, titulo, cliente, proyecto_id, responsable, estado, prioridad, fecha_limite, archivado"),
-    supabase.from("actividades").select("estado"),
+    supabase.from("actividades").select("estado, usuario_id"),
     supabase.from("proyectos").select("id, nombre"),
     supabase.from("profiles").select("id, full_name, email"),
     getCurrentProfileLabel(),
+    getResponsableFiltro(),
   ]);
 
-  const todas = tareas ?? [];
+  const todas = (tareas ?? []).filter((t) => !filtro || t.responsable === filtro);
+  const actividadesFiltradas = (actividades ?? []).filter((a) => !filtro || a.usuario_id === filtro);
   const abiertas = todas.filter((t) => !t.archivado);
   const disponibles = abiertas.filter((t) => t.estado === "Disponible").length;
   const enProceso = abiertas.filter((t) => t.estado === "En proceso" || t.estado === "Pausada").length;
@@ -35,9 +39,9 @@ export default async function SeguimientoInicioPage() {
   const vencidas = abiertas.filter((t) => isOverdue(t, today)).length;
   const vencenEn3 = abiertas.filter((t) => dueSoon(t, today, 3)).length;
 
-  const cumplidas = (actividades ?? []).filter((a) => a.estado === "Cumplido").length;
-  const pendientesParciales = (actividades ?? []).filter((a) => a.estado === "Pendiente" || a.estado === "Parcial").length;
-  const noCumplidas = (actividades ?? []).filter((a) => a.estado === "No cumplido").length;
+  const cumplidas = actividadesFiltradas.filter((a) => a.estado === "Cumplido").length;
+  const pendientesParciales = actividadesFiltradas.filter((a) => a.estado === "Pendiente" || a.estado === "Parcial").length;
+  const noCumplidas = actividadesFiltradas.filter((a) => a.estado === "No cumplido").length;
 
   const nombreProyecto = (id: string | null) => proyectos?.find((p) => p.id === id)?.nombre ?? "—";
   const nombreResponsable = (id: string | null) => {
@@ -56,7 +60,12 @@ export default async function SeguimientoInicioPage() {
 
   return (
     <div>
-      <Topbar title="Inicio" subtitle="Resumen con porcentajes, pendientes y carga" userLabel={userLabel ?? undefined} />
+      <Topbar
+        title="Inicio"
+        subtitle="Resumen con porcentajes, pendientes y carga"
+        userLabel={userLabel ?? undefined}
+        filter={<ResponsableFiltro profiles={profiles ?? []} value={filtro} />}
+      />
 
       <div className="p-8">
         <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">

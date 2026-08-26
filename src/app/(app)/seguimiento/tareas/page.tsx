@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfileLabel } from "@/lib/current-profile";
+import { getResponsableFiltro } from "@/lib/responsable-filtro";
 import { TaskBoard } from "./board";
 
 export default async function Page() {
@@ -21,6 +22,8 @@ export default async function Page() {
     { data: timerActivo },
     { data: miPerfil },
     userLabel,
+    filtro,
+    { data: registrosAbiertos },
   ] = await Promise.all([
     supabase.from("tareas").select("*, clientes(nombre), proyectos(nombre)").order("created_at", { ascending: false }),
     supabase.from("profiles").select("id, full_name, email"),
@@ -40,11 +43,18 @@ export default async function Page() {
       : Promise.resolve({ data: null }),
     user ? supabase.from("profiles").select("role").eq("id", user.id).single() : Promise.resolve({ data: null }),
     getCurrentProfileLabel(),
+    getResponsableFiltro(),
+    // Cronómetros abiertos de CUALQUIER persona — para mostrar el tiempo real corriendo en
+    // cualquier tarjeta "En proceso", sin importar quién la esté viendo (igual que el HTML).
+    supabase.from("registros_tiempo").select("id, tarea_id, inicio").is("fin", null),
   ]);
+
+  const tareasFiltradas = filtro ? (tareas ?? []).filter((t) => t.responsable === filtro) : tareas ?? [];
 
   return (
     <TaskBoard
-      tareas={tareas ?? []}
+      tareas={tareasFiltradas}
+      filtro={filtro}
       profiles={profiles ?? []}
       clientes={clientes ?? []}
       proyectos={proyectos ?? []}
@@ -54,6 +64,7 @@ export default async function Page() {
       profesionales={profesionales ?? []}
       currentUserId={user?.id ?? null}
       timerActivo={timerActivo ?? null}
+      registrosAbiertos={registrosAbiertos ?? []}
       isAdmin={miPerfil?.role === "admin"}
       userLabel={userLabel}
     />

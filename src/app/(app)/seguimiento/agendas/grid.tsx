@@ -5,6 +5,7 @@ import { crearBloque, eliminarBloque, actualizarPreferenciasRecordatorio, reprog
 import { iniciarTiempo, pausarTarea, reanudarTarea, terminarTarea } from "../tareas/actions";
 import { KpiCard } from "@/components/kpi-card";
 import { Topbar } from "@/components/topbar";
+import { ResponsableFiltro } from "@/components/responsable-filtro";
 import { useElapsed, formatHoras } from "@/lib/use-elapsed";
 
 type Profile = { id: string; full_name: string | null; email: string | null; capacidad_semanal_horas: number };
@@ -64,6 +65,8 @@ export function AgendaGrid({
   currentUserId,
   timerActivo,
   userLabel,
+  todosLosProfiles,
+  filtro,
 }: {
   profiles: Profile[];
   clientes: Cliente[];
@@ -75,6 +78,8 @@ export function AgendaGrid({
   currentUserId: string | null;
   timerActivo: TimerActivo;
   userLabel: string | null;
+  todosLosProfiles: Profile[];
+  filtro: string;
 }) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -114,6 +119,7 @@ export function AgendaGrid({
         title="Agenda"
         subtitle="Programación automática y cronómetro sincronizado"
         userLabel={userLabel ?? undefined}
+        filter={<ResponsableFiltro profiles={todosLosProfiles} value={filtro} />}
         actions={
           <div className="flex items-center gap-2">
             <RecordatorioSettings minutosInicial={recordatorioMinutos} sonidoInicial={recordatorioSonido} />

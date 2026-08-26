@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfileLabel } from "@/lib/current-profile";
+import { getResponsableFiltro } from "@/lib/responsable-filtro";
 import { KpiCard } from "@/components/kpi-card";
 import { Topbar } from "@/components/topbar";
+import { ResponsableFiltro } from "@/components/responsable-filtro";
 import { ActividadesList } from "./list";
 import { CargoFilter } from "./cargo-filter";
 
@@ -17,7 +19,7 @@ export default async function Page({
 }) {
   const { cargo: cargoFiltro, estado: estadoFiltro, desde, hasta } = await searchParams;
   const supabase = await createClient();
-  const [{ data: rows }, { data: clientes }, { data: proyectos }, { data: empresas }, { data: actividadesCatalogo }, { data: procesos }, userLabel] =
+  const [{ data: rows }, { data: clientes }, { data: proyectos }, { data: empresas }, { data: actividadesCatalogo }, { data: procesos }, { data: profiles }, userLabel, filtro] =
     await Promise.all([
       supabase.from("actividades").select("*").order("fecha", { ascending: false }),
       supabase.from("clientes").select("id, nombre").order("nombre"),
@@ -25,11 +27,14 @@ export default async function Page({
       supabase.from("empresas_atendidas").select("id, nombre").order("nombre"),
       supabase.from("catalogo_actividades").select("id, codigo, subproceso, descripcion, responsable_sugerido").order("codigo"),
       supabase.from("procesos").select("codigo, nombre").order("codigo"),
+      supabase.from("profiles").select("id, full_name, email"),
       getCurrentProfileLabel(),
+      getResponsableFiltro(),
     ]);
 
   const todos = rows ?? [];
   const items = todos
+    .filter((r) => !filtro || r.usuario_id === filtro)
     .filter((r) => !cargoFiltro || normCargo(r.cargo).startsWith(normCargo(cargoFiltro)))
     .filter((r) => !estadoFiltro || r.estado === estadoFiltro)
     .filter((r) => !desde || (r.fecha && r.fecha >= desde))
@@ -40,7 +45,12 @@ export default async function Page({
 
   return (
     <div className="flex flex-col lg:h-full">
-      <Topbar title="Actividades" subtitle="Registro histórico con filtro por cargo" userLabel={userLabel ?? undefined} />
+      <Topbar
+        title="Actividades"
+        subtitle="Registro histórico con filtro por cargo"
+        userLabel={userLabel ?? undefined}
+        filter={<ResponsableFiltro profiles={profiles ?? []} value={filtro} />}
+      />
       <div className="px-8 pt-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-sm text-neutral-500">Registro histórico de actividades del equipo.</p>

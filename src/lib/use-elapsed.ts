@@ -22,6 +22,25 @@ export function useElapsed(inicio: string | null) {
   return elapsed;
 }
 
+/** Reloj en vivo del tiempo TOTAL de una tarea: lo ya consolidado (horasBase) + la sesión que
+ * está corriendo ahora mismo (si la hay) — para mostrar el cronómetro en cualquier tarjeta "En
+ * proceso", sin importar quién la esté viendo (igual que el HTML de referencia). */
+export function useTiempoTotal(horasBase: number, inicioSesion: string | null) {
+  const [elapsed, setElapsed] = useState(() => formatHoras(horasBase));
+  useEffect(() => {
+    if (!inicioSesion) return;
+    const start = new Date(inicioSesion).getTime();
+    const tick = () => {
+      const sesionSeg = Math.max(0, Math.floor((Date.now() - start) / 1000));
+      setElapsed(formatHoras(horasBase + sesionSeg / 3600));
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [horasBase, inicioSesion]);
+  return elapsed;
+}
+
 /** Formatea horas decimales (ej. 1.5) como "1h 30m", para tiempo consolidado. */
 export function formatHoras(horas: number) {
   const totalMin = Math.round(horas * 60);

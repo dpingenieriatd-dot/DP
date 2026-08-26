@@ -1,22 +1,27 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfileLabel } from "@/lib/current-profile";
+import { getResponsableFiltro } from "@/lib/responsable-filtro";
 import { Topbar } from "@/components/topbar";
+import { ResponsableFiltro } from "@/components/responsable-filtro";
 import { FechaFiltro } from "./fecha-filtro";
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ desde?: string; hasta?: string }> }) {
   const { desde, hasta } = await searchParams;
   const supabase = await createClient();
 
-  const [{ data: profiles }, { data: todasLasTareas }, { data: params }, userLabel] = await Promise.all([
+  const [{ data: profiles }, { data: todasLasTareas }, { data: params }, userLabel, filtro] = await Promise.all([
     supabase.from("profiles").select("id, full_name, email, cargo").order("full_name"),
     supabase.from("tareas").select("responsable, estado, fecha_limite, fecha_cierre, horas_estimadas, horas_reales, calidad_pct, created_at"),
     supabase.from("efectividad_parametros").select("*").eq("id", 1).single(),
     getCurrentProfileLabel(),
+    getResponsableFiltro(),
   ]);
 
   const tareas = (todasLasTareas ?? [])
     .filter((t) => !desde || t.created_at.slice(0, 10) >= desde)
     .filter((t) => !hasta || t.created_at.slice(0, 10) <= hasta);
+
+  const profilesFiltrados = filtro ? (profiles ?? []).filter((p) => p.id === filtro) : profiles ?? [];
 
   const pesoCumplimiento = Number(params?.peso_cumplimiento ?? 50);
   const pesoOportunidad = Number(params?.peso_oportunidad ?? 25);
@@ -24,7 +29,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ d
   const pesoCalidad = Number(params?.peso_calidad ?? 15);
   const sumaPesosBase = pesoCumplimiento + pesoOportunidad + pesoEficiencia;
 
-  const filas = (profiles ?? []).map((p) => {
+  const filas = profilesFiltrados.map((p) => {
     const propias = (tareas ?? []).filter((t) => t.responsable === p.id);
     const terminadas = propias.filter((t) => t.estado === "Terminada");
     const cumplimiento = propias.length ? (terminadas.length / propias.length) * 100 : 0;
@@ -57,7 +62,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ d
 
   return (
     <div>
-      <Topbar title="Efectividad" subtitle="Cumplimiento, oportunidad, eficiencia y calidad por persona" userLabel={userLabel ?? undefined} />
+      <Topbar
+        title="Efectividad"
+        subtitle="Cumplimiento, oportunidad, eficiencia y calidad por persona"
+        userLabel={userLabel ?? undefined}
+        filter={<ResponsableFiltro profiles={profiles ?? []} value={filtro} />}
+      />
 
       <div className="p-8">
         <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">

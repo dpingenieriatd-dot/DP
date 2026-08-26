@@ -18,7 +18,8 @@ import { AgregarActividadCatalogo } from "@/components/agregar-actividad-catalog
 import { reprogramarBloque } from "../agendas/actions";
 import { KpiCard } from "@/components/kpi-card";
 import { Topbar } from "@/components/topbar";
-import { useElapsed } from "@/lib/use-elapsed";
+import { ResponsableFiltro } from "@/components/responsable-filtro";
+import { useTiempoTotal } from "@/lib/use-elapsed";
 
 type Tarea = {
   id: string;
@@ -94,8 +95,10 @@ export function TaskBoard({
   actividadesCatalogo,
   procesos,
   profesionales,
+  filtro,
   currentUserId,
   timerActivo,
+  registrosAbiertos,
   isAdmin,
   userLabel,
 }: {
@@ -107,8 +110,10 @@ export function TaskBoard({
   actividadesCatalogo: ActividadCatalogo[];
   procesos: Proceso[];
   profesionales: Profesional[];
+  filtro: string;
   currentUserId: string | null;
   timerActivo: TimerActivo;
+  registrosAbiertos: { id: string; tarea_id: string; inicio: string }[];
   isAdmin: boolean;
   userLabel: string | null;
 }) {
@@ -121,15 +126,15 @@ export function TaskBoard({
   const [error, setError] = useState<string | null>(null);
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
-  const elapsed = useElapsed(timerActivo?.inicio ?? null);
 
   const enRango = tareas
     .filter((t) => !desde || (t.fecha_limite && t.fecha_limite >= desde))
     .filter((t) => !hasta || (t.fecha_limite && t.fecha_limite <= hasta));
   const hayFiltros = !!(desde || hasta);
   const disponibles = enRango.filter((t) => t.estado === "Disponible");
-  const enProceso = enRango.filter((t) => t.estado === "En proceso");
-  const pausadas = enRango.filter((t) => t.estado === "Pausada");
+  // El HTML de referencia no separa un carril de "Pausadas" — quedan dentro de "En proceso"
+  // con otro set de botones (Continuar/Reprogramar en vez de Iniciar/Pausar/Terminar/Devolver).
+  const enProceso = enRango.filter((t) => t.estado === "En proceso" || t.estado === "Pausada");
   const terminadas = enRango.filter((t) => t.estado === "Terminada" && !t.archivado);
 
   function run(fn: () => Promise<{ error?: string } | void>) {
@@ -139,12 +144,17 @@ export function TaskBoard({
     });
   }
 
+  function registroAbiertoDe(tareaId: string) {
+    return registrosAbiertos.find((r) => r.tarea_id === tareaId) ?? null;
+  }
+
   return (
     <div>
       <Topbar
         title="Banco de tareas"
         subtitle="Disponibles, en proceso y terminadas"
         userLabel={userLabel ?? undefined}
+        filter={<ResponsableFiltro profiles={profiles} value={filtro} />}
         actions={
           <button
             onClick={() => setCreateOpen(true)}
@@ -180,10 +190,9 @@ export function TaskBoard({
           )}
         </div>
 
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <KpiCard label="Disponibles" value={disponibles.length} color="emerald" />
           <KpiCard label="En proceso" value={enProceso.length} color="amber" />
-          <KpiCard label="Pausadas" value={pausadas.length} color="neutral" />
           <KpiCard
             label="Terminadas pendientes de archivo"
             value={terminadas.length}
@@ -196,7 +205,7 @@ export function TaskBoard({
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Column title="Disponibles" count={disponibles.length}>
           {disponibles.map((t) => (
             <Card key={t.id} t={t} profiles={profiles} profesionales={profesionales}>
@@ -232,120 +241,84 @@ export function TaskBoard({
 
         <Column title="En proceso" count={enProceso.length}>
           {enProceso.map((t) => {
-            const esMia = t.responsable === currentUserId;
             const externa = isExternalTask(t);
-            const corriendo = timerActivo?.tarea_id === t.id;
+            const pausada = t.estado === "Pausada";
+            // Un admin/Directora puede operar cualquier tarea interna, no solo la propia —
+            // igual que canOperate() en el HTML de referencia.
+            const puedeOperar = !externa && (isAdmin || t.responsable === currentUserId);
+            const registroAbierto = registroAbiertoDe(t.id);
+            const corriendoAqui = !!registroAbierto;
+            const miTimerEnOtraTarea = !!timerActivo && timerActivo.tarea_id !== t.id;
             return (
-              <Card key={t.id} t={t} profiles={profiles} profesionales={profesionales}>
-                {externa && isAdmin && (
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => setFinishing(t)}
-                      className="rounded-md bg-emerald-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800"
-                    >
-                      ✓ Terminar
-                    </button>
-                    <button
-                      onClick={() => setDetalle(t)}
-                      className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-100"
-                    >
-                      Ver detalles
-                    </button>
-                  </div>
-                )}
-                {externa && !isAdmin && (
+              <Card key={t.id} t={t} profiles={profiles} profesionales={profesionales} registroAbierto={registroAbierto}>
+                <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => setDetalle(t)}
                     className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-100"
                   >
                     Ver detalles
                   </button>
-                )}
-                {!externa && corriendo && (
-                  <div className="mb-2 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800">
-                    <span>⏱ Cronómetro activo</span>
-                    <span className="ml-auto font-mono font-semibold">{elapsed}</span>
-                  </div>
-                )}
-                {!externa && (
-                  <div className="flex flex-wrap gap-2">
-                    {esMia && (
-                      <>
-                        {corriendo ? (
-                          <button
-                            onClick={() => run(() => pausarTarea(timerActivo!.id))}
-                            disabled={pending}
-                            className="rounded-md bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-200 disabled:opacity-60"
-                          >
-                            ⏸ Pausar
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => run(() => iniciarTiempo(t.id))}
-                            disabled={pending || !!timerActivo}
-                            className="rounded-md bg-neutral-100 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-200 disabled:opacity-60"
-                          >
-                            ▶ Tiempo
-                          </button>
-                        )}
-                        <button
-                          onClick={() => setFinishing(t)}
-                          className="rounded-md bg-emerald-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800"
-                        >
-                          ✓ Terminar
-                        </button>
-                        <button
-                          onClick={() => run(() => liberarTarea(t.id))}
-                          disabled={pending}
-                          className="rounded-md px-3 py-1.5 text-xs text-neutral-500 hover:underline"
-                        >
-                          Liberar
-                        </button>
-                      </>
-                    )}
+                  {externa && isAdmin && (
                     <button
-                      onClick={() => setDetalle(t)}
-                      className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-100"
+                      onClick={() => setFinishing(t)}
+                      className="rounded-md bg-emerald-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800"
                     >
-                      Ver detalles
+                      Terminar
                     </button>
-                    {!esMia && <span className="text-xs text-neutral-400">Asignada, sin más acciones para ti</span>}
-                  </div>
-                )}
-              </Card>
-            );
-          })}
-        </Column>
-
-        <Column title="Pausadas" count={pausadas.length}>
-          {pausadas.map((t) => {
-            const esMia = t.responsable === currentUserId;
-            return (
-              <Card key={t.id} t={t} profiles={profiles} profesionales={profesionales}>
-                <div className="flex flex-wrap gap-2">
-                  {esMia && (
+                  )}
+                  {puedeOperar && pausada && (
                     <>
                       <button
                         onClick={() => run(() => reanudarTarea(t.id))}
                         disabled={pending || !!timerActivo}
                         className="rounded-md bg-emerald-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
                       >
-                        ▶ Reanudar
+                        Continuar
                       </button>
                       <button
                         onClick={() => setReprogramando(t)}
                         className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-100"
                       >
-                        📅 Reprogramar
+                        Reprogramar
                       </button>
                     </>
                   )}
-                  <button
-                    onClick={() => setDetalle(t)}
-                    className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-100"
-                  >
-                    Ver detalles
-                  </button>
+                  {puedeOperar && !pausada && (
+                    <>
+                      {corriendoAqui ? (
+                        <button
+                          onClick={() => run(() => pausarTarea(registroAbierto!.id))}
+                          disabled={pending}
+                          className="rounded-md bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-200 disabled:opacity-60"
+                        >
+                          Pausar
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => run(() => iniciarTiempo(t.id))}
+                          disabled={pending || miTimerEnOtraTarea}
+                          title={miTimerEnOtraTarea ? "Ya tienes un cronómetro corriendo en otra tarea" : undefined}
+                          className="rounded-md bg-neutral-100 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-200 disabled:opacity-60"
+                        >
+                          Iniciar
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setFinishing(t)}
+                        className="rounded-md bg-emerald-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800"
+                      >
+                        Terminar
+                      </button>
+                      <button
+                        onClick={() => run(() => liberarTarea(t.id))}
+                        disabled={pending}
+                        className="rounded-md px-3 py-1.5 text-xs text-neutral-500 hover:underline"
+                      >
+                        Devolver a disponibles
+                      </button>
+                    </>
+                  )}
+                  {!puedeOperar && !externa && <span className="text-xs text-neutral-400">Asignada, sin más acciones para ti</span>}
                 </div>
               </Card>
             );
@@ -504,14 +477,18 @@ function Card({
   t,
   profiles,
   profesionales,
+  registroAbierto = null,
   children,
 }: {
   t: Tarea;
   profiles: Profile[];
   profesionales: Profesional[];
+  registroAbierto?: { inicio: string } | null;
   children?: React.ReactNode;
 }) {
   const externa = isExternalTask(t);
+  const enProcesoOPausada = t.estado === "En proceso" || t.estado === "Pausada";
+  const tiempoReal = useTiempoTotal(Number(t.horas_reales) || 0, registroAbierto?.inicio ?? null);
   return (
     <div className="rounded-md border border-neutral-200 bg-white p-3 shadow-sm">
       <span className={`mb-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${PRIORIDAD_CLASS[t.prioridad]}`}>
@@ -530,16 +507,22 @@ function Card({
         ) : (
           t.responsable && <div>Responsable: {nombreDe(profiles, t.responsable)}</div>
         )}
-        {!externa && (t.horas_estimadas || t.horas_reales > 0) && (
-          <div>
-            Horas: {Number(t.horas_reales).toFixed(1)}h{t.horas_estimadas ? ` / ${t.horas_estimadas}h est.` : ""}
-          </div>
-        )}
+        {!externa && t.horas_estimadas && <div>Estimadas: {t.horas_estimadas}h</div>}
       </div>
+      {!externa && enProcesoOPausada && (
+        <div className="mt-2 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800">
+          <span>⏱ {corriendo(registroAbierto) ? "Tiempo real" : "Tiempo consolidado"}</span>
+          <span className="ml-auto font-mono font-semibold">{tiempoReal}</span>
+        </div>
+      )}
       {t.descripcion && <p className="mt-2 text-xs text-neutral-600">{t.descripcion}</p>}
       {children && <div className="mt-3">{children}</div>}
     </div>
   );
+}
+
+function corriendo(registroAbierto: { inicio: string } | null | undefined) {
+  return !!registroAbierto;
 }
 
 const NIVELES_CALIDAD = [

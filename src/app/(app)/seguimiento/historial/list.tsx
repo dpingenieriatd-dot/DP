@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { calificarCalidad, archivarTarea } from "../tareas/actions";
 import { KpiCard } from "@/components/kpi-card";
 import { Topbar } from "@/components/topbar";
+import { ResponsableFiltro } from "@/components/responsable-filtro";
 
 type Tarea = {
   id: string;
@@ -38,6 +39,7 @@ export function HistorialList({
   isAdmin,
   filtroProceso,
   filtroResponsable,
+  filtroGlobal,
   userLabel,
 }: {
   tareas: Tarea[];
@@ -47,6 +49,7 @@ export function HistorialList({
   currentUserId: string | null;
   filtroProceso: { codigo: string; nombre: string } | null;
   filtroResponsable: { nombre: string } | null;
+  filtroGlobal: string;
   userLabel: string | null;
 }) {
   const [pending, startTransition] = useTransition();
@@ -72,7 +75,12 @@ export function HistorialList({
 
   return (
     <div>
-      <Topbar title="Finalizadas y archivadas" subtitle="Revisión, calificación y archivo de actividades terminadas" userLabel={userLabel ?? undefined} />
+      <Topbar
+        title="Finalizadas y archivadas"
+        subtitle="Revisión, calificación y archivo de actividades terminadas"
+        userLabel={userLabel ?? undefined}
+        filter={<ResponsableFiltro profiles={profiles} value={filtroGlobal} />}
+      />
 
       <div className="p-8">
         <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">

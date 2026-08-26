@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfileLabel } from "@/lib/current-profile";
+import { getResponsableFiltro } from "@/lib/responsable-filtro";
 import { semanaActual, toISODate } from "@/lib/week";
 import { Topbar } from "@/components/topbar";
+import { ResponsableFiltro } from "@/components/responsable-filtro";
 
 function lectura(usoPct: number): [string, string] {
   if (usoPct < 55) return ["Sin horas planificadas", "bg-neutral-300"];
@@ -17,15 +19,17 @@ export default async function Page() {
   const desde = toISODate(semana[0]);
   const hasta = toISODate(semana[6]);
 
-  const [{ data: profiles }, { data: bloques }, { data: tareas }, userLabel] = await Promise.all([
+  const [{ data: profiles }, { data: bloques }, { data: tareas }, userLabel, filtro] = await Promise.all([
     supabase.from("profiles").select("id, full_name, email, cargo, capacidad_semanal_horas").order("full_name"),
     supabase.from("agenda_bloques").select("usuario_id, horas").gte("dia", desde).lte("dia", hasta),
     supabase.from("tareas").select("responsable, estado, archivado, fecha_limite"),
     getCurrentProfileLabel(),
+    getResponsableFiltro(),
   ]);
 
+  const profilesFiltrados = filtro ? (profiles ?? []).filter((p) => p.id === filtro) : profiles ?? [];
   const today = new Date().toISOString().slice(0, 10);
-  const filas = (profiles ?? []).map((p) => {
+  const filas = profilesFiltrados.map((p) => {
     const planificadas = (bloques ?? [])
       .filter((b) => b.usuario_id === p.id)
       .reduce((a, b) => a + Number(b.horas), 0);
@@ -41,7 +45,12 @@ export default async function Page() {
 
   return (
     <div>
-      <Topbar title="Equipo" subtitle="Carga semanal y pendientes por persona" userLabel={userLabel ?? undefined} />
+      <Topbar
+        title="Equipo"
+        subtitle="Carga semanal y pendientes por persona"
+        userLabel={userLabel ?? undefined}
+        filter={<ResponsableFiltro profiles={profiles ?? []} value={filtro} />}
+      />
 
       <div className="p-8">
         <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">

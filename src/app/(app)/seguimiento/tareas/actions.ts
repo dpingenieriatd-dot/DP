@@ -292,13 +292,14 @@ export async function reanudarTarea(tareaId: string) {
   } = await supabase.auth.getUser();
   if (!user) return { error: "No hay sesión activa." };
 
-  // Pasa a "En proceso" primero: iniciarTiempo exige que la tarea ya esté en ese estado.
-  const { error: estadoError } = await supabase
-    .from("tareas")
-    .update({ estado: "En proceso" })
-    .eq("id", tareaId)
-    .eq("estado", "Pausada")
-    .eq("responsable", user.id);
+  // Igual que canOperate() en el HTML: la Directora puede continuar cualquier tarea, no solo
+  // la propia. Pasa a "En proceso" primero: iniciarTiempo exige que la tarea ya esté en ese estado.
+  const { data: tarea } = await supabase.from("tareas").select("responsable").eq("id", tareaId).single();
+  if (!tarea || (tarea.responsable !== user.id && !(await requiereAdmin()))) {
+    return { error: "Solo quien tomó la tarea puede continuarla, o ser Directora de Proyectos." };
+  }
+
+  const { error: estadoError } = await supabase.from("tareas").update({ estado: "En proceso" }).eq("id", tareaId).eq("estado", "Pausada");
   if (estadoError) return { error: estadoError.message };
 
   const resultado = await iniciarTiempo(tareaId);
@@ -313,10 +314,11 @@ export async function iniciarTiempo(tareaId: string) {
   } = await supabase.auth.getUser();
   if (!user) return { error: "No hay sesión activa." };
 
-  // El cronómetro solo se activa sobre una tarea que el usuario haya tomado y que esté En proceso.
+  // El cronómetro solo se activa sobre una tarea En proceso que el usuario haya tomado, o
+  // cualquier tarea si es Directora de Proyectos (canOperate() en el HTML).
   const { data: tarea } = await supabase.from("tareas").select("estado, responsable").eq("id", tareaId).single();
-  if (!tarea || tarea.responsable !== user.id || tarea.estado !== "En proceso") {
-    return { error: "El cronómetro solo se puede activar sobre una tarea que hayas tomado y que esté En proceso." };
+  if (!tarea || tarea.estado !== "En proceso" || (tarea.responsable !== user.id && !(await requiereAdmin()))) {
+    return { error: "El cronómetro solo se puede activar sobre una tarea que hayas tomado (o ser Directora de Proyectos) y que esté En proceso." };
   }
 
   // Solo un cronómetro activo por persona a la vez.

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfileLabel } from "@/lib/current-profile";
+import { getResponsableFiltro } from "@/lib/responsable-filtro";
 import { semanaActual, toISODate } from "@/lib/week";
 import { AgendaGrid } from "./grid";
 
@@ -13,7 +14,7 @@ export default async function Page() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: profiles }, { data: clientes }, { data: proyectos }, { data: bloques }, { data: miPerfil }, { data: timerActivo }, userLabel] =
+  const [{ data: profiles }, { data: clientes }, { data: proyectos }, { data: bloques }, { data: miPerfil }, { data: timerActivo }, userLabel, filtro] =
     await Promise.all([
       supabase.from("profiles").select("id, full_name, email, capacidad_semanal_horas").order("full_name"),
       supabase.from("clientes").select("id, nombre").order("nombre"),
@@ -36,20 +37,26 @@ export default async function Page() {
             .maybeSingle()
         : Promise.resolve({ data: null }),
       getCurrentProfileLabel(),
+      getResponsableFiltro(),
     ]);
+
+  const profilesFiltrados = filtro ? (profiles ?? []).filter((p) => p.id === filtro) : profiles ?? [];
+  const bloquesFiltrados = filtro ? (bloques ?? []).filter((b) => b.usuario_id === filtro) : bloques ?? [];
 
   return (
     <AgendaGrid
-      profiles={profiles ?? []}
+      profiles={profilesFiltrados}
       clientes={clientes ?? []}
       proyectos={proyectos ?? []}
-      bloques={bloques ?? []}
+      bloques={bloquesFiltrados}
       dias={semana.map((d) => toISODate(d))}
       recordatorioMinutos={miPerfil?.recordatorio_minutos_antes ?? 15}
       recordatorioSonido={miPerfil?.recordatorio_sonido ?? true}
       currentUserId={user?.id ?? null}
       timerActivo={timerActivo ?? null}
       userLabel={userLabel}
+      todosLosProfiles={profiles ?? []}
+      filtro={filtro}
     />
   );
 }
