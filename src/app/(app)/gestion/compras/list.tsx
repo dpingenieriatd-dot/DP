@@ -237,7 +237,7 @@ export function ComprasList({
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">V. unit.</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Total</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Estado</th>
-              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2" />
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Acciones</th>
             </tr>
           </thead>
           <tbody>
