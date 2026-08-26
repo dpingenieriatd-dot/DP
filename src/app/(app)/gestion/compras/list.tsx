@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { ShoppingCart, Folder } from "lucide-react";
 import { crearCompra, actualizarCompra, archivarCompra } from "./actions";
 import { KpiCard } from "@/components/kpi-card";
 import { money } from "@/lib/finance";
@@ -12,7 +13,8 @@ type Compra = {
   proveedor_id: string | null;
   insumo_id: string | null;
   fecha: string;
-  unidad: string | null;
+  descripcion: string | null;
+  servicio: string | null;
   cantidad: number;
   valor_unitario: number;
   valor_pagado: number;
@@ -40,6 +42,7 @@ export function ComprasList({
 }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Compra | null>(null);
+  const [proyectoSeleccionado, setProyectoSeleccionado] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -63,9 +66,10 @@ export function ComprasList({
     return cliente?.nombre ?? "—";
   };
   const proveedorNombre = (id: string | null) => proveedores.find((p) => p.id === id)?.nombre ?? "—";
+  const proyectoInfo = proyectoDe(proyectoSeleccionado);
   const descripcionCompra = (c: Compra) => {
     const insumo = c.insumo_id ? insumos.find((i) => i.id === c.insumo_id)?.descripcion : null;
-    return insumo || c.categoria || c.notas || "—";
+    return c.descripcion || insumo || c.categoria || c.notas || "—";
   };
 
   function valorColumna(c: Compra, columna: string) {
@@ -129,6 +133,7 @@ export function ComprasList({
           <button
             onClick={() => {
               setEditing(null);
+              setProyectoSeleccionado("");
               setOpen(true);
             }}
             className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
@@ -269,6 +274,7 @@ export function ComprasList({
                       <button
                         onClick={() => {
                           setEditing(c);
+                          setProyectoSeleccionado(c.proyecto_id ?? "");
                           setOpen(true);
                         }}
                         className="mr-2 text-xs font-medium text-emerald-700 hover:underline"
@@ -296,33 +302,47 @@ export function ComprasList({
 
       {open && (
         <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpen(false)}>
-          <form action={submit} onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-lg">
-            <h2 className="mb-4 text-lg font-semibold text-emerald-900">{editing ? "Editar" : "Nueva"} compra</h2>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <Campo label="Proyecto">
-                <select name="proyecto_id" defaultValue={editing?.proyecto_id ?? ""} required className="in">
-                  <option value="">Seleccione…</option>
-                  {proyectos.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.codigo ? `${p.codigo} · ` : ""}
-                      {p.nombre}
-                    </option>
-                  ))}
-                </select>
-              </Campo>
-              <Campo label="Proveedor">
-                <select name="proveedor_id" defaultValue={editing?.proveedor_id ?? ""} className="in">
-                  <option value="">Seleccione…</option>
-                  {proveedores.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nombre}
-                    </option>
-                  ))}
-                </select>
-              </Campo>
-              <Campo label="Insumo / servicio">
+          <form action={submit} onClick={(e) => e.stopPropagation()} className="max-h-[90vh] w-full max-w-2xl overflow-auto rounded-lg bg-white p-6 shadow-lg">
+            <h2 className="mb-4 flex items-center gap-1.5 text-lg font-semibold text-emerald-900">
+              <ShoppingCart size={18} /> {editing ? "Editar" : "Nueva"} compra
+            </h2>
+
+            <Campo label="Proyecto / centro de costos" required>
+              <select
+                name="proyecto_id"
+                value={proyectoSeleccionado}
+                onChange={(e) => setProyectoSeleccionado(e.target.value)}
+                required
+                className="in"
+              >
+                <option value="">— Seleccione proyecto / centro de costos —</option>
+                {proyectos.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.codigo ? `${p.codigo} — ` : ""}
+                    {p.nombre}
+                    {clienteNombre(p.id) !== "—" ? ` — ${clienteNombre(p.id)}` : ""}
+                  </option>
+                ))}
+              </select>
+            </Campo>
+
+            <div className="mt-2 flex items-start gap-2 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
+              <Folder size={14} className="mt-0.5 shrink-0" />
+              {proyectoInfo ? (
+                <div>
+                  <strong>Centro de costos: {proyectoInfo.codigo || "—"}</strong>
+                  <br />
+                  {proyectoInfo.nombre} · Cliente: {clienteNombre(proyectoInfo.id)}
+                </div>
+              ) : (
+                <div>Selecciona un proyecto. La compra quedará asociada a ese código como centro de costos.</div>
+              )}
+            </div>
+
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Campo label="Código de insumo">
                 <select name="insumo_id" defaultValue={editing?.insumo_id ?? ""} className="in">
-                  <option value="">Seleccione…</option>
+                  <option value="">— Sin código de insumo —</option>
                   {insumos.map((i) => (
                     <option key={i.id} value={i.id}>
                       {i.descripcion}
@@ -330,19 +350,20 @@ export function ComprasList({
                   ))}
                 </select>
               </Campo>
-              <Campo label="Fecha">
+              <Campo label="Proveedor">
+                <select name="proveedor_id" defaultValue={editing?.proveedor_id ?? ""} className="in">
+                  <option value="">— Sin proveedor —</option>
+                  {proveedores.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre}
+                    </option>
+                  ))}
+                </select>
+              </Campo>
+              <Campo label="Fecha de compra" required>
                 <input type="date" name="fecha" defaultValue={editing?.fecha ?? new Date().toISOString().slice(0, 10)} required className="in" />
               </Campo>
-              <Campo label="Unidad">
-                <input name="unidad" defaultValue={editing?.unidad ?? ""} className="in" />
-              </Campo>
-              <Campo label="Cantidad">
-                <input type="number" step="0.01" name="cantidad" defaultValue={editing?.cantidad ?? 1} required className="in" />
-              </Campo>
-              <Campo label="Valor unitario">
-                <input type="number" step="0.01" name="valor_unitario" defaultValue={editing?.valor_unitario ?? ""} required className="in" />
-              </Campo>
-              <Campo label="Estado del pago">
+              <Campo label="Estado">
                 <select name="estado_pago" defaultValue={editing?.estado_pago ?? "Cotizado"} className="in">
                   <option>Cotizado</option>
                   <option>Aprobado</option>
@@ -351,11 +372,29 @@ export function ComprasList({
                   <option>Rechazado</option>
                 </select>
               </Campo>
+            </div>
+
+            <div className="mt-3">
+              <Campo label="Descripción del producto / servicio" required>
+                <input name="descripcion" defaultValue={editing?.descripcion ?? ""} placeholder="Detalle de la compra" required className="in" />
+              </Campo>
+            </div>
+
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Campo label="Servicio profesional (si aplica)">
+                <input name="servicio" defaultValue={editing?.servicio ?? ""} placeholder="Nombre del profesional" className="in" />
+              </Campo>
+              <Campo label="Soporte / factura">
+                <input name="referencia" defaultValue={editing?.referencia ?? ""} placeholder="Número de factura" className="in" />
+              </Campo>
+              <Campo label="Cantidad" required>
+                <input type="number" step="0.01" name="cantidad" defaultValue={editing?.cantidad ?? 1} required className="in" />
+              </Campo>
+              <Campo label="Valor unitario" required>
+                <input type="number" step="0.01" name="valor_unitario" defaultValue={editing?.valor_unitario ?? ""} required className="in" />
+              </Campo>
               <Campo label="Valor pagado">
                 <input type="number" step="0.01" name="valor_pagado" defaultValue={editing?.valor_pagado ?? 0} className="in" />
-              </Campo>
-              <Campo label="Factura / soporte">
-                <input name="referencia" defaultValue={editing?.referencia ?? ""} className="in" />
               </Campo>
               <Campo label="Categoría">
                 <select name="categoria" defaultValue={editing?.categoria ?? CATEGORIAS[0]} className="in">
@@ -364,10 +403,14 @@ export function ComprasList({
                   ))}
                 </select>
               </Campo>
-              <Campo label="Observaciones" full>
-                <textarea name="notas" defaultValue={editing?.notas ?? ""} className="in" />
+            </div>
+
+            <div className="mt-3">
+              <Campo label="Observaciones">
+                <input name="notas" defaultValue={editing?.notas ?? ""} className="in" />
               </Campo>
             </div>
+
             {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
             <div className="mt-5 flex justify-end gap-2">
               <button
@@ -381,7 +424,7 @@ export function ComprasList({
                 Cancelar
               </button>
               <button type="submit" disabled={pending} className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60">
-                Guardar
+                Guardar compra
               </button>
             </div>
           </form>
@@ -391,10 +434,12 @@ export function ComprasList({
   );
 }
 
-function Campo({ label, children, full }: { label: string; children: React.ReactNode; full?: boolean }) {
+function Campo({ label, children, full, required }: { label: string; children: React.ReactNode; full?: boolean; required?: boolean }) {
   return (
     <label className={`block text-sm ${full ? "col-span-3" : ""}`}>
-      <span className="mb-1 block text-neutral-600">{label}</span>
+      <span className="mb-1 block text-neutral-600">
+        {label} {required && <span className="text-red-500">*</span>}
+      </span>
       {children}
     </label>
   );

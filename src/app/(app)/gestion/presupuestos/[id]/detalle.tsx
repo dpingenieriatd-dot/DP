@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
+import { Link2, FileCheck, ChartBar, ListChecks } from "lucide-react";
 import { actualizarPresupuesto, agregarCosto, actualizarCosto, eliminarCosto, importarDesdeCompras, restaurarBase } from "./actions";
 import { money, type calcularPresupuesto, type calcularControlCostos } from "@/lib/finance";
 
@@ -28,6 +29,17 @@ type Costo = {
   estado: string;
   origen: string;
 };
+type BaseCotizacion = {
+  codigo: string | null;
+  fecha: string | null;
+  cliente: string | null;
+  nit: string | null;
+  valorAprobado: number;
+  items: { descripcion: string; cantidad: number; unidad: string; costoUnitario: number; unitClient: number; subtotal: number }[];
+  subtotalCliente: number;
+  ivaCliente: number;
+  total: number;
+};
 
 const CATEGORIAS = ["Compras / insumos", "Servicios / profesionales", "Materiales / desgaste", "Transporte / logistica", "Viáticos", "Otros costos", "Costos directos"];
 const ESTADOS = ["Planeado", "Cotizado", "Aprobado", "Pagado"];
@@ -37,11 +49,13 @@ export function PresupuestoDetalle({
   costos,
   f,
   control,
+  baseCotizacion,
 }: {
   presupuesto: Presupuesto;
   costos: Costo[];
   f: ReturnType<typeof calcularPresupuesto>;
   control: ReturnType<typeof calcularControlCostos>;
+  baseCotizacion: BaseCotizacion | null;
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -68,45 +82,137 @@ export function PresupuestoDetalle({
     });
   }
 
+  const pct = control.plan > 0 ? Math.round((control.real / control.plan) * 100) : 0;
+  const pctBarra = Math.min(Math.max(pct, 0), 100);
+  const excedido = control.real > control.plan && control.plan > 0;
+  const alerta = excedido ? "danger" : pct >= 80 ? "warn" : "ok";
+
   return (
     <div className="p-8">
-      <Link href="/gestion/presupuestos" className="text-sm text-emerald-700 hover:underline">
-        ← Presupuestos
-      </Link>
-      <h1 className="mt-1 text-2xl font-semibold text-emerald-900">
-        {presupuesto.codigo || "(sin código)"} · {presupuesto.nombre}
-      </h1>
-      {presupuesto.proyectos && (
-        <p className="text-sm text-neutral-500">
-          Proyecto:{" "}
-          <Link href={`/gestion/proyectos/${presupuesto.proyectos.id}`} className="text-emerald-700 hover:underline">
-            {presupuesto.proyectos.codigo ? `${presupuesto.proyectos.codigo} · ` : ""}
-            {presupuesto.proyectos.nombre}
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <Link href="/gestion/presupuestos" className="text-sm text-emerald-700 hover:underline">
+            ← Presupuestos
           </Link>
-        </p>
-      )}
-      {presupuesto.cotizaciones && (
-        <p className="text-sm text-neutral-500">
-          Cotización base aprobada por el cliente:{" "}
-          <Link href="/gestion/cotizaciones" className="text-emerald-700 hover:underline">
-            {presupuesto.cotizaciones.codigo || "(sin código)"}
-          </Link>{" "}
-          <span className="text-xs text-neutral-400">({presupuesto.cotizaciones.estado})</span>
-        </p>
-      )}
-
-      <div className={`mt-4 rounded-lg border p-4 ${control.disponible >= 0 ? "border-emerald-300 bg-emerald-50" : "border-red-300 bg-red-50"}`}>
-        <p className="text-sm">
-          {control.disponible >= 0
-            ? "✅ El costo real se encuentra dentro del presupuesto vigente."
-            : `⚠ El costo real superó el presupuesto vigente por ${money.format(-control.disponible)}.`}
-        </p>
+          <h1 className="mt-1 text-2xl font-semibold text-emerald-900">
+            {presupuesto.proyectos?.codigo ?? "—"} · {presupuesto.nombre}
+          </h1>
+          <p className="text-sm text-neutral-500">
+            Presupuestos · Cotización base {presupuesto.cotizaciones?.codigo ?? "—"} → control de costos
+          </p>
+        </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Kpi label="Disponible" valor={money.format(control.disponible)} warn={control.disponible < 0} />
-        <Kpi label="Ganancia según costos reales" valor={money.format(control.gananciaActual)} warn={control.gananciaActual < 0} />
-        <Kpi label="Costos admin. + IVA" valor={money.format(f.admin + f.iva)} />
+      <div className="mb-4 flex items-start gap-2 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+        <Link2 size={16} className="mt-0.5 shrink-0" />
+        <div>
+          <strong>El control parte de la cotización aprobada por el cliente.</strong> La base aprobada queda intacta como referencia. En el control del proyecto sí puedes modificar costos, agregar nuevos ítems o retirar ítems originalmente contemplados.
+        </div>
+      </div>
+
+      {baseCotizacion && (
+        <div className="mb-4 rounded-lg border-t-[3px] border-neutral-200 border-t-emerald-500 bg-white p-5">
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h2 className="flex items-center gap-1.5 font-semibold text-emerald-900">
+                <FileCheck size={16} /> Cotización base aprobada por el cliente
+              </h2>
+              <p className="text-xs text-neutral-500">Referencia histórica. Los cambios del control de costos no modifican esta cotización.</p>
+            </div>
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">{baseCotizacion.codigo || "Cotización"}</span>
+          </div>
+          <div className="mb-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-4">
+            <Info label="Fecha aprobación" valor={baseCotizacion.fecha || "—"} />
+            <Info label="Cliente" valor={baseCotizacion.cliente || "—"} />
+            <Info label="NIT" valor={baseCotizacion.nit || "—"} />
+            <Info label="Valor aprobado" valor={money.format(baseCotizacion.valorAprobado)} />
+          </div>
+          <div className="overflow-auto rounded-md border border-neutral-200">
+            <table className="w-full min-w-[600px] text-xs">
+              <thead>
+                <tr className="bg-neutral-50 text-left text-[11px] uppercase text-neutral-500">
+                  <th className="px-3 py-2">Ítem aprobado</th>
+                  <th className="px-3 py-2 text-right">Cantidad</th>
+                  <th className="px-3 py-2 text-right">Costo base interno</th>
+                  <th className="px-3 py-2 text-right">Valor unitario aprobado</th>
+                  <th className="px-3 py-2 text-right">Subtotal aprobado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {baseCotizacion.items.map((it, idx) => (
+                  <tr key={idx} className="border-t border-neutral-100">
+                    <td className="px-3 py-2">{it.descripcion}</td>
+                    <td className="px-3 py-2 text-right">
+                      {it.cantidad} {it.unidad}
+                    </td>
+                    <td className="px-3 py-2 text-right">{money.format(it.costoUnitario)}</td>
+                    <td className="px-3 py-2 text-right">{money.format(it.unitClient)}</td>
+                    <td className="px-3 py-2 text-right font-semibold">{money.format(it.subtotal)}</td>
+                  </tr>
+                ))}
+                {baseCotizacion.items.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-3 py-6 text-center text-neutral-400">
+                      La cotización vinculada no conserva detalle de ítems.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-3 space-y-1 border-t border-neutral-100 pt-3 text-sm">
+            <Fila label="Subtotal aprobado antes de IVA" valor={money.format(baseCotizacion.subtotalCliente)} />
+            <Fila label="IVA facturado al cliente" valor={money.format(baseCotizacion.ivaCliente)} />
+            <Fila label="Total aprobado por el cliente" valor={money.format(baseCotizacion.total)} bold />
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+        <Kpi label="Valor aprobado" valor={money.format(f.valorCotizado)} sub="Según cotización base aprobada" />
+        <Kpi label="Presupuesto vigente" valor={money.format(control.plan)} sub="Ítems actuales del control" />
+        <Kpi label="Costo real acumulado" valor={money.format(control.real)} sub={`${pct}% ejecutado`} warn={excedido} />
+        <Kpi label="Ganancia estimada" valor={money.format(control.gananciaEst)} sub="Valor aprobado − costos vigentes" warn={control.gananciaEst < 0} />
+      </div>
+
+      <div className="mt-4 rounded-lg border border-neutral-200 bg-white p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="flex items-center gap-1.5 font-semibold text-emerald-900">
+            <ChartBar size={16} /> Ejecución del presupuesto
+          </h2>
+        </div>
+        <div className="mb-1 flex items-center justify-between text-sm text-neutral-600">
+          <span>Costo real registrado</span>
+          <span>
+            <strong>{money.format(control.real)}</strong> de {money.format(control.plan)}
+          </span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-neutral-100">
+          <div
+            className={`h-full ${alerta === "danger" ? "bg-red-600" : alerta === "warn" ? "bg-amber-500" : "bg-emerald-500"}`}
+            style={{ width: `${pctBarra}%` }}
+          />
+        </div>
+        <div
+          className={`mt-3 rounded-md border p-3 text-sm ${
+            alerta === "danger"
+              ? "border-red-200 bg-red-50 text-red-800"
+              : alerta === "warn"
+                ? "border-amber-200 bg-amber-50 text-amber-800"
+                : "border-emerald-200 bg-emerald-50 text-emerald-800"
+          }`}
+        >
+          {alerta === "danger"
+            ? "El costo real supera el presupuesto vigente. La utilidad del proyecto está siendo afectada."
+            : alerta === "warn"
+              ? `El proyecto ya consumió ${pct}% del presupuesto. Revisa los costos pendientes antes de continuar.`
+              : "El costo real se encuentra dentro del presupuesto vigente."}
+        </div>
+        <div className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
+          <Mini label="Disponible" valor={money.format(control.disponible)} warn={control.disponible < 0} />
+          <Mini label="Ganancia según costos reales" valor={money.format(control.gananciaActual)} warn={control.gananciaActual < 0} />
+          <Mini label="Costos admin. + IVA de los costos del proyecto" valor={money.format(f.admin + f.iva)} />
+        </div>
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1fr]">
@@ -162,8 +268,10 @@ export function PresupuestoDetalle({
       <div className="mt-6 rounded-lg border border-neutral-200 bg-white p-5">
         <div className="mb-3 flex items-center justify-between">
           <div>
-            <h2 className="font-semibold text-emerald-900">Costos del proyecto</h2>
-            <p className="text-xs text-neutral-500">Modifica el valor presupuestado y registra el valor real a medida que se ejecuta.</p>
+            <h2 className="flex items-center gap-1.5 font-semibold text-emerald-900">
+              <ListChecks size={16} /> Control de costos del proyecto
+            </h2>
+            <p className="text-xs text-neutral-500">Empieza con los ítems de la cotización base. Aquí sí puedes agregar, modificar o eliminar ítems según la ejecución real del proyecto.</p>
           </div>
           <div className="flex gap-2">
             {presupuesto.cotizaciones && (
@@ -206,12 +314,13 @@ export function PresupuestoDetalle({
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-xs uppercase text-neutral-500">
+              <th className="py-1">Origen</th>
               <th className="py-1">Categoría</th>
               <th className="py-1">Descripción</th>
               <th className="py-1">Proveedor / responsable</th>
               <th className="py-1 text-right">Presupuestado</th>
               <th className="py-1 text-right">Real ejecutado</th>
-              <th className="py-1 text-right">Disponible</th>
+              <th className="py-1 text-right">Variación</th>
               <th className="py-1">Estado</th>
               <th />
             </tr>
@@ -228,23 +337,13 @@ export function PresupuestoDetalle({
             ))}
             {costos.length === 0 && (
               <tr>
-                <td colSpan={8} className="py-6 text-center text-neutral-400">
+                <td colSpan={9} className="py-6 text-center text-neutral-400">
                   No hay costos registrados. Usa &quot;Restaurar base&quot;, &quot;Agregar costo&quot; o &quot;Importar desde Compras&quot;.
                 </td>
               </tr>
             )}
           </tbody>
         </table>
-      </div>
-
-      <div className="mt-6 rounded-lg border border-neutral-200 bg-white p-5 text-sm">
-        <Fila label="Total presupuesto vigente" valor={money.format(control.plan)} />
-        <Fila label="Total costo real" valor={money.format(control.real)} />
-        <Fila label="Costos administrativos" valor={money.format(f.admin)} />
-        <Fila label="IVA de los costos del proyecto" valor={money.format(f.iva)} />
-        <div className="my-2 border-t border-neutral-100" />
-        <Fila label="Ganancia estimada del proyecto" valor={money.format(control.gananciaEst)} bold />
-        <Fila label="Ganancia según costos reales registrados" valor={money.format(control.gananciaActual)} bold />
       </div>
 
       {itemOpen && (
@@ -316,11 +415,39 @@ function Fila({ label, valor, bold }: { label: string; valor: string; bold?: boo
 
 function Kpi({ label, valor, sub, warn }: { label: string; valor: string; sub?: string; warn?: boolean }) {
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-4">
+    <div className="rounded-lg border-t-[3px] border-neutral-200 border-t-emerald-500 bg-white p-4">
       <div className="text-xs uppercase text-neutral-500">{label}</div>
       <div className={`mt-1 text-xl font-bold ${warn ? "text-red-600" : "text-emerald-900"}`}>{valor}</div>
       {sub && <div className="text-xs text-neutral-400">{sub}</div>}
     </div>
+  );
+}
+
+function Info({ label, valor }: { label: string; valor: string }) {
+  return (
+    <div>
+      <div className="text-xs text-neutral-400">{label}</div>
+      <div className="font-medium text-neutral-700">{valor}</div>
+    </div>
+  );
+}
+
+function Mini({ label, valor, warn }: { label: string; valor: string; warn?: boolean }) {
+  return (
+    <div className="rounded-md bg-neutral-50 p-3">
+      <div className="text-xs text-neutral-500">{label}</div>
+      <div className={`mt-0.5 font-semibold ${warn ? "text-red-600" : "text-emerald-900"}`}>{valor}</div>
+    </div>
+  );
+}
+
+const ORIGENES_BASE = new Set(["Presupuesto"]);
+function OrigenBadge({ origen }: { origen: string }) {
+  const esBase = ORIGENES_BASE.has(origen);
+  return (
+    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${esBase ? "bg-emerald-100 text-emerald-700" : "bg-sky-100 text-sky-700"}`}>
+      {esBase ? "Cotización base" : "Agregado al proyecto"}
+    </span>
   );
 }
 
@@ -358,6 +485,9 @@ function CostoRow({
 
   return (
     <tr className="border-t border-neutral-100">
+      <td className="py-1.5 pr-2">
+        <OrigenBadge origen={costo.origen} />
+      </td>
       <td className="py-1.5 pr-2">
         <select value={categoria} onChange={(e) => { setCategoria(e.target.value); guardar({ categoria: e.target.value }); }} className={inputClass}>
           {CATEGORIAS.map((c) => (

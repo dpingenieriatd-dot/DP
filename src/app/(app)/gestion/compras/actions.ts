@@ -24,7 +24,8 @@ function fromForm(formData: FormData) {
     proveedor_id: formData.get("proveedor_id") || null,
     insumo_id: formData.get("insumo_id") || null,
     fecha: formData.get("fecha") || new Date().toISOString().slice(0, 10),
-    unidad: formData.get("unidad") || null,
+    descripcion: formData.get("descripcion") || null,
+    servicio: formData.get("servicio") || null,
     cantidad: formData.get("cantidad") || 1,
     valor_unitario: formData.get("valor_unitario") || 0,
     valor_pagado: formData.get("valor_pagado") || 0,
@@ -43,14 +44,15 @@ function revalidateAll(proyectoId: FormDataEntryValue | null) {
 }
 
 /** El proyecto es el centro de costos — sin él, la compra no se puede vincular al control de costos del presupuesto. */
-function requiereProyecto(formData: FormData) {
+function validarCampos(formData: FormData) {
   if (!formData.get("proyecto_id")) return "Selecciona el proyecto al que pertenece esta compra.";
+  if (!String(formData.get("descripcion") || "").trim()) return "Escribe la descripción del producto o servicio.";
   return null;
 }
 
 export async function crearCompra(formData: FormData) {
-  const faltaProyecto = requiereProyecto(formData);
-  if (faltaProyecto) return { error: faltaProyecto };
+  const errorCampos = validarCampos(formData);
+  if (errorCampos) return { error: errorCampos };
   const supabase = await createClient();
   const codigo = await generarCodigoCompra(supabase);
   const { error } = await supabase.from("compras").insert({ ...fromForm(formData), codigo });
@@ -59,8 +61,8 @@ export async function crearCompra(formData: FormData) {
 }
 
 export async function actualizarCompra(id: string, formData: FormData) {
-  const faltaProyecto = requiereProyecto(formData);
-  if (faltaProyecto) return { error: faltaProyecto };
+  const errorCampos = validarCampos(formData);
+  if (errorCampos) return { error: errorCampos };
   const supabase = await createClient();
   const { error } = await supabase.from("compras").update(fromForm(formData)).eq("id", id);
   if (error) return { error: error.message };

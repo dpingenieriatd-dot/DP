@@ -69,10 +69,16 @@ export async function eliminarCosto(presupuestoId: string, costoId: string) {
   revalidatePath("/gestion/presupuestos");
 }
 
+const CATEGORIA_POR_TIPO: Record<string, string> = {
+  insumo: "Compras / insumos",
+  profesional: "Servicios / profesionales",
+  material: "Materiales / desgaste",
+};
+
 /**
  * "Restaurar base": vuelve a traer los ítems originales de la cotización aprobada
- * (materiales + profesional) tal como quedaron sembrados al crear el proyecto.
- * Solo toca las filas marcadas origen="Presupuesto" (las que sembró
+ * (uno por cada ítem de cotizacion_items) tal como quedaron sembrados al crear
+ * el proyecto. Solo toca las filas marcadas origen="Presupuesto" (las que sembró
  * aprobarYCrearProyecto) — si el usuario editó el valor presupuestado de una de
  * esas filas, o la eliminó, esto la repone con el valor vigente de la cotización.
  * No toca costos manuales ni importados de Compras.
@@ -82,32 +88,25 @@ export async function restaurarBase(presupuestoId: string) {
   const { data: presupuesto } = await supabase.from("presupuestos").select("cotizacion_id").eq("id", presupuestoId).single();
   if (!presupuesto?.cotizacion_id) return { error: "Este presupuesto no está vinculado a ninguna cotización." };
 
-  const { data: cot } = await supabase.from("cotizaciones").select("val_materiales, valor_prof").eq("id", presupuesto.cotizacion_id).single();
-  if (!cot) return { error: "No se encontró la cotización base." };
+  const { data: items } = await supabase.from("cotizacion_items").select("*").eq("cotizacion_id", presupuesto.cotizacion_id).order("orden");
+  if (!items || items.length === 0) return { error: "La cotización base no tiene ítems para restaurar." };
 
   const { error: delError } = await supabase.from("presupuesto_costos").delete().eq("presupuesto_id", presupuestoId).eq("origen", "Presupuesto");
   if (delError) return { error: delError.message };
 
-  const items = [
-    Number(cot.val_materiales) > 0 && {
+  const filas = items
+    .filter((i) => Number(i.cantidad) * Number(i.costo_unitario) > 0)
+    .map((i) => ({
       presupuesto_id: presupuestoId,
-      categoria: "Materiales / desgaste",
-      descripcion: "Materiales (de la cotización)",
-      presupuestado: Number(cot.val_materiales),
+      categoria: CATEGORIA_POR_TIPO[i.tipo] ?? "Otros costos",
+      descripcion: `${i.descripcion} (de la cotización)`,
+      presupuestado: Number(i.cantidad) * Number(i.costo_unitario),
       origen: "Presupuesto",
-    },
-    Number(cot.valor_prof) > 0 && {
-      presupuesto_id: presupuestoId,
-      categoria: "Servicios / profesionales",
-      descripcion: "Profesional (de la cotización)",
-      presupuestado: Number(cot.valor_prof),
-      origen: "Presupuesto",
-    },
-  ].filter(Boolean);
+    }));
 
-  if (items.length === 0) return { error: "La cotización base no tiene materiales ni profesional para restaurar." };
+  if (filas.length === 0) return { error: "La cotización base no tiene costos internos para restaurar." };
 
-  const { error } = await supabase.from("presupuesto_costos").insert(items);
+  const { error } = await supabase.from("presupuesto_costos").insert(filas);
   if (error) return { error: error.message };
   revalidatePath(ruta(presupuestoId));
   revalidatePath("/gestion/presupuestos");
