@@ -46,9 +46,12 @@ export type Tarea = {
   entregable: string | null;
   notas: string | null;
   archivado: boolean;
+  archivado_at: string | null;
+  fecha_cierre: string | null;
   calidad_pct: number | null;
   proceso_codigo: string | null;
   catalogo_actividad_id: string | null;
+  origen: string;
 };
 
 export type Profile = { id: string; full_name: string | null; email: string | null };
@@ -79,12 +82,12 @@ function nombreExterno(profesionales: Profesional[], id: string | null) {
   return p ? `${p.nombre}${p.perfil ? ` · ${p.perfil}` : ""}` : "—";
 }
 
-function isExternalTask(t: Tarea) {
+export function isExternalTask(t: Tarea) {
   return !!t.responsable_externo_id;
 }
 
 /** Etiqueta de responsable, sin importar si es equipo interno o profesional externo. */
-function asignadoLabel(t: Tarea, profiles: Profile[], profesionales: Profesional[]) {
+export function asignadoLabel(t: Tarea, profiles: Profile[], profesionales: Profesional[]) {
   if (t.responsable_externo_id) return nombreExterno(profesionales, t.responsable_externo_id);
   return nombreDe(profiles, t.responsable);
 }

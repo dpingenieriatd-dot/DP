@@ -251,6 +251,7 @@ export async function calificarCalidad(id: string, calidad: number) {
   if (error) return { error: error.message };
   revalidatePath(PATH);
   revalidatePath("/seguimiento/efectividad");
+  revalidatePath("/seguimiento/historial");
 }
 
 export async function eliminarTarea(id: string) {
@@ -268,9 +269,14 @@ export async function archivarTarea(id: string) {
   // deja archivar, para que ninguna tarea terminada se salte la revisión de calidad en silencio.
   const { data: tarea } = await supabase.from("tareas").select("calidad_pct").eq("id", id).single();
   if (tarea?.calidad_pct == null) return { error: "Califica la calidad del entregable antes de archivar la tarea." };
-  const { error } = await supabase.from("tareas").update({ archivado: true }).eq("id", id).eq("estado", "Terminada");
+  const { error } = await supabase
+    .from("tareas")
+    .update({ archivado: true, archivado_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("estado", "Terminada");
   if (error) return { error: error.message };
   revalidatePath(PATH);
+  revalidatePath("/seguimiento/historial");
 }
 
 export async function pausarTarea(registroId: string) {

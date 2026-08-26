@@ -2,40 +2,39 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
+import {
+  DetailModal,
+  isExternalTask,
+  asignadoLabel,
+  type Tarea,
+  type Profile,
+  type Profesional,
+  type Empresa,
+  type Proceso,
+  type ActividadCatalogo,
+  type AgendaBloque,
+} from "../tareas/board";
 import { calificarCalidad, archivarTarea } from "../tareas/actions";
 import { KpiCard } from "@/components/kpi-card";
 import { Topbar } from "@/components/topbar";
 import { ResponsableFiltro } from "@/components/responsable-filtro";
 
-type Tarea = {
-  id: string;
-  titulo: string;
-  cliente: string | null;
-  clientes?: { nombre: string } | null;
-  proyectos?: { nombre: string } | null;
-  responsable: string | null;
-  responsable_externo_id: string | null;
-  fecha_cierre: string | null;
-  horas_reales: number;
-  calidad_pct: number | null;
-  entregable: string | null;
-  archivado: boolean;
-};
-type Profile = { id: string; full_name: string | null; email: string | null };
-type Profesional = { id: string; nombre: string; perfil: string | null };
-
 const NIVELES = [
-  { valor: 100, label: "5 = 100%" },
-  { valor: 80, label: "4 = 80%" },
-  { valor: 60, label: "3 = 60%" },
-  { valor: 40, label: "2 = 40%" },
-  { valor: 20, label: "1 = 20%" },
+  { valor: 100, label: "5 · 100%" },
+  { valor: 80, label: "4 · 80%" },
+  { valor: 60, label: "3 · 60%" },
+  { valor: 40, label: "2 · 40%" },
+  { valor: 20, label: "1 · 20%" },
 ];
 
 export function HistorialList({
   tareas,
   profiles,
   profesionales,
+  empresas,
+  procesos,
+  actividadesCatalogo,
+  agendaBloques,
   isAdmin,
   filtroProceso,
   filtroResponsable,
@@ -45,8 +44,11 @@ export function HistorialList({
   tareas: Tarea[];
   profiles: Profile[];
   profesionales: Profesional[];
+  empresas: Empresa[];
+  procesos: Proceso[];
+  actividadesCatalogo: ActividadCatalogo[];
+  agendaBloques: AgendaBloque[];
   isAdmin: boolean;
-  currentUserId: string | null;
   filtroProceso: { codigo: string; nombre: string } | null;
   filtroResponsable: { nombre: string } | null;
   filtroGlobal: string;
@@ -54,24 +56,14 @@ export function HistorialList({
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [desde, setDesde] = useState("");
-  const [hasta, setHasta] = useState("");
+  const [detalle, setDetalle] = useState<Tarea | null>(null);
 
-  const nombreResponsable = (t: Tarea) => {
-    if (t.responsable_externo_id) {
-      const ext = profesionales.find((p) => p.id === t.responsable_externo_id);
-      return ext ? `${ext.nombre}${ext.perfil ? ` · ${ext.perfil}` : ""} (externo)` : "Profesional externo";
-    }
-    const p = profiles.find((p) => p.id === t.responsable);
-    return p ? p.full_name || p.email || "—" : "Sin asignar";
-  };
-
-  const enRango = tareas
-    .filter((t) => !desde || (t.fecha_cierre && t.fecha_cierre >= desde))
-    .filter((t) => !hasta || (t.fecha_cierre && t.fecha_cierre <= hasta));
-  const hayFiltros = !!(desde || hasta);
-  const pendientes = enRango.filter((t) => !t.archivado);
-  const archivadas = enRango.filter((t) => t.archivado);
+  const pendientes = tareas.filter((t) => !t.archivado);
+  const archivadas = tareas
+    .filter((t) => t.archivado)
+    .sort((a, b) => (b.archivado_at ?? b.fecha_cierre ?? "").localeCompare(a.archivado_at ?? a.fecha_cierre ?? ""));
+  const totalHistorico = pendientes.length + archivadas.length;
+  const conCalidad = tareas.filter((t) => t.calidad_pct != null).length;
 
   return (
     <div>
@@ -108,59 +100,119 @@ export function HistorialList({
         )}
         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <label className="text-sm text-neutral-600">
-            Terminada desde <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} className="ml-1 rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
-          </label>
-          <label className="text-sm text-neutral-600">
-            Terminada hasta <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} className="ml-1 rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
-          </label>
-          {hayFiltros && (
-            <button
-              onClick={() => {
-                setDesde("");
-                setHasta("");
-              }}
-              className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 hover:bg-neutral-100"
-            >
-              Limpiar filtro
-            </button>
-          )}
-        </div>
-
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-4">
-          <KpiCard label="Pendientes de archivo" value={pendientes.length} color="blue" />
+          <KpiCard label="Finalizadas pendientes de archivo" value={pendientes.length} color="blue" />
           <KpiCard label="Archivadas" value={archivadas.length} color="violet" />
-          <KpiCard label="Total histórico" value={enRango.length} color="emerald" />
-          <KpiCard label="Con calidad registrada" value={enRango.filter((t) => t.calidad_pct != null).length} color="emerald" />
+          <KpiCard label="Total histórico" value={totalHistorico} color="neutral" />
+          <KpiCard label="Con calidad registrada" value={conCalidad} color="neutral" />
         </div>
 
         <Tabla
-        title="Terminadas pendientes de archivo"
-        sub="La Directora puede registrar la calidad y archivar desde esta misma tabla."
-        rows={pendientes}
-        nombreResponsable={nombreResponsable}
-        isAdmin={isAdmin}
-        pending={pending}
-        onCalificar={(id, c) => startTransition(async () => { const r = await calificarCalidad(id, c); if (r?.error) setError(r.error); })}
-        onArchivar={(id) => startTransition(async () => { const r = await archivarTarea(id); if (r?.error) setError(r.error); })}
-        emptyLabel="No hay actividades finalizadas pendientes de archivo."
-        showArchivar
-      />
+          title="Finalizadas pendientes de archivo"
+          sub="La Directora puede registrar la calidad y archivar desde esta misma tabla."
+          rows={pendientes}
+          profiles={profiles}
+          profesionales={profesionales}
+          empresas={empresas}
+          isAdmin={isAdmin}
+          pending={pending}
+          onCalificar={(id, c) =>
+            startTransition(async () => {
+              const r = await calificarCalidad(id, c);
+              if (r?.error) setError(r.error);
+            })
+          }
+          onArchivar={(id) =>
+            startTransition(async () => {
+              const r = await archivarTarea(id);
+              if (r?.error) setError(r.error);
+            })
+          }
+          onVerDetalle={setDetalle}
+          emptyLabel="No hay actividades finalizadas pendientes de archivo."
+          archivadaCol={false}
+        />
 
         <div className="mt-6">
           <Tabla
             title="Archivadas"
             sub="Historial permanente de actividades revisadas y cerradas."
             rows={archivadas}
-            nombreResponsable={nombreResponsable}
+            profiles={profiles}
+            profesionales={profesionales}
+            empresas={empresas}
             isAdmin={isAdmin}
             pending={pending}
+            onVerDetalle={setDetalle}
             emptyLabel="No hay actividades archivadas."
-            showArchivar={false}
+            archivadaCol
           />
         </div>
       </div>
+
+      {detalle && (
+        <DetailModal
+          tarea={detalle}
+          profiles={profiles}
+          profesionales={profesionales}
+          empresas={empresas}
+          procesos={procesos}
+          actividadesCatalogo={actividadesCatalogo}
+          agendaBloque={agendaBloques.find((b) => b.tarea_id === detalle.id) ?? null}
+          onClose={() => setDetalle(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function DeliverableCell({ tarea, isAdmin }: { tarea: Tarea; isAdmin: boolean }) {
+  const value = (tarea.entregable_soporte_url || tarea.entregable || "").trim();
+  if (!value) return <span className="text-neutral-400">Sin soporte</span>;
+  const esUrl = /^https?:\/\/\S+$/i.test(value);
+  if (esUrl) {
+    if (isAdmin) {
+      return (
+        <a
+          href={value}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rounded-md bg-emerald-700 px-2 py-1 text-xs font-semibold text-white hover:bg-emerald-800"
+          title="Abrir soporte final"
+        >
+          Abrir entregable ↗
+        </a>
+      );
+    }
+    return <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">Soporte registrado</span>;
+  }
+  return <span>{value}</span>;
+}
+
+function QualityCell({ tarea, pending, onCalificar }: { tarea: Tarea; pending: boolean; onCalificar: (id: string, calidad: number) => void }) {
+  const [valor, setValor] = useState(tarea.calidad_pct != null ? String(tarea.calidad_pct) : "");
+  return (
+    <div className="flex items-center gap-1.5">
+      <select
+        value={valor}
+        disabled={pending}
+        onChange={(e) => setValor(e.target.value)}
+        className="rounded-md border border-neutral-300 px-2 py-1 text-xs"
+      >
+        <option value="">Calidad</option>
+        {NIVELES.map((n) => (
+          <option key={n.valor} value={n.valor}>
+            {n.label}
+          </option>
+        ))}
+      </select>
+      <button
+        onClick={() => valor && onCalificar(tarea.id, Number(valor))}
+        disabled={pending || !valor}
+        className="rounded-md border border-neutral-300 px-2 py-1 text-xs font-medium text-neutral-600 hover:bg-neutral-100 disabled:opacity-50"
+      >
+        Guardar calidad
+      </button>
     </div>
   );
 }
@@ -169,93 +221,111 @@ function Tabla({
   title,
   sub,
   rows,
-  nombreResponsable,
+  profiles,
+  profesionales,
+  empresas,
   isAdmin,
   pending,
   onCalificar,
   onArchivar,
+  onVerDetalle,
   emptyLabel,
-  showArchivar,
+  archivadaCol,
 }: {
   title: string;
   sub: string;
   rows: Tarea[];
-  nombreResponsable: (t: Tarea) => string;
+  profiles: Profile[];
+  profesionales: Profesional[];
+  empresas: Empresa[];
   isAdmin: boolean;
   pending: boolean;
   onCalificar?: (id: string, calidad: number) => void;
   onArchivar?: (id: string) => void;
+  onVerDetalle: (t: Tarea) => void;
   emptyLabel: string;
-  showArchivar: boolean;
+  archivadaCol: boolean;
 }) {
+  const colSpan = archivadaCol ? 10 : 9;
   return (
     <div className="rounded-lg border border-neutral-200 bg-white p-4">
       <div className="mb-1 font-semibold text-emerald-900">{title}</div>
       <div className="mb-3 text-xs text-neutral-500">{sub}</div>
       <div className="overflow-auto">
-        <table className="w-full min-w-[900px] text-xs">
+        <table className="w-full min-w-[1100px] text-xs">
           <thead>
             <tr className="text-left text-[11px] uppercase text-neutral-500">
               <th className="px-3 py-2">Actividad</th>
-              <th className="px-3 py-2">Cliente / proyecto</th>
+              <th className="px-3 py-2">Cliente / empresa</th>
+              <th className="px-3 py-2">Proyecto</th>
               <th className="px-3 py-2">Responsable</th>
-              <th className="px-3 py-2">Terminada</th>
+              <th className="px-3 py-2">Finalizada</th>
               <th className="px-3 py-2">Tiempo</th>
               <th className="px-3 py-2">Calidad</th>
               <th className="px-3 py-2">Entregable</th>
-              {showArchivar && <th className="px-3 py-2" />}
+              {archivadaCol && <th className="px-3 py-2">Archivada</th>}
+              <th className="px-3 py-2">{archivadaCol ? "Acción" : "Acciones"}</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((t) => (
-              <tr key={t.id} className="border-t border-neutral-100">
-                <td className="px-3 py-2">{t.titulo}</td>
-                <td className="px-3 py-2">
-                  {t.clientes?.nombre || t.cliente || "—"}
-                  {t.proyectos?.nombre && <div className="text-neutral-400">{t.proyectos.nombre}</div>}
-                </td>
-                <td className="px-3 py-2">{nombreResponsable(t)}</td>
-                <td className="px-3 py-2">{t.fecha_cierre || "—"}</td>
-                <td className="px-3 py-2">{t.horas_reales?.toFixed(2) ?? "0"}h</td>
-                <td className="px-3 py-2">
-                  {isAdmin && onCalificar ? (
-                    <select
-                      defaultValue={t.calidad_pct ?? ""}
-                      disabled={pending}
-                      onChange={(e) => e.target.value && onCalificar(t.id, Number(e.target.value))}
-                      className="rounded-md border border-neutral-300 px-2 py-1 text-xs"
-                    >
-                      <option value="">Calidad</option>
-                      {NIVELES.map((n) => (
-                        <option key={n.valor} value={n.valor}>
-                          {n.label}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    (t.calidad_pct != null ? `${t.calidad_pct}%` : "Pendiente")
-                  )}
-                </td>
-                <td className="px-3 py-2">{t.entregable || "—"}</td>
-                {showArchivar && (
-                  <td className="px-3 py-2 text-right">
-                    {isAdmin && onArchivar && (
-                      <button
-                        onClick={() => onArchivar(t.id)}
-                        disabled={pending || t.calidad_pct == null}
-                        title={t.calidad_pct == null ? "Califica la calidad antes de archivar" : undefined}
-                        className="text-xs font-medium text-emerald-700 hover:underline disabled:opacity-50 disabled:no-underline"
-                      >
-                        🗄 Archivar
-                      </button>
+            {rows.map((t) => {
+              const externa = isExternalTask(t);
+              const empresa = empresas.find((e) => e.id === t.empresa_atendida_id)?.nombre;
+              return (
+                <tr key={t.id} className="border-t border-neutral-100">
+                  <td className="px-3 py-2">
+                    {t.titulo}
+                    <div className="text-neutral-400">{t.origen || "Banco de tareas"}</div>
+                  </td>
+                  <td className="px-3 py-2">
+                    {t.clientes?.nombre || "—"}
+                    {empresa && <div className="text-neutral-400">{empresa}</div>}
+                  </td>
+                  <td className="px-3 py-2">{t.proyectos?.nombre || "—"}</td>
+                  <td className="px-3 py-2">
+                    {asignadoLabel(t, profiles, profesionales) ?? "Sin asignar"}
+                    {externa && <div className="text-neutral-400">Profesional externo</div>}
+                  </td>
+                  <td className="px-3 py-2">{t.fecha_cierre || "—"}</td>
+                  <td className="px-3 py-2">{externa ? "No aplica" : `${t.horas_reales?.toFixed(2) ?? "0"}h`}</td>
+                  <td className="px-3 py-2">
+                    {isAdmin && onCalificar ? (
+                      <QualityCell tarea={t} pending={pending} onCalificar={onCalificar} />
+                    ) : t.calidad_pct != null ? (
+                      `${t.calidad_pct / 20}/5 · ${t.calidad_pct}%`
+                    ) : (
+                      "Pendiente"
                     )}
                   </td>
-                )}
-              </tr>
-            ))}
+                  <td className="px-3 py-2">
+                    <DeliverableCell tarea={t} isAdmin={isAdmin} />
+                  </td>
+                  {archivadaCol && (
+                    <td className="px-3 py-2">{t.archivado_at ? new Date(t.archivado_at).toLocaleDateString("es-CO") : "—"}</td>
+                  )}
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-1.5">
+                      <button onClick={() => onVerDetalle(t)} className="text-xs font-medium text-emerald-700 hover:underline">
+                        Ver detalles
+                      </button>
+                      {!archivadaCol && isAdmin && onArchivar && (
+                        <button
+                          onClick={() => onArchivar(t.id)}
+                          disabled={pending || t.calidad_pct == null}
+                          title={t.calidad_pct == null ? "Califica la calidad antes de archivar" : undefined}
+                          className="rounded-md bg-emerald-900 px-2 py-1 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-50"
+                        >
+                          Archivar
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={showArchivar ? 8 : 7} className="px-3 py-8 text-center text-neutral-400">
+                <td colSpan={colSpan} className="px-3 py-8 text-center text-neutral-400">
                   {emptyLabel}
                 </td>
               </tr>
