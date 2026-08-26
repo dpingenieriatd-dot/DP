@@ -34,6 +34,7 @@ export function HistorialList({
   profiles,
   isAdmin,
   filtroProceso,
+  filtroResponsable,
   userLabel,
 }: {
   tareas: Tarea[];
@@ -41,6 +42,7 @@ export function HistorialList({
   isAdmin: boolean;
   currentUserId: string | null;
   filtroProceso: { codigo: string; nombre: string } | null;
+  filtroResponsable: { nombre: string } | null;
   userLabel: string | null;
 }) {
   const [pending, startTransition] = useTransition();
@@ -72,6 +74,16 @@ export function HistorialList({
           <div className="mt-2 flex items-center justify-between rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
             <span>
               <strong>Vista filtrada:</strong> Archivadas del proceso {filtroProceso.codigo} · {filtroProceso.nombre}
+            </span>
+            <Link href="/seguimiento/historial" className="font-semibold hover:underline">
+              Ver todo el historial
+            </Link>
+          </div>
+        )}
+        {filtroResponsable && (
+          <div className="mt-2 flex items-center justify-between rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+            <span>
+              <strong>Vista filtrada:</strong> {filtroResponsable.nombre}
             </span>
             <Link href="/seguimiento/historial" className="font-semibold hover:underline">
               Ver todo el historial
