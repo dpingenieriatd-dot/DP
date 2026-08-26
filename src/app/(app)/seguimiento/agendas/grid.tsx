@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { eliminarBloque, actualizarPreferenciasRecordatorio, reprogramarBloque } from "./actions";
 import { iniciarTiempo, pausarTarea, reanudarTarea, terminarTarea } from "../tareas/actions";
@@ -7,6 +8,15 @@ import { KpiCard } from "@/components/kpi-card";
 import { Topbar } from "@/components/topbar";
 import { ResponsableFiltro } from "@/components/responsable-filtro";
 import { useTiempoTotal } from "@/lib/use-elapsed";
+import { formatDateDMY } from "@/lib/week";
+
+const PASOS = [
+  { titulo: "1. Se programa", texto: "Fecha y hora quedan vinculadas a la tarea." },
+  { titulo: "2. Se inicia", texto: "El cronómetro solo corre cuando está En proceso." },
+  { titulo: "3. Se pausa", texto: "Conserva el tiempo acumulado." },
+  { titulo: "4. Se reprograma", texto: "Cambia fecha/hora sin duplicar la actividad." },
+  { titulo: "5. Se finaliza", texto: "Se consolida el tiempo real invertido." },
+];
 
 type Profile = { id: string; full_name: string | null; email: string | null; capacidad_semanal_horas: number };
 type TimerActivo = { id: string; tarea_id: string; inicio: string } | null;
@@ -29,7 +39,6 @@ const ESTADO_CLASS: Record<string, string> = {
   Terminada: "bg-neutral-200 text-neutral-600",
 };
 
-const NOMBRES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 /** Sábado y domingo quedan disponibles solo para días extraordinarios — no se espera uso regular. */
 const ES_FIN_DE_SEMANA = [false, false, false, false, false, true, true];
 
@@ -56,6 +65,8 @@ export function AgendaGrid({
   profiles,
   bloques,
   dias,
+  diasLabel,
+  offsetSemana,
   recordatorioMinutos,
   recordatorioSonido,
   currentUserId,
@@ -69,6 +80,8 @@ export function AgendaGrid({
   profiles: Profile[];
   bloques: Bloque[];
   dias: string[];
+  diasLabel: string[];
+  offsetSemana: number;
   recordatorioMinutos: number;
   recordatorioSonido: boolean;
   currentUserId: string | null;
@@ -118,22 +131,52 @@ export function AgendaGrid({
 
       <div className="flex flex-col p-8 lg:min-h-0 lg:flex-1">
         <div className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
-          <strong>Integración automática:</strong> al tomar una tarea del Banco o registrar una actividad manual, se solicita fecha y hora y el bloque aparece aquí. No crea un segundo registro.
+          <strong>Integración automática:</strong> al tomar una tarea del Banco o registrar una actividad manual, se solicita fecha y hora y el bloque aparece aquí. No se crea un segundo registro.
+        </div>
+
+        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-5">
+          {PASOS.map((p) => (
+            <div key={p.titulo} className="rounded-lg border border-neutral-200 bg-white p-3">
+              <div className="text-xs font-semibold text-emerald-900">{p.titulo}</div>
+              <div className="mt-1 text-xs text-neutral-500">{p.texto}</div>
+            </div>
+          ))}
         </div>
 
         <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <KpiCard label="Horas programadas" value={`${horasProgramadas.toFixed(1)}h`} subtitle="Tareas abiertas de la semana" color="emerald" />
+          <KpiCard label="Horas programadas" value={`${horasProgramadas.toFixed(1)}h`} subtitle="Tareas abiertas de la semana" color="neutral" />
           <KpiCard label="Bloques visibles" value={bloques.length} subtitle="Incluye finalizados" color="blue" />
           <KpiCard label="Pausadas" value={pausadas} subtitle="Pueden reprogramarse" color="amber" />
           <KpiCard label="Finalizadas" value={finalizadas} subtitle="Con tiempo consolidado" color="neutral" />
         </div>
 
-        <div className="mb-2 flex items-center justify-between">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <div>
             <div className="font-semibold text-emerald-900">Agenda del equipo</div>
-            <p className="text-xs text-neutral-500">
-              Semana del {dias[0]} al {dias[6]}. Sábado y domingo quedan disponibles solo para días extraordinarios que salgan del horario habitual.
-            </p>
+            <div className="text-xs text-neutral-500">
+              {formatDateDMY(dias[0])} al {formatDateDMY(dias[6])}
+            </div>
+            <p className="text-xs text-neutral-500">Sábado y domingo quedan disponibles para actividades extraordinarias.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/seguimiento/agendas?semana=${offsetSemana - 1}`}
+              className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-600 hover:bg-neutral-100"
+            >
+              ← Semana anterior
+            </Link>
+            <Link
+              href="/seguimiento/agendas"
+              className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-600 hover:bg-neutral-100"
+            >
+              Esta semana
+            </Link>
+            <Link
+              href={`/seguimiento/agendas?semana=${offsetSemana + 1}`}
+              className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-600 hover:bg-neutral-100"
+            >
+              Semana siguiente →
+            </Link>
           </div>
         </div>
 
@@ -143,8 +186,8 @@ export function AgendaGrid({
         <table className="w-full min-w-[900px] table-fixed border-collapse text-sm">
           <colgroup>
             <col className="w-[16%]" />
-            {NOMBRES.map((n) => (
-              <col key={n} className="w-[12%]" />
+            {dias.map((dia) => (
+              <col key={dia} className="w-[12%]" />
             ))}
           </colgroup>
           <thead>
@@ -152,13 +195,13 @@ export function AgendaGrid({
               <th className="sticky top-0 z-10 border-b border-r border-neutral-200 bg-neutral-50 px-3 py-3">
                 <div className="agenda-cell text-[clamp(0.65rem,6cqw,0.8rem)]">Persona</div>
               </th>
-              {NOMBRES.map((n, i) => (
+              {dias.map((dia, i) => (
                 <th
-                  key={n}
+                  key={dia}
                   className={`sticky top-0 z-10 border-b border-r border-neutral-200 px-3 py-3 ${ES_FIN_DE_SEMANA[i] ? "bg-amber-50 text-amber-700" : "bg-neutral-50"}`}
                 >
                   <div className="agenda-cell text-[clamp(0.6rem,7cqw,0.75rem)]">
-                    {n}
+                    {diasLabel[i]}
                     {ES_FIN_DE_SEMANA[i] && <span className="block font-normal normal-case text-amber-600">Extraordinario</span>}
                   </div>
                 </th>
@@ -205,7 +248,6 @@ export function AgendaGrid({
                                   )}
                                 </div>
                                 {b.tarea && <div className="mt-0.5 text-[clamp(0.7rem,7cqw,0.875rem)]">{b.tarea}</div>}
-                                <div className="mt-0.5 text-[clamp(0.6rem,6cqw,0.75rem)] text-neutral-400">{nombreCorto(p.full_name, p.email)}</div>
                                 {b.clientes?.nombre && (
                                   <div className="mt-0.5 text-[clamp(0.65rem,6.5cqw,0.8rem)] text-neutral-500">{b.clientes.nombre}</div>
                                 )}
@@ -219,9 +261,6 @@ export function AgendaGrid({
                                     consolidado={estado === "Terminada"}
                                   />
                                 )}
-                                <div className="mt-0.5 text-[clamp(0.55rem,5.5cqw,0.7rem)] text-neutral-400">
-                                  Inicio: {b.dia} {b.hora_inicio.slice(0, 5)}
-                                </div>
                                 {b.tarea_id ? (
                                   puedeOperar && (estado === "En proceso" || estado === "Pausada") ? (
                                     <div className="mt-1 flex flex-wrap gap-2">

@@ -1,14 +1,19 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfileLabel } from "@/lib/current-profile";
 import { getResponsableFiltro } from "@/lib/responsable-filtro";
-import { semanaActual, toISODate } from "@/lib/week";
+import { semanaActual, toISODate, shortDay } from "@/lib/week";
 import { AgendaGrid } from "./grid";
 
-export default async function Page() {
+export default async function Page({ searchParams }: { searchParams: Promise<{ semana?: string }> }) {
+  const { semana: semanaParam } = await searchParams;
+  const offset = Number.isFinite(Number(semanaParam)) ? Math.trunc(Number(semanaParam)) : 0;
   const supabase = await createClient();
-  const semana = semanaActual();
+  const ref = new Date();
+  ref.setDate(ref.getDate() + offset * 7);
+  const semana = semanaActual(ref);
   const desde = toISODate(semana[0]);
   const hasta = toISODate(semana[6]);
+  const diasLabel = semana.map(shortDay);
 
   const {
     data: { user },
@@ -47,6 +52,8 @@ export default async function Page() {
       profiles={profilesFiltrados}
       bloques={bloquesFiltrados}
       dias={semana.map((d) => toISODate(d))}
+      diasLabel={diasLabel}
+      offsetSemana={offset}
       recordatorioMinutos={miPerfil?.recordatorio_minutos_antes ?? 15}
       recordatorioSonido={miPerfil?.recordatorio_sonido ?? true}
       currentUserId={user?.id ?? null}
