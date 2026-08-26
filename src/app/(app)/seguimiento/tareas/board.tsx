@@ -533,10 +533,15 @@ function CreateModal({
   const [responsableId, setResponsableId] = useState("");
   const actividad = catalogoLocal.find((a) => a.id === catalogoId);
 
+  const [procesoCodigo, setProcesoCodigo] = useState("");
+
   function elegirActividad(id: string) {
     setCatalogoId(id);
     const a = catalogoLocal.find((x) => x.id === id);
-    if (a) setTitulo(`${a.codigo}_${a.subproceso}`);
+    if (a) {
+      setTitulo(`${a.codigo}_${a.subproceso}`);
+      setProcesoCodigo(a.codigo);
+    }
   }
 
   return (
@@ -577,7 +582,6 @@ function CreateModal({
               }}
             />
           </label>
-          <input type="hidden" name="proceso_codigo" value={actividad?.codigo ?? ""} />
           <label className="block text-sm">
             <span className="mb-1 block text-neutral-600">Tarea por realizar</span>
             <textarea
@@ -591,7 +595,7 @@ function CreateModal({
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block text-sm">
               <span className="mb-1 block text-neutral-600">Cliente</span>
-              <select name="cliente_id" defaultValue="" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
+              <select name="cliente_id" required defaultValue="" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
                 <option value="">Seleccione…</option>
                 {clientes.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -602,12 +606,29 @@ function CreateModal({
             </label>
             <label className="block text-sm">
               <span className="mb-1 block text-neutral-600">Proyecto</span>
-              <select name="proyecto_id" defaultValue="" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
+              <select name="proyecto_id" required defaultValue="" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
                 <option value="">Seleccione…</option>
                 {proyectos.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.codigo ? `${p.codigo} · ` : ""}
                     {p.nombre}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block text-neutral-600">Proceso</span>
+              <select
+                name="proceso_codigo"
+                required
+                value={procesoCodigo}
+                onChange={(e) => setProcesoCodigo(e.target.value)}
+                className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+              >
+                <option value="">Seleccione…</option>
+                {procesos.map((p) => (
+                  <option key={p.codigo} value={p.codigo}>
+                    {p.codigo} · {p.nombre}
                   </option>
                 ))}
               </select>
@@ -649,7 +670,7 @@ function CreateModal({
             </label>
             <label className="block text-sm">
               <span className="mb-1 block text-neutral-600">Fecha límite</span>
-              <input type="date" name="fecha_limite" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+              <input type="date" name="fecha_limite" required className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
             </label>
             <label className="block text-sm">
               <span className="mb-1 block text-neutral-600">Horas estimadas</span>
