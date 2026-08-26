@@ -5,18 +5,20 @@ import { createMaterial, updateMaterial, deleteMaterial } from "./actions";
 
 const money = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
 
+const CATEGORIAS = ["Equipos de medición", "Tecnología", "Pruebas", "Emergencia", "Mobiliario", "Otros"];
+
 const fields: Field[] = [
-  { key: "codigo", label: "Código" },
-  { key: "nombre", label: "Nombre", required: true },
-  { key: "categoria", label: "Categoría" },
-  { key: "cantidad", label: "Cantidad", type: "number" },
-  { key: "ubicacion", label: "Ubicación" },
-  { key: "custodio", label: "Custodio" },
-  { key: "valor_reposicion", label: "Valor de reposición", type: "number" },
+  { key: "codigo", label: "Código", tableOnly: true },
+  { key: "nombre", label: "Nombre del material", placeholder: "Ej. Videobeam portátil", required: true, fullWidth: true },
+  { key: "categoria", label: "Categoría", type: "select", options: CATEGORIAS },
+  { key: "cantidad", label: "Cantidad en stock", type: "number", required: true },
+  { key: "ubicacion", label: "Ubicación en almacén", placeholder: "Ej. Almacén oficina · Estante A-1", required: true, fullWidth: true },
+  { key: "custodio", label: "Custodio", placeholder: "Nombre del responsable" },
+  { key: "estado", label: "Estado", type: "select", options: ["Disponible", "En uso", "En mantenimiento", "Dado de baja"] },
+  { key: "valor_reposicion", label: "Valor de reposición", type: "number", required: true },
   { key: "vida_util_jornadas", label: "Vida útil (jornadas)", type: "number" },
   { key: "costo_jornada", label: "Costo/jornada", tableOnly: true },
-  { key: "estado", label: "Estado", type: "select", options: ["Disponible", "En uso", "En mantenimiento", "Dado de baja"] },
-  { key: "notas", label: "Observaciones", type: "textarea" },
+  { key: "notas", label: "Observaciones", type: "textarea", formOnly: true },
 ];
 
 export default async function Page() {
@@ -37,6 +39,9 @@ export default async function Page() {
       title="Inventario materiales"
       subtitle="Catálogos · Orden alfabético por material"
       newLabel="Nuevo material"
+      createTitle="Nuevo material de trabajo"
+      editTitle="Editar material de trabajo"
+      saveLabel="Guardar material"
       banner={
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <KpiCard label="Referencias" value={items.length} color="emerald" />

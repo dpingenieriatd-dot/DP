@@ -10,21 +10,21 @@ export default async function Page() {
   ]);
 
   const fields: Field[] = [
-    { key: "codigo", label: "Código" },
-    { key: "categoria", label: "Categoría" },
-    { key: "descripcion", label: "Insumo o servicio", required: true },
-    { key: "unidad", label: "Unidad" },
+    { key: "codigo", label: "Código", tableOnly: true },
+    { key: "categoria", label: "Categoría", placeholder: "Papelería, servicios, logística..." },
+    { key: "unidad", label: "Unidad", type: "select", options: ["unidad", "hora", "día", "minuto", "jornada", "noche"] },
+    { key: "descripcion", label: "Ítem / descripción", placeholder: "Nombre del ítem", required: true, fullWidth: true },
     {
       key: "proveedor_id",
-      label: "Proveedor",
+      label: "Proveedor (opcional)",
       type: "select",
       optionEntries: (proveedores ?? []).map((p) => ({ value: p.id, label: p.nombre })),
+      formOnly: true,
     },
-    { key: "servicio", label: "Servicio (si no es insumo físico)" },
-    { key: "costo", label: "Costo de referencia", type: "number" },
+    { key: "costo", label: "Valor unitario / valor hora", type: "number", required: true },
     { key: "actualizacion", label: "Actualización", tableOnly: true },
     { key: "estado", label: "Estado", type: "select", options: ["Activo", "Inactivo"] },
-    { key: "notas", label: "Observaciones", type: "textarea" },
+    { key: "notas", label: "Observaciones", type: "textarea", formOnly: true },
   ];
 
   return (
@@ -32,6 +32,9 @@ export default async function Page() {
       title="Banco de insumos"
       subtitle="Catálogos · Ítems en orden alfabético"
       newLabel="Nuevo ítem"
+      createTitle="Nuevo ítem"
+      editTitle="Editar ítem"
+      saveLabel="Guardar ítem"
       banner={
         <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
           <strong>Banco simplificado.</strong> Cada insumo o servicio aparece una sola vez. Puedes actualizar su costo de referencia directamente desde esta tabla.

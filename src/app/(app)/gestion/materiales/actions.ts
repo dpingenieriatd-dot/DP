@@ -2,13 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { siguienteCodigo } from "@/lib/next-code";
 
 const TABLE = "materiales";
 const PATH = "/gestion/materiales";
 
 function fromForm(formData: FormData) {
   return {
-    codigo: formData.get("codigo") || null,
     nombre: formData.get("nombre") || null,
     categoria: formData.get("categoria") || null,
     cantidad: formData.get("cantidad") || 1,
@@ -23,7 +23,8 @@ function fromForm(formData: FormData) {
 
 export async function createMaterial(formData: FormData) {
   const supabase = await createClient();
-  const { error } = await supabase.from(TABLE).insert(fromForm(formData));
+  const codigo = await siguienteCodigo(supabase, TABLE, "MAT");
+  const { error } = await supabase.from(TABLE).insert({ ...fromForm(formData), codigo });
   if (error) return { error: error.message };
   revalidatePath(PATH);
 }

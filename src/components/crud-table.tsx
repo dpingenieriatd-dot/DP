@@ -13,6 +13,11 @@ export type Field = {
   required?: boolean;
   /** Columna calculada que solo se muestra en la tabla, sin campo propio en el formulario de crear/editar. */
   tableOnly?: boolean;
+  /** Campo que solo aparece en el formulario de crear/editar, sin columna propia en la tabla. */
+  formOnly?: boolean;
+  /** Ocupa la fila completa del formulario en vez de compartirla con el siguiente campo (como ya hacen los textarea). */
+  fullWidth?: boolean;
+  placeholder?: string;
   /** Si se define, la celda de esta columna se muestra como enlace hacia la URL guardada en row[linkKey] (o texto plano si esa fila no la tiene). La URL se precalcula del lado del servidor porque este es un Client Component y no puede recibir funciones desde el Server Component que lo llama. */
   linkKey?: string;
 };
@@ -40,6 +45,9 @@ export function CrudTable({
   initialFiltro,
   presetNuevo,
   rowActionsById,
+  createTitle,
+  editTitle,
+  saveLabel,
 }: {
   title: string;
   subtitle?: string;
@@ -58,6 +66,10 @@ export function CrudTable({
   presetNuevo?: Record<string, string>;
   /** Acciones extra por fila, junto a Editar/Eliminar (p. ej. un enlace de navegación cruzada a otro catálogo), indexadas por idKey — se pasan ya renderizadas porque este es un Client Component y no puede recibir funciones desde el Server Component que lo llama. */
   rowActionsById?: Record<string, React.ReactNode>;
+  /** Títulos y texto del botón del modal, para calzar con el texto exacto del HTML de referencia (p. ej. "Nuevo ítem" / "Guardar ítem"). Si se omiten, usan el genérico "Nuevo/Editar — {title}" / "Guardar". */
+  createTitle?: string;
+  editTitle?: string;
+  saveLabel?: string;
 }) {
   const [open, setOpen] = useState(Boolean(presetNuevo));
   const [editing, setEditing] = useState<Row | null>(null);
@@ -67,6 +79,8 @@ export function CrudTable({
   const [busqueda, setBusqueda] = useState("");
   const [columnaFiltro, setColumnaFiltro] = useState(initialFiltro?.columna ?? "");
   const [valorFiltro, setValorFiltro] = useState(initialFiltro?.valor ?? "");
+
+  const columnas = fields.filter((f) => !f.formOnly);
 
   const visibles = rows.filter((row) => {
     if (busqueda) {
@@ -156,7 +170,7 @@ export function CrudTable({
           className="rounded-md border border-neutral-300 px-3 py-2 text-sm"
         >
           <option value="">Todas las columnas</option>
-          {fields.map((f) => (
+          {columnas.map((f) => (
             <option key={f.key} value={f.key}>
               {f.label}
             </option>
@@ -187,7 +201,7 @@ export function CrudTable({
         <table className="w-full min-w-max text-xs">
           <thead>
             <tr className="text-left text-[11px] uppercase tracking-wide text-neutral-500">
-              {fields.map((f) => (
+              {columnas.map((f) => (
                 <th key={f.key} className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">
                   {f.label}
                 </th>
@@ -198,14 +212,14 @@ export function CrudTable({
           <tbody>
             {visibles.length === 0 && (
               <tr>
-                <td colSpan={fields.length + 1} className="px-3 py-8 text-center text-neutral-400">
+                <td colSpan={columnas.length + 1} className="px-3 py-8 text-center text-neutral-400">
                   {emptyLabel}
                 </td>
               </tr>
             )}
             {visibles.map((row) => (
               <tr key={String(row[idKey])} className="border-t border-neutral-100 hover:bg-neutral-50">
-                {fields.map((f) => {
+                {columnas.map((f) => {
                   const href = f.linkKey ? (row[f.linkKey] as string | null | undefined) : null;
                   return (
                     <td key={f.key} className="px-3 py-2">
@@ -272,21 +286,25 @@ export function CrudTable({
             className="w-full max-w-lg rounded-lg bg-white p-6 shadow-lg"
           >
             <h2 className="mb-4 text-lg font-semibold text-emerald-900">
-              {editing ? "Editar" : "Nuevo"} — {title}
+              {editing ? (editTitle ?? `Editar — ${title}`) : (createTitle ?? `Nuevo — ${title}`)}
             </h2>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {fields.filter((f) => !f.tableOnly).map((f) => (
                 <label
                   key={f.key}
-                  className={`block text-sm ${f.type === "textarea" ? "sm:col-span-2" : ""}`}
+                  className={`block text-sm ${f.type === "textarea" || f.fullWidth ? "sm:col-span-2" : ""}`}
                 >
-                  <span className="mb-1 block text-neutral-600">{f.label}</span>
+                  <span className="mb-1 block text-neutral-600">
+                    {f.label}
+                    {f.required && " *"}
+                  </span>
                   {f.type === "textarea" ? (
                     <textarea
                       name={f.key}
                       defaultValue={editing ? String(editing[f.key] ?? "") : ""}
                       required={f.required}
+                      placeholder={f.placeholder}
                       className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
                     />
                   ) : f.type === "select" ? (
@@ -329,6 +347,7 @@ export function CrudTable({
                       step={f.type === "number" ? "any" : undefined}
                       defaultValue={editing ? String(editing[f.key] ?? "") : (presetNuevo?.[f.key] ?? "")}
                       required={f.required}
+                      placeholder={f.placeholder}
                       className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
                     />
                   )}
@@ -351,7 +370,7 @@ export function CrudTable({
                 disabled={pending}
                 className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
               >
-                {pending ? "Guardando…" : "Guardar"}
+                {pending ? "Guardando…" : (saveLabel ?? "Guardar")}
               </button>
             </div>
           </form>
