@@ -215,7 +215,7 @@ export function TaskBoard({
                   disabled={pending}
                   className="rounded-md bg-emerald-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
                 >
-                  🙋 Tomar
+                  Tomar
                 </button>
                 <button
                   onClick={() => setDetalle(t)}
@@ -231,7 +231,7 @@ export function TaskBoard({
                     disabled={pending}
                     className="rounded-md px-3 py-1.5 text-xs text-red-600 hover:underline disabled:opacity-60"
                   >
-                    🗑 Eliminar
+                    Eliminar
                   </button>
                 )}
               </div>
@@ -343,7 +343,7 @@ export function TaskBoard({
                     title={t.calidad_pct == null ? "Califica la calidad del entregable antes de archivar" : undefined}
                     className="rounded-md px-3 py-1.5 text-xs text-neutral-500 hover:underline disabled:opacity-60 disabled:no-underline"
                   >
-                    🗄 Archivar
+                    Archivar
                   </button>
                 )}
               </div>

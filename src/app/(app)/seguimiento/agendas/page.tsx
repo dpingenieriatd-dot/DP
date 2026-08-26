@@ -14,7 +14,7 @@ export default async function Page() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: profiles }, { data: clientes }, { data: proyectos }, { data: bloques }, { data: miPerfil }, { data: timerActivo }, userLabel, filtro] =
+  const [{ data: profiles }, { data: clientes }, { data: proyectos }, { data: bloques }, { data: miPerfil }, { data: timerActivo }, userLabel, filtro, { data: registrosAbiertos }] =
     await Promise.all([
       supabase.from("profiles").select("id, full_name, email, capacidad_semanal_horas").order("full_name"),
       supabase.from("clientes").select("id, nombre").order("nombre"),
@@ -26,7 +26,7 @@ export default async function Page() {
         .lte("dia", hasta)
         .order("hora_inicio"),
       user
-        ? supabase.from("profiles").select("recordatorio_minutos_antes, recordatorio_sonido").eq("id", user.id).single()
+        ? supabase.from("profiles").select("recordatorio_minutos_antes, recordatorio_sonido, role").eq("id", user.id).single()
         : Promise.resolve({ data: null }),
       user
         ? supabase
@@ -38,6 +38,7 @@ export default async function Page() {
         : Promise.resolve({ data: null }),
       getCurrentProfileLabel(),
       getResponsableFiltro(),
+      supabase.from("registros_tiempo").select("id, tarea_id, inicio").is("fin", null),
     ]);
 
   const profilesFiltrados = filtro ? (profiles ?? []).filter((p) => p.id === filtro) : profiles ?? [];
@@ -57,6 +58,8 @@ export default async function Page() {
       userLabel={userLabel}
       todosLosProfiles={profiles ?? []}
       filtro={filtro}
+      isAdmin={miPerfil?.role === "admin"}
+      registrosAbiertos={registrosAbiertos ?? []}
     />
   );
 }

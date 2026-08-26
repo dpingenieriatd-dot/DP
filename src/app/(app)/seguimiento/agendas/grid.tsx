@@ -6,7 +6,7 @@ import { iniciarTiempo, pausarTarea, reanudarTarea, terminarTarea } from "../tar
 import { KpiCard } from "@/components/kpi-card";
 import { Topbar } from "@/components/topbar";
 import { ResponsableFiltro } from "@/components/responsable-filtro";
-import { useElapsed, formatHoras } from "@/lib/use-elapsed";
+import { useTiempoTotal } from "@/lib/use-elapsed";
 
 type Profile = { id: string; full_name: string | null; email: string | null; capacidad_semanal_horas: number };
 type Cliente = { id: string; nombre: string };
@@ -67,6 +67,8 @@ export function AgendaGrid({
   userLabel,
   todosLosProfiles,
   filtro,
+  isAdmin,
+  registrosAbiertos,
 }: {
   profiles: Profile[];
   clientes: Cliente[];
@@ -80,13 +82,14 @@ export function AgendaGrid({
   userLabel: string | null;
   todosLosProfiles: Profile[];
   filtro: string;
+  isAdmin: boolean;
+  registrosAbiertos: { id: string; tarea_id: string; inicio: string }[];
 }) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [finishing, setFinishing] = useState<{ tareaId: string; titulo: string } | null>(null);
   const [reprogramando, setReprogramando] = useState<{ tareaId: string; titulo: string; dia: string; hora: string } | null>(null);
   const [pending, startTransition] = useTransition();
-  const elapsed = useElapsed(timerActivo?.inicio ?? null);
 
   function submit(formData: FormData) {
     startTransition(async () => {
@@ -107,6 +110,11 @@ export function AgendaGrid({
       const result = await fn();
       if (result?.error) setError(result.error);
     });
+  }
+
+  function registroAbiertoDe(tareaId: string | null | undefined) {
+    if (!tareaId) return null;
+    return registrosAbiertos.find((r) => r.tarea_id === tareaId) ?? null;
   }
 
   const horasProgramadas = bloques.filter((b) => b.tareas?.estado !== "Terminada").reduce((s, b) => s + Number(b.horas), 0);
@@ -205,8 +213,10 @@ export function AgendaGrid({
                           .filter((b) => b.usuario_id === p.id && b.dia === dia)
                           .map((b) => {
                             const estado = b.tareas?.estado;
-                            const esMia = b.tareas?.responsable === currentUserId;
-                            const corriendo = timerActivo?.tarea_id === b.tarea_id;
+                            const puedeOperar = isAdmin || b.tareas?.responsable === currentUserId;
+                            const registroAbierto = registroAbiertoDe(b.tarea_id);
+                            const corriendo = !!registroAbierto;
+                            const miTimerEnOtraTarea = !!timerActivo && timerActivo.tarea_id !== b.tarea_id;
                             return (
                               <div key={b.id} className="mb-2 break-words rounded-lg bg-emerald-50 p-3">
                                 <div className="flex items-center justify-between gap-1">
@@ -227,45 +237,43 @@ export function AgendaGrid({
                                 {b.proyectos?.nombre && (
                                   <div className="text-[clamp(0.65rem,6.5cqw,0.8rem)] text-neutral-500">{b.proyectos.nombre}</div>
                                 )}
-                                {corriendo ? (
-                                  <div className="mt-1 font-mono text-[clamp(0.65rem,6.5cqw,0.8rem)] font-semibold text-amber-700">⏱ {elapsed}</div>
-                                ) : (
-                                  b.tareas && Number(b.tareas.horas_reales) > 0 && (
-                                    <div className="mt-1 text-[clamp(0.65rem,6.5cqw,0.8rem)] text-neutral-500">
-                                      ⏱ {formatHoras(Number(b.tareas.horas_reales))} {estado === "Terminada" ? "consolidado" : "acumulado"}
-                                    </div>
-                                  )
+                                {b.tareas && (estado === "En proceso" || estado === "Pausada" || estado === "Terminada") && (
+                                  <LiveTimer
+                                    horasBase={Number(b.tareas.horas_reales)}
+                                    inicioSesion={registroAbierto?.inicio ?? null}
+                                    consolidado={estado === "Terminada"}
+                                  />
                                 )}
                                 <div className="mt-0.5 text-[clamp(0.55rem,5.5cqw,0.7rem)] text-neutral-400">
                                   Inicio: {b.dia} {b.hora_inicio.slice(0, 5)}
                                 </div>
                                 {b.tarea_id ? (
-                                  esMia && (estado === "En proceso" || estado === "Pausada") ? (
+                                  puedeOperar && (estado === "En proceso" || estado === "Pausada") ? (
                                     <div className="mt-1 flex flex-wrap gap-2">
                                       {estado === "En proceso" ? (
                                         <>
                                           {corriendo ? (
                                             <button
-                                              onClick={() => run(() => pausarTarea(timerActivo!.id))}
+                                              onClick={() => run(() => pausarTarea(registroAbierto!.id))}
                                               disabled={pending}
                                               className="text-[clamp(0.65rem,6cqw,0.75rem)] font-semibold text-amber-700 hover:underline"
                                             >
-                                              ⏸ Pausar
+                                              Pausar
                                             </button>
                                           ) : (
                                             <button
                                               onClick={() => run(() => iniciarTiempo(b.tarea_id!))}
-                                              disabled={pending || !!timerActivo}
+                                              disabled={pending || miTimerEnOtraTarea}
                                               className="text-[clamp(0.65rem,6cqw,0.75rem)] font-semibold text-emerald-700 hover:underline disabled:opacity-60"
                                             >
-                                              ▶ Tiempo
+                                              Iniciar
                                             </button>
                                           )}
                                           <button
                                             onClick={() => setFinishing({ tareaId: b.tarea_id!, titulo: b.tarea ?? "" })}
                                             className="text-[clamp(0.65rem,6cqw,0.75rem)] font-semibold text-emerald-900 hover:underline"
                                           >
-                                            ✓ Terminar
+                                            Finalizar
                                           </button>
                                         </>
                                       ) : (
@@ -275,7 +283,7 @@ export function AgendaGrid({
                                             disabled={pending || !!timerActivo}
                                             className="text-[clamp(0.65rem,6cqw,0.75rem)] font-semibold text-emerald-700 hover:underline disabled:opacity-60"
                                           >
-                                            ▶ Reanudar
+                                            Continuar
                                           </button>
                                           <button
                                             onClick={() =>
@@ -283,7 +291,7 @@ export function AgendaGrid({
                                             }
                                             className="text-[clamp(0.65rem,6cqw,0.75rem)] font-semibold text-neutral-600 hover:underline"
                                           >
-                                            📅 Reprogramar
+                                            Reprogramar
                                           </button>
                                         </>
                                       )}
@@ -476,6 +484,24 @@ export function AgendaGrid({
         </div>
       )}
       </div>
+    </div>
+  );
+}
+
+function LiveTimer({
+  horasBase,
+  inicioSesion,
+  consolidado,
+}: {
+  horasBase: number;
+  inicioSesion: string | null;
+  consolidado: boolean;
+}) {
+  const tiempo = useTiempoTotal(horasBase, inicioSesion);
+  if (horasBase <= 0 && !inicioSesion) return null;
+  return (
+    <div className={`mt-1 text-[clamp(0.65rem,6.5cqw,0.8rem)] ${inicioSesion ? "font-mono font-semibold text-amber-700" : "text-neutral-500"}`}>
+      ⏱ {tiempo} {inicioSesion ? "" : consolidado ? "consolidado" : "acumulado"}
     </div>
   );
 }
