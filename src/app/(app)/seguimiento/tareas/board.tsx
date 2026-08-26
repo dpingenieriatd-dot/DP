@@ -581,6 +581,8 @@ function CreateModal({
   pending: boolean;
 }) {
   const [catalogoLocal, setCatalogoLocal] = useState(actividadesCatalogo);
+  // "" = sin elegir (placeholder) · "custom" = "Otra actividad temporal / no guardar en
+  // catálogo" · cualquier otro valor = id real del catálogo. Igual que #f-task-catalog en el HTML.
   const [catalogoId, setCatalogoId] = useState("");
   const [titulo, setTitulo] = useState("");
   const [descripcion, setDescripcion] = useState("");
@@ -600,6 +602,8 @@ function CreateModal({
       setTitulo(`${a.codigo}_${a.subproceso}`);
       setProcesoCodigo(a.codigo);
       if (!descripcion.trim() && a.descripcion) setDescripcion(a.descripcion);
+    } else {
+      setTitulo("");
     }
   }
 
@@ -614,7 +618,11 @@ function CreateModal({
         onClick={(e) => e.stopPropagation()}
         className="max-h-[90vh] w-full max-w-lg overflow-auto rounded-lg bg-white p-6 shadow-lg"
       >
-        <h2 className="mb-4 text-lg font-semibold text-emerald-900">Publicar tarea</h2>
+        <h2 className="mb-3 text-lg font-semibold text-emerald-900">Publicar tarea</h2>
+        <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-emerald-800">Definición</div>
+        <div className="mb-3 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
+          <strong>Catálogos integrados:</strong> Cliente, Empresa atendida y Profesionales externos se toman de los catálogos de Gestión.
+        </div>
         <div className="space-y-3">
           <label className="block text-sm">
             <span className="mb-1 block text-neutral-600">Actividad del mapa de procesos *</span>
@@ -624,13 +632,25 @@ function CreateModal({
               onChange={(e) => elegirActividad(e.target.value)}
               className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
             >
-              <option value="">Otra actividad / no catalogada</option>
+              <option value="">Seleccionar actividad...</option>
               {catalogoLocal.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.codigo} · {a.subproceso}
                 </option>
               ))}
+              <option value="custom">Otra actividad temporal / no guardar en catálogo</option>
             </select>
+            {catalogoId === "custom" && (
+              <input
+                name="titulo"
+                required
+                value={titulo}
+                onChange={(e) => setTitulo(e.target.value)}
+                placeholder="Escribe la actividad no catalogada"
+                className="mt-2 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+              />
+            )}
+            {catalogoId !== "custom" && <input type="hidden" name="titulo" value={titulo} />}
             <span className="mt-1 block text-xs text-neutral-500">
               Selecciona una actividad de la lista. El proceso y la descripción se completan automáticamente.
             </span>
@@ -648,21 +668,6 @@ function CreateModal({
               }}
             />
           </label>
-          {catalogoId ? (
-            <input type="hidden" name="titulo" value={titulo} />
-          ) : (
-            <label className="block text-sm">
-              <span className="mb-1 block text-neutral-600">Actividad no catalogada *</span>
-              <input
-                name="titulo"
-                required
-                value={titulo}
-                onChange={(e) => setTitulo(e.target.value)}
-                placeholder="Escribe la actividad no catalogada"
-                className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
-              />
-            </label>
-          )}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block text-sm">
               <span className="mb-1 block text-neutral-600">Cliente *</span>
@@ -782,11 +787,11 @@ function CreateModal({
             </label>
             <label className="block text-sm">
               <span className="mb-1 block text-neutral-600">Fecha de inicio / Agenda</span>
-              <input type="date" name="fecha_inicio_agenda" defaultValue={new Date().toISOString().slice(0, 10)} className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+              <input type="date" name="fecha_inicio_agenda" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
             </label>
             <label className="block text-sm">
               <span className="mb-1 block text-neutral-600">Hora de inicio / Agenda</span>
-              <input type="time" name="hora_inicio_agenda" defaultValue="08:00" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+              <input type="time" name="hora_inicio_agenda" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
             </label>
           </div>
           <label className="block text-sm">
@@ -847,7 +852,7 @@ function CreateModal({
             disabled={pending}
             className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
           >
-            Publicar
+            Guardar
           </button>
         </div>
       </form>
