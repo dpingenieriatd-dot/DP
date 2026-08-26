@@ -58,24 +58,47 @@ export function calcularControlCostos(items: CostoItem[], valorCotizado: number,
   return { plan, real, disponible, gananciaEst, gananciaActual };
 }
 
-export type CotizacionInputs = {
-  personas: number;
-  valor_unit: number;
-  horas: number;
-  valor_hora: number;
+/**
+ * Motor de ítems de cotización — igual al del HTML de referencia (dpQuoteCalc):
+ * cada ítem tiene un costo interno unitario (tomado del catálogo al agregarlo);
+ * el precio cliente unitario es costo × factor, salvo que se haya editado a mano
+ * (precio_cliente_override). valor_cotizado real = suma de subtotales cliente + IVA.
+ */
+export type ItemCotizacion = {
+  cantidad: number;
+  costo_unitario: number;
+  precio_cliente_override: number | null;
 };
 
-export function calcularCotizacion(c: CotizacionInputs) {
-  const personas = Number(c.personas || 0);
-  const valorUnit = Number(c.valor_unit || 0);
-  const horas = Number(c.horas || 0);
-  const valorHora = Number(c.valor_hora || 0);
+export function calcularCotizacionItems(
+  items: ItemCotizacion[],
+  opts: { admin_pct: number; margen_pct: number; resp_iva: boolean; iva_pct: number }
+) {
+  const a = Number(opts.admin_pct ?? 15) / 100;
+  const u = Number(opts.margen_pct ?? 30) / 100;
+  const ivaFrac = Number(opts.iva_pct ?? 19) / 100;
+  const factor = u >= 0.999 ? 1 + a : (1 + a) / (1 - u);
 
-  const valMateriales = personas * valorUnit;
-  const valorProf = horas * valorHora;
-  const valorCotizado = valMateriales + valorProf;
+  const direct = items.reduce((s, i) => s + Number(i.cantidad || 0) * Number(i.costo_unitario || 0), 0);
+  const admin = direct * a;
+  const base = direct * factor;
+  const utilidad = Math.max(0, base - direct - admin);
+  const aplicaIva = !!opts.resp_iva;
+  const iva = aplicaIva ? base * ivaFrac : 0;
+  const sugerido = base + iva;
 
-  return { personas, valorUnit, valMateriales, horas, valorHora, valorProf, valorCotizado };
+  const itemsCalculados = items.map((i) => {
+    const cantidad = Number(i.cantidad || 0);
+    const autoUnitClient = Number(i.costo_unitario || 0) * factor;
+    const override = i.precio_cliente_override;
+    const unitClient = override != null && override > 0 ? Number(override) : autoUnitClient;
+    return { ...i, autoUnitClient, unitClient, subtotalCliente: unitClient * cantidad };
+  });
+  const clientSubtotal = itemsCalculados.reduce((s, i) => s + i.subtotalCliente, 0);
+  const clientIva = aplicaIva ? clientSubtotal * ivaFrac : 0;
+  const clientTotal = clientSubtotal + clientIva;
+
+  return { direct, admin, utilidad, base, iva, sugerido, itemsCalculados, clientSubtotal, clientIva, clientTotal, factor, aplicaIva };
 }
 
 export type ContratoInputs = {

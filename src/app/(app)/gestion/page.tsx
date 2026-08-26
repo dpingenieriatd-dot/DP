@@ -1,8 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { calcularPresupuesto, calcularControlCostos, money } from "@/lib/finance";
-import { CrecimientoFiltro } from "./crecimiento-filtro";
+import { CrecimientoFiltro, LimpiarFiltrosBoton } from "./crecimiento-filtro";
 import { MESES } from "@/lib/meses";
 import { KpiCard } from "@/components/kpi-card";
+import { Filter, TrendingUp, CalendarRange, ClipboardList } from "lucide-react";
 
 /** Cascada de fecha del proyecto, igual intención que el HTML V24: fecha_inicio del proyecto, si no fecha de creación. */
 function fechaProyecto(p: { fecha_inicio: string | null; created_at: string }) {
@@ -118,15 +119,25 @@ export default async function GestionInicioPage({
       <p className="mt-1 text-sm text-neutral-500">Panel principal · Crecimiento y rentabilidad con la información registrada</p>
 
       <div className="mt-4 rounded-lg border border-neutral-200 bg-white p-4">
-        <div className="mb-1 font-semibold text-emerald-900">Analizar crecimiento</div>
-        <div className="mb-3 text-xs text-neutral-500">
-          Clientes y empresas del período corresponden a los que tienen proyectos registrados en ese mes/año.
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-1.5 font-semibold text-emerald-900">
+              <Filter size={16} /> Analizar crecimiento
+            </div>
+            <div className="mt-1 text-xs text-neutral-500">
+              Clientes y empresas del período corresponden a los que tienen proyectos registrados en ese mes/año.
+            </div>
+          </div>
+          <LimpiarFiltrosBoton anio={anioActual} />
         </div>
         <CrecimientoFiltro anios={anios.length ? anios : [new Date().getFullYear()]} clientes={clientes ?? []} empresas={empresas ?? []} />
       </div>
 
-      <div className="mt-4 rounded-md border border-sky-200 bg-sky-50 p-3 text-xs text-sky-800">
-        <strong>Cómo leer el crecimiento:</strong> el tablero cuenta clientes y empresas según los proyectos registrados en cada período y calcula la utilidad desde el presupuesto/costo vigente.
+      <div className="mt-4 flex items-start gap-2 rounded-md border border-sky-200 bg-sky-50 p-3 text-xs text-sky-800">
+        <TrendingUp size={16} className="mt-0.5 shrink-0" />
+        <div>
+          <strong>Cómo leer el crecimiento:</strong> el tablero no inventa fechas de creación de las bases. Cuenta clientes y empresas según los proyectos registrados en cada período y calcula la utilidad desde el presupuesto/costo vigente.
+        </div>
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-5">
@@ -138,7 +149,9 @@ export default async function GestionInicioPage({
       </div>
 
       <div className="mt-6 rounded-lg border border-neutral-200 bg-white p-4">
-        <div className="mb-1 font-semibold text-emerald-900">Evolución mensual {anioActual}</div>
+        <div className="mb-1 flex items-center gap-1.5 font-semibold text-emerald-900">
+          <CalendarRange size={16} /> Evolución mensual {anioActual}
+        </div>
         <div className="mb-3 text-xs text-neutral-500">Meses con actividad registrada.</div>
         <div className="overflow-auto">
           <table className="w-full min-w-[700px] text-xs">
@@ -178,7 +191,9 @@ export default async function GestionInicioPage({
       </div>
 
       <div className="mt-6 rounded-lg border border-neutral-200 bg-white p-4">
-        <div className="mb-1 font-semibold text-emerald-900">Proyectos del período</div>
+        <div className="mb-1 flex items-center gap-1.5 font-semibold text-emerald-900">
+          <ClipboardList size={16} /> Proyectos del período
+        </div>
         <div className="mb-3 text-xs text-neutral-500">Estos registros explican los indicadores anteriores.</div>
         <div className="overflow-auto">
           <table className="w-full min-w-[900px] text-xs">

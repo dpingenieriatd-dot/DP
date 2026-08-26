@@ -1,7 +1,11 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { RefreshCw } from "lucide-react";
 import { MESES } from "@/lib/meses";
+
+const selectClass = "w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm";
+const labelClass = "block text-xs font-medium text-neutral-500";
 
 export function CrecimientoFiltro({
   anios,
@@ -18,7 +22,6 @@ export function CrecimientoFiltro({
   const mes = searchParams.get("mes") ?? "";
   const clienteId = searchParams.get("cliente") ?? "";
   const empresaId = searchParams.get("empresa") ?? "";
-  const hayFiltros = !!(mes || clienteId || empresaId);
 
   function set(clave: string, value: string) {
     const sp = new URLSearchParams(searchParams.toString());
@@ -29,20 +32,20 @@ export function CrecimientoFiltro({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <label className="text-sm text-neutral-600">
-        Año{" "}
-        <select value={anio} onChange={(e) => set("anio", e.target.value)} className="ml-1 rounded-md border border-neutral-300 px-2 py-1.5 text-sm">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-[0.7fr_1fr_1.4fr_1.4fr]">
+      <div>
+        <label className={labelClass}>Año</label>
+        <select value={anio} onChange={(e) => set("anio", e.target.value)} className={selectClass}>
           {anios.map((a) => (
             <option key={a} value={a}>
               {a}
             </option>
           ))}
         </select>
-      </label>
-      <label className="text-sm text-neutral-600">
-        Mes{" "}
-        <select value={mes} onChange={(e) => set("mes", e.target.value)} className="ml-1 rounded-md border border-neutral-300 px-2 py-1.5 text-sm">
+      </div>
+      <div>
+        <label className={labelClass}>Mes</label>
+        <select value={mes} onChange={(e) => set("mes", e.target.value)} className={selectClass}>
           <option value="">Todo el año</option>
           {MESES.map((m, i) => (
             <option key={m} value={i + 1}>
@@ -50,10 +53,10 @@ export function CrecimientoFiltro({
             </option>
           ))}
         </select>
-      </label>
-      <label className="text-sm text-neutral-600">
-        Cliente{" "}
-        <select value={clienteId} onChange={(e) => set("cliente", e.target.value)} className="ml-1 rounded-md border border-neutral-300 px-2 py-1.5 text-sm">
+      </div>
+      <div>
+        <label className={labelClass}>Cliente</label>
+        <select value={clienteId} onChange={(e) => set("cliente", e.target.value)} className={selectClass}>
           <option value="">Todos los clientes</option>
           {clientes.map((c) => (
             <option key={c.id} value={c.id}>
@@ -61,10 +64,10 @@ export function CrecimientoFiltro({
             </option>
           ))}
         </select>
-      </label>
-      <label className="text-sm text-neutral-600">
-        Empresa atendida{" "}
-        <select value={empresaId} onChange={(e) => set("empresa", e.target.value)} className="ml-1 rounded-md border border-neutral-300 px-2 py-1.5 text-sm">
+      </div>
+      <div>
+        <label className={labelClass}>Empresa atendida</label>
+        <select value={empresaId} onChange={(e) => set("empresa", e.target.value)} className={selectClass}>
           <option value="">Todas las empresas</option>
           {empresas.map((e) => (
             <option key={e.id} value={e.id}>
@@ -72,15 +75,19 @@ export function CrecimientoFiltro({
             </option>
           ))}
         </select>
-      </label>
-      {hayFiltros && (
-        <button
-          onClick={() => router.push(`/gestion?anio=${anio}`)}
-          className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 hover:bg-neutral-100"
-        >
-          Limpiar filtros
-        </button>
-      )}
+      </div>
     </div>
+  );
+}
+
+export function LimpiarFiltrosBoton({ anio }: { anio: number }) {
+  const router = useRouter();
+  return (
+    <button
+      onClick={() => router.push(`/gestion?anio=${anio}`)}
+      className="flex shrink-0 items-center gap-1.5 rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 hover:bg-neutral-100"
+    >
+      <RefreshCw size={14} /> Limpiar filtros
+    </button>
   );
 }
