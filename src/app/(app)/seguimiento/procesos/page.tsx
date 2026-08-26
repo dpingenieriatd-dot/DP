@@ -55,7 +55,8 @@ export default async function ProcesosPage() {
         if (deLaCategoria.length === 0) return null;
         return (
           <div key={cat} className="mt-6">
-            <h2 className="mb-2 text-sm font-semibold uppercase text-neutral-500">Procesos {CATEGORIAS_PLURAL[cat]}</h2>
+            <h2 className="text-sm font-semibold uppercase text-neutral-500">Procesos {CATEGORIAS_PLURAL[cat]}</h2>
+            <p className="mb-2 text-xs text-neutral-400">El total conserva también el histórico de actividades archivadas.</p>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {deLaCategoria.map((p) => {
                 const c = conteos.get(p.codigo) ?? { abiertas: 0, vencidas: 0, archivadas: 0, total: 0 };

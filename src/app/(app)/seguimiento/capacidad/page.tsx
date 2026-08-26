@@ -80,17 +80,18 @@ export default async function Page() {
                   <td className={`px-4 py-3 ${vencidas > 0 ? "font-semibold text-red-600" : ""}`}>{vencidas}</td>
                   <td className="px-4 py-3">{enProceso}</td>
                   <td className="px-4 py-3">
-                    {archivadas}
-                    {archivadas > 0 && (
-                      <Link href={`/seguimiento/historial?responsable=${p.id}`} className="mt-1 block text-xs font-semibold text-emerald-700 hover:underline">
-                        Ver archivadas
-                      </Link>
-                    )}
+                    <div>{archivadas}</div>
+                    <Link
+                      href={`/seguimiento/historial?responsable=${p.id}`}
+                      className="mt-1 inline-block rounded-md border border-neutral-300 px-2 py-1 text-xs font-semibold text-neutral-600 hover:bg-neutral-50"
+                    >
+                      Ver archivadas
+                    </Link>
                   </td>
                   <td className="min-w-[220px] px-4 py-3">
                     <div className="flex items-center gap-1.5 text-xs text-neutral-600">
                       <span className={`h-2 w-2 rounded-full ${barClase}`} />
-                      {texto} · {planificadas}/{p.capacidad_semanal_horas}h · {Math.round(usoPct)}%
+                      {texto} · {planificadas.toFixed(1)}/{p.capacidad_semanal_horas.toFixed(1)}h · {Math.round(usoPct)}%
                     </div>
                     <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-neutral-100">
                       <div className={`h-full ${barClase}`} style={{ width: `${Math.min(100, usoPct)}%` }} />
