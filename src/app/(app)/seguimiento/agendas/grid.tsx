@@ -455,16 +455,16 @@ export function AgendaGrid({
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg"
           >
-            <h2 className="mb-1 text-lg font-semibold text-emerald-900">Reprogramar bloque de Agenda</h2>
+            <h2 className="mb-1 text-lg font-semibold text-emerald-900">Reprogramar tarea</h2>
             <p className="mb-4 text-sm text-neutral-500">{reprogramando.titulo}</p>
-            <p className="mb-3 text-xs text-neutral-400">El bloque conserva el mismo registro en Agenda, solo cambia la fecha y hora.</p>
+            <p className="mb-3 text-xs text-neutral-400">La nueva fecha y hora actualizan el mismo registro; no se crea una tarea duplicada.</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <label className="block text-sm">
-                <span className="mb-1 block text-neutral-600">Día</span>
+                <span className="mb-1 block text-neutral-600">Fecha de inicio *</span>
                 <input type="date" name="dia" defaultValue={reprogramando.dia} required className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
               </label>
               <label className="block text-sm">
-                <span className="mb-1 block text-neutral-600">Hora inicio</span>
+                <span className="mb-1 block text-neutral-600">Hora de inicio *</span>
                 <input type="time" name="hora_inicio" defaultValue={reprogramando.hora} required className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
               </label>
             </div>
@@ -477,7 +477,7 @@ export function AgendaGrid({
                 disabled={pending}
                 className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
               >
-                Reprogramar
+                Guardar
               </button>
             </div>
           </form>

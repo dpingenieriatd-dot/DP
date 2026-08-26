@@ -47,6 +47,8 @@ type Tarea = {
   notas: string | null;
   archivado: boolean;
   calidad_pct: number | null;
+  proceso_codigo: string | null;
+  catalogo_actividad_id: string | null;
 };
 
 type Profile = { id: string; full_name: string | null; email: string | null };
@@ -353,7 +355,15 @@ export function TaskBoard({
       </div>
 
       {detalle && (
-        <DetailModal tarea={detalle} profiles={profiles} profesionales={profesionales} empresas={empresas} onClose={() => setDetalle(null)} />
+        <DetailModal
+          tarea={detalle}
+          profiles={profiles}
+          profesionales={profesionales}
+          empresas={empresas}
+          procesos={procesos}
+          actividadesCatalogo={actividadesCatalogo}
+          onClose={() => setDetalle(null)}
+        />
       )}
 
       {tomando && (
@@ -374,9 +384,8 @@ export function TaskBoard({
       {reprogramando && (
         <TomarModal
           tarea={reprogramando}
-          titulo="Reprogramar bloque de Agenda"
-          textoBoton="Reprogramar"
-          nota="El bloque conserva el mismo registro en Agenda, solo cambia la fecha y hora."
+          titulo="Reprogramar tarea"
+          nota="La nueva fecha y hora actualizan el mismo registro; no se crea una tarea duplicada."
           onClose={() => setReprogramando(null)}
           onSubmit={(fd) =>
             startTransition(async () => {
@@ -862,16 +871,14 @@ function CreateModal({
 
 function TomarModal({
   tarea,
-  titulo = "Tomar tarea",
-  textoBoton = "Tomar tarea",
-  nota = "Esto crea el bloque correspondiente en tu Agenda automáticamente — no hace falta agregarlo a mano.",
+  titulo = "Tomar y programar tarea",
+  nota = "Una sola acción: al tomar la tarea, esta fecha y hora crean automáticamente el bloque en Agenda.",
   onClose,
   onSubmit,
   pending,
 }: {
   tarea: Tarea;
   titulo?: string;
-  textoBoton?: string;
   nota?: string;
   onClose: () => void;
   onSubmit: (fd: FormData) => void;
@@ -893,11 +900,11 @@ function TomarModal({
         <p className="mb-3 text-xs text-neutral-500">{nota}</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="block text-sm">
-            <span className="mb-1 block text-neutral-600">Día</span>
+            <span className="mb-1 block text-neutral-600">Fecha de inicio *</span>
             <input type="date" name="dia" defaultValue={hoy} required className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block text-neutral-600">Hora de inicio</span>
+            <span className="mb-1 block text-neutral-600">Hora de inicio *</span>
             <input
               type="time"
               name="hora_inicio"
@@ -916,7 +923,7 @@ function TomarModal({
             disabled={pending}
             className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
           >
-            {textoBoton}
+            Guardar
           </button>
         </div>
       </form>
@@ -944,13 +951,12 @@ function FinishModal({
       >
         <h2 className="mb-1 text-lg font-semibold text-emerald-900">Terminar tarea</h2>
         <p className="mb-4 text-sm text-neutral-500">{tarea.titulo}</p>
+        <p className="mb-3 text-xs text-neutral-500">
+          El cronómetro se detendrá y se consolidará el tiempo invertido. Pega el enlace del entregable o escribe la referencia del soporte final.
+        </p>
         <label className="block text-sm">
-          <span className="mb-1 block text-neutral-600">Entregable / enlace</span>
-          <input name="entregable" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
-        </label>
-        <label className="mt-3 block text-sm">
-          <span className="mb-1 block text-neutral-600">Observaciones</span>
-          <textarea name="notas" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+          <span className="mb-1 block text-neutral-600">Entregable / soporte final</span>
+          <input name="entregable" defaultValue={tarea.entregable_soporte_url ?? ""} className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
         </label>
         <div className="mt-5 flex justify-end gap-2">
           <button type="button" onClick={onClose} className="rounded-md px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-100">
@@ -984,15 +990,22 @@ function DetailModal({
   profiles,
   profesionales,
   empresas,
+  procesos,
+  actividadesCatalogo,
   onClose,
 }: {
   tarea: Tarea;
   profiles: Profile[];
   profesionales: Profesional[];
   empresas: Empresa[];
+  procesos: Proceso[];
+  actividadesCatalogo: ActividadCatalogo[];
   onClose: () => void;
 }) {
   const empresaNombre = empresas.find((e) => e.id === tarea.empresa_atendida_id)?.nombre;
+  const procesoNombre = procesos.find((p) => p.codigo === tarea.proceso_codigo)?.nombre;
+  const actividadCatalogo = actividadesCatalogo.find((a) => a.id === tarea.catalogo_actividad_id);
+  const calidad = tarea.calidad_pct ? `${tarea.calidad_pct / 20}/5 · ${tarea.calidad_pct}%` : "Pendiente de calificación";
   return (
     <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} className="max-h-[90vh] w-full max-w-lg overflow-auto rounded-lg bg-white p-6 shadow-lg">
@@ -1000,30 +1013,29 @@ function DetailModal({
           <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${PRIORIDAD_CLASS[tarea.prioridad]}`}>
             {tarea.prioridad}
           </span>
-          <span className="text-xs text-neutral-400">{tarea.estado}</span>
         </div>
-        <h2 className="mb-3 text-lg font-semibold text-emerald-900">{tarea.titulo}</h2>
+        <h2 className="mb-3 text-lg font-semibold text-emerald-900">Detalle de la tarea</h2>
         <div>
-          <DetailRow label="Descripción" value={tarea.descripcion} />
-          <DetailRow label="Instrucciones" value={tarea.instrucciones} />
+          <DetailRow label="Tarea / resultado esperado" value={tarea.titulo} />
+          <DetailRow
+            label="Actividad del mapa de procesos"
+            value={actividadCatalogo ? `${actividadCatalogo.codigo} · ${actividadCatalogo.subproceso}` : "Actividad no catalogada"}
+          />
           <DetailRow label="Cliente" value={tarea.clientes?.nombre} />
           <DetailRow label="Empresa atendida" value={empresaNombre} />
           <DetailRow label="Proyecto" value={tarea.proyectos?.nombre} />
-          <DetailRow label="Fecha límite" value={tarea.fecha_limite} />
+          <DetailRow label="Proceso" value={tarea.proceso_codigo ? `${tarea.proceso_codigo} · ${procesoNombre ?? ""}` : null} />
           <DetailRow label="Responsable" value={asignadoLabel(tarea, profiles, profesionales)} />
-          <DetailRow
-            label="Horas"
-            value={
-              tarea.horas_estimadas || tarea.horas_reales > 0
-                ? `${Number(tarea.horas_reales).toFixed(1)}h${tarea.horas_estimadas ? ` / ${tarea.horas_estimadas}h est.` : ""}`
-                : null
-            }
-          />
-          <DetailRow label="Entregable requerido" value={tarea.entregable_requerido} />
-          <DetailRow label="Entregable / soporte final" value={tarea.entregable_soporte_url} />
-          <DetailRow label="Entregable entregado" value={tarea.entregable} />
-          <DetailRow label="Observaciones de publicación" value={tarea.notas_publicacion} />
-          <DetailRow label="Observaciones de cierre" value={tarea.notas} />
+          <DetailRow label="Fecha de entrega" value={tarea.fecha_limite} />
+          <DetailRow label="Descripción" value={tarea.descripcion} />
+          <DetailRow label="Instrucciones" value={tarea.instrucciones} />
+          <DetailRow label="Entregables requeridos" value={tarea.entregable_requerido} />
+          <DetailRow label="Entregable / soporte final" value={tarea.entregable_soporte_url || tarea.entregable} />
+          <DetailRow label="Observaciones" value={tarea.notas_publicacion} />
+          <DetailRow label="Estado" value={tarea.estado} />
+          <DetailRow label="Tiempo consolidado / acumulado" value={`${Number(tarea.horas_reales).toFixed(1)}h`} />
+          <DetailRow label="Calidad" value={calidad} />
+          <DetailRow label="Origen" value="Banco de tareas" />
         </div>
         <div className="mt-5 flex justify-end">
           <button onClick={onClose} className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
