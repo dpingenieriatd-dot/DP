@@ -38,15 +38,17 @@ export default async function GestionInicioPage({
   const metricaProyecto = (proyectoId: string) => {
     const pre = (presupuestos ?? []).filter((p) => p.proyecto_id === proyectoId);
     let valor = 0;
+    let costoVigente = 0;
     let utilidad = 0;
     for (const p of pre) {
       const f = calcularPresupuesto(p);
       const items = (costos ?? []).filter((c) => c.presupuesto_id === p.id);
       const control = calcularControlCostos(items, f.valorCotizado, f.admin, f.iva);
       valor += f.valorCotizado;
+      costoVigente += control.plan;
       utilidad += control.gananciaActual;
     }
-    return { valor, utilidad };
+    return { valor, costoVigente, utilidad };
   };
 
   const todos = (proyectos ?? []).map((p) => ({ ...p, _fecha: fechaProyecto(p), ...metricaProyecto(p.id) }));
@@ -189,6 +191,7 @@ export default async function GestionInicioPage({
                 <th className="px-3 py-2">Fecha</th>
                 <th className="px-3 py-2">Estado</th>
                 <th className="px-3 py-2 text-right">Valor aprobado</th>
+                <th className="px-3 py-2 text-right">Costo vigente</th>
                 <th className="px-3 py-2 text-right">Utilidad</th>
               </tr>
             </thead>
@@ -202,12 +205,13 @@ export default async function GestionInicioPage({
                   <td className="px-3 py-2">{p._fecha}</td>
                   <td className="px-3 py-2">{p.estado}</td>
                   <td className="px-3 py-2 text-right">{money.format(p.valor)}</td>
+                  <td className="px-3 py-2 text-right">{money.format(p.costoVigente)}</td>
                   <td className={`px-3 py-2 text-right ${p.utilidad < 0 ? "text-red-600" : ""}`}>{money.format(p.utilidad)}</td>
                 </tr>
               ))}
               {delPeriodo.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-3 py-8 text-center text-neutral-400">
+                  <td colSpan={9} className="px-3 py-8 text-center text-neutral-400">
                     No hay proyectos para el filtro seleccionado.
                   </td>
                 </tr>
