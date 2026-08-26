@@ -15,7 +15,6 @@ export default async function Page({
   ]);
 
   const fields: Field[] = [
-    { key: "nombre", label: "Empresa atendida", required: true },
     {
       key: "cliente_id",
       label: "Cliente",
@@ -23,17 +22,18 @@ export default async function Page({
       optionEntries: (clientes ?? []).map((c) => ({ value: c.id, label: c.nombre })),
       linkKey: "_cliente_href",
     },
+    { key: "nombre", label: "Empresa atendida", required: true },
     { key: "nit", label: "NIT" },
     { key: "sector", label: "Sector" },
+    { key: "direccion", label: "Dirección" },
     { key: "contacto", label: "Contacto" },
     { key: "cargo", label: "Cargo" },
     { key: "correo", label: "Correo del contacto", type: "email" },
     { key: "telefono", label: "Teléfono del contacto" },
-    { key: "direccion", label: "Dirección" },
-    { key: "ciudad", label: "Ciudad" },
     { key: "asesor", label: "Nombre del asesor" },
     { key: "telefono_asesor", label: "Teléfono del asesor" },
     { key: "correo_asesor", label: "Correo electrónico del asesor", type: "email" },
+    { key: "ciudad", label: "Ciudad" },
     { key: "estado", label: "Estado", type: "select", options: ["Activo", "Inactivo"] },
     { key: "notas", label: "Observaciones", type: "textarea" },
   ];

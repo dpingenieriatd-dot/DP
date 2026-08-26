@@ -6,16 +6,16 @@ import { createCliente, updateCliente, deleteCliente } from "./actions";
 const fields: Field[] = [
   { key: "codigo", label: "Código" },
   { key: "nombre", label: "Nombre", required: true },
+  { key: "nit", label: "NIT" },
   { key: "tipo", label: "Tipo", type: "select", options: ["Empresa privada", "Empresa pública", "Empresa mixta", "Persona natural"] },
   { key: "sector", label: "Sector" },
-  { key: "nit", label: "NIT" },
   { key: "contacto", label: "Contacto" },
-  { key: "nombre_asesor", label: "Nombre del asesor" },
-  { key: "telefono", label: "Teléfono" },
   { key: "correo", label: "Correo", type: "email" },
-  { key: "direccion", label: "Dirección" },
+  { key: "telefono", label: "Teléfono" },
   { key: "ciudad", label: "Ciudad" },
   { key: "estado", label: "Estado", type: "select", options: ["Activo", "Inactivo"] },
+  { key: "nombre_asesor", label: "Nombre del asesor" },
+  { key: "direccion", label: "Dirección" },
   { key: "notas", label: "Observaciones", type: "textarea" },
 ];
 
