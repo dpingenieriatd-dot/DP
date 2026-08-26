@@ -5,20 +5,18 @@ import { PresupuestosList } from "./list";
 export default async function Page() {
   const supabase = await createClient();
 
-  const [{ data: presupuestos }, { data: proyectos }, { data: costos }, { data: clientes }] = await Promise.all([
+  const [{ data: presupuestos }, { data: proyectos }, { data: costos }, { data: clientes }, { data: cotizaciones }] = await Promise.all([
     supabase.from("presupuestos").select("*").order("nombre"),
     supabase.from("proyectos").select("id, codigo, nombre, cliente_id").eq("archivado", false).order("nombre"),
     supabase.from("presupuesto_costos").select("presupuesto_id, presupuestado, real"),
     supabase.from("clientes").select("id, nombre, nit"),
+    supabase.from("cotizaciones").select("id, codigo"),
   ]);
 
-  const proyectoNombre = (id: string) => {
-    const p = proyectos?.find((p) => p.id === id);
-    return p ? `${p.codigo ? p.codigo + " · " : ""}${p.nombre}` : "—";
-  };
+  const proyectoDe = (id: string) => proyectos?.find((p) => p.id === id) ?? null;
 
   const clienteDeProyecto = (proyectoId: string) => {
-    const p = proyectos?.find((p) => p.id === proyectoId);
+    const p = proyectoDe(proyectoId);
     return clientes?.find((c) => c.id === p?.cliente_id) ?? null;
   };
 
@@ -26,9 +24,20 @@ export default async function Page() {
     const f = calcularPresupuesto(pre);
     const items = (costos ?? []).filter((c) => c.presupuesto_id === pre.id);
     const control = calcularControlCostos(items, f.valorCotizado, f.admin, f.iva);
+    const proyecto = proyectoDe(pre.proyecto_id);
     const cliente = clienteDeProyecto(pre.proyecto_id);
-    return { pre, f, control, proyecto: proyectoNombre(pre.proyecto_id), cliente: cliente?.nombre ?? "—", nit: cliente?.nit ?? "—" };
+    const cotizacion = cotizaciones?.find((c) => c.id === pre.cotizacion_id);
+    return {
+      pre,
+      f,
+      control,
+      proyectoCodigo: proyecto?.codigo || "—",
+      proyectoNombre: proyecto?.nombre || "—",
+      cotizacionCodigo: cotizacion?.codigo || "—",
+      cliente: cliente?.nombre ?? "—",
+      nit: cliente?.nit ?? "—",
+    };
   });
 
-  return <PresupuestosList filas={filas} proyectos={proyectos ?? []} />;
+  return <PresupuestosList filas={filas} />;
 }
