@@ -2,19 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { calificarCalidad } from "../tareas/actions";
+import { DetailModal, type Tarea, type Profile, type Empresa, type Proceso, type ActividadCatalogo, type AgendaBloque } from "../tareas/board";
 import { KpiCard } from "@/components/kpi-card";
 import { Topbar } from "@/components/topbar";
 import { ResponsableFiltro } from "@/components/responsable-filtro";
-
-type Tarea = {
-  id: string;
-  titulo: string;
-  responsable: string | null;
-  fecha_cierre: string | null;
-  horas_reales: number;
-  calidad_pct: number | null;
-};
-type Profile = { id: string; full_name: string | null; email: string | null };
 
 const ESCALA = [
   { valor: 100, label: "5 = 100%", texto: "Cumple completamente, sin correcciones." },
@@ -31,18 +22,41 @@ function qualityText(pct: number | null) {
 export function EfectividadList({
   tareas,
   profiles,
+  empresas,
+  procesos,
+  actividadesCatalogo,
+  agendaBloques,
   isAdmin,
   userLabel,
   filtro,
 }: {
   tareas: Tarea[];
   profiles: Profile[];
+  empresas: Empresa[];
+  procesos: Proceso[];
+  actividadesCatalogo: ActividadCatalogo[];
+  agendaBloques: AgendaBloque[];
   isAdmin: boolean;
   userLabel: string | null;
   filtro: string;
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [detalle, setDetalle] = useState<Tarea | null>(null);
+  const [seleccion, setSeleccion] = useState<Record<string, string>>({});
+
+  function valorSeleccionado(t: Tarea) {
+    return seleccion[t.id] ?? (t.calidad_pct != null ? String(t.calidad_pct) : "");
+  }
+
+  function guardarCalidad(t: Tarea) {
+    const calidad = Number(valorSeleccionado(t));
+    if (!calidad) return;
+    startTransition(async () => {
+      const r = await calificarCalidad(t.id, calidad);
+      if (r?.error) setError(r.error);
+    });
+  }
 
   const nombreResponsable = (id: string | null) => {
     const p = profiles.find((p) => p.id === id);
@@ -83,7 +97,7 @@ export function EfectividadList({
           <KpiCard label="Tareas terminadas" value={tareas.length} color="neutral" />
           <KpiCard label="Pendientes de calidad" value={pendientes} subtitle="Efectividad provisional" color="amber" />
           <KpiCard label="Calificadas" value={rated} subtitle="Efectividad final" color="blue" />
-          <KpiCard label="Calidad promedio" value={promedio === null ? "—" : `${promedio}%`} subtitle="Solo tareas calificadas" color="emerald" />
+          <KpiCard label="Calidad promedio" value={promedio === null ? "—" : `${promedio}%`} subtitle="Solo tareas calificadas" color="neutral" />
         </div>
 
         <div className="mt-6 overflow-auto rounded-lg border border-neutral-200 bg-white">
@@ -109,16 +123,9 @@ export function EfectividadList({
                   <td className="px-4 py-3">
                     {isAdmin ? (
                       <select
-                        defaultValue={t.calidad_pct ?? ""}
+                        value={valorSeleccionado(t)}
                         disabled={pending}
-                        onChange={(e) => {
-                          const calidad = Number(e.target.value);
-                          if (!calidad) return;
-                          startTransition(async () => {
-                            const r = await calificarCalidad(t.id, calidad);
-                            if (r?.error) setError(r.error);
-                          });
-                        }}
+                        onChange={(e) => setSeleccion((s) => ({ ...s, [t.id]: e.target.value }))}
                         className="rounded-md border border-neutral-300 px-2 py-1 text-xs"
                       >
                         <option value="">Pendiente</option>
@@ -147,8 +154,18 @@ export function EfectividadList({
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    {!isAdmin && (
-                      <span className="text-xs text-neutral-400">Ver desde Finalizadas y archivadas</span>
+                    {isAdmin ? (
+                      <button
+                        onClick={() => guardarCalidad(t)}
+                        disabled={pending || !valorSeleccionado(t)}
+                        className="rounded-md border border-neutral-300 px-2 py-1 text-xs font-medium text-neutral-600 hover:bg-neutral-100 disabled:opacity-50"
+                      >
+                        Guardar
+                      </button>
+                    ) : (
+                      <button onClick={() => setDetalle(t)} className="text-xs font-medium text-emerald-700 hover:underline">
+                        Ver
+                      </button>
                     )}
                   </td>
                 </tr>
@@ -164,6 +181,19 @@ export function EfectividadList({
           </table>
         </div>
       </div>
+
+      {detalle && (
+        <DetailModal
+          tarea={detalle}
+          profiles={profiles}
+          profesionales={[]}
+          empresas={empresas}
+          procesos={procesos}
+          actividadesCatalogo={actividadesCatalogo}
+          agendaBloque={agendaBloques.find((b) => b.tarea_id === detalle.id) ?? null}
+          onClose={() => setDetalle(null)}
+        />
+      )}
     </div>
   );
 }
