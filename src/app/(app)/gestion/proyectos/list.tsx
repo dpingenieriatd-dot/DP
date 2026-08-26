@@ -12,6 +12,8 @@ type Fila = {
   empresa: string;
   responsable: string;
   cotizacionCodigo: string;
+  valorAprobado: number;
+  costoVigente: number;
   numPresupuestos: number;
   gananciaTotal: number;
   viableTodos: boolean | null;
@@ -121,14 +123,19 @@ export function ProyectosList({
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">NIT</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Empresa atendida</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Responsable</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Mes inicio</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Mes cierre</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Presupuestos</th>
-              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Ganancia estimada</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Valor aprobado</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Costo vigente</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Utilidad vigente</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Estado</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2" />
             </tr>
           </thead>
           <tbody>
-            {visibles.map(({ proy, cliente, nitCliente, empresa, responsable, cotizacionCodigo, numPresupuestos, gananciaTotal, viableTodos }) => (
+            {visibles.map(
+              ({ proy, cliente, nitCliente, empresa, responsable, cotizacionCodigo, valorAprobado, costoVigente, numPresupuestos, gananciaTotal, viableTodos }) => (
               <tr key={proy.id} className="border-t border-neutral-100 hover:bg-neutral-50">
                 <td className="px-3 py-2">
                   <Link href={`/gestion/proyectos/${proy.id}`} className="font-medium text-emerald-700 hover:underline">
@@ -141,6 +148,8 @@ export function ProyectosList({
                 <td className="px-3 py-2 text-neutral-500">{nitCliente}</td>
                 <td className="px-3 py-2">{empresa}</td>
                 <td className="px-3 py-2">{responsable}</td>
+                <td className="px-3 py-2 text-neutral-500">{proy.fecha_inicio ? proy.fecha_inicio.slice(0, 7) : "—"}</td>
+                <td className="px-3 py-2 text-neutral-500">{proy.fecha_fin ? proy.fecha_fin.slice(0, 7) : "—"}</td>
                 <td className="px-3 py-2">
                   {numPresupuestos}{" "}
                   {viableTodos !== null && (
@@ -149,6 +158,8 @@ export function ProyectosList({
                     </span>
                   )}
                 </td>
+                <td className="px-3 py-2 text-right">{money.format(valorAprobado)}</td>
+                <td className="px-3 py-2 text-right">{money.format(costoVigente)}</td>
                 <td className={`px-3 py-2 text-right ${gananciaTotal < 0 ? "text-red-600" : ""}`}>{money.format(gananciaTotal)}</td>
                 <td className="px-3 py-2">{proy.estado}</td>
                 <td className="whitespace-nowrap px-3 py-2 text-right">
@@ -177,10 +188,11 @@ export function ProyectosList({
                   )}
                 </td>
               </tr>
-            ))}
+              )
+            )}
             {visibles.length === 0 && (
               <tr>
-                <td colSpan={11} className="px-3 py-8 text-center text-neutral-400">
+                <td colSpan={15} className="px-3 py-8 text-center text-neutral-400">
                   {filas.length === 0 ? "No hay proyectos registrados." : "Ningún registro coincide con los filtros."}
                 </td>
               </tr>
