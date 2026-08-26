@@ -37,6 +37,7 @@ type Tarea = {
   notas_publicacion: string | null;
   publicado_por: string | null;
   responsable: string | null;
+  responsable_externo_id: string | null;
   estado: "Disponible" | "En proceso" | "Pausada" | "Terminada";
   horas_estimadas: number | null;
   horas_reales: number;
@@ -50,9 +51,10 @@ type Tarea = {
 type Profile = { id: string; full_name: string | null; email: string | null };
 type Cliente = { id: string; nombre: string };
 type Proyecto = { id: string; codigo: string | null; nombre: string };
-type Empresa = { id: string; nombre: string };
+type Empresa = { id: string; nombre: string; cliente_id: string | null };
 type Proceso = { codigo: string; nombre: string };
 type ActividadCatalogo = { id: string; codigo: string; subproceso: string; descripcion: string | null; responsable_sugerido: string | null };
+type Profesional = { id: string; nombre: string; perfil: string | null; especialidad: string | null };
 type TimerActivo = { id: string; tarea_id: string; inicio: string } | null;
 
 const PRIORIDAD_CLASS: Record<string, string> = {
@@ -67,6 +69,22 @@ function nombreDe(profiles: Profile[], id: string | null) {
   return p?.full_name || p?.email || "—";
 }
 
+function nombreExterno(profesionales: Profesional[], id: string | null) {
+  if (!id) return null;
+  const p = profesionales.find((p) => p.id === id);
+  return p ? `${p.nombre}${p.perfil ? ` · ${p.perfil}` : ""}` : "—";
+}
+
+function isExternalTask(t: Tarea) {
+  return !!t.responsable_externo_id;
+}
+
+/** Etiqueta de responsable, sin importar si es equipo interno o profesional externo. */
+function asignadoLabel(t: Tarea, profiles: Profile[], profesionales: Profesional[]) {
+  if (t.responsable_externo_id) return nombreExterno(profesionales, t.responsable_externo_id);
+  return nombreDe(profiles, t.responsable);
+}
+
 export function TaskBoard({
   tareas,
   profiles,
@@ -75,6 +93,7 @@ export function TaskBoard({
   empresas,
   actividadesCatalogo,
   procesos,
+  profesionales,
   currentUserId,
   timerActivo,
   isAdmin,
@@ -87,6 +106,7 @@ export function TaskBoard({
   empresas: Empresa[];
   actividadesCatalogo: ActividadCatalogo[];
   procesos: Proceso[];
+  profesionales: Profesional[];
   currentUserId: string | null;
   timerActivo: TimerActivo;
   isAdmin: boolean;
@@ -179,7 +199,7 @@ export function TaskBoard({
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
         <Column title="Disponibles" count={disponibles.length}>
           {disponibles.map((t) => (
-            <Card key={t.id} t={t} profiles={profiles}>
+            <Card key={t.id} t={t} profiles={profiles} profesionales={profesionales}>
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setTomando(t)}
@@ -213,58 +233,85 @@ export function TaskBoard({
         <Column title="En proceso" count={enProceso.length}>
           {enProceso.map((t) => {
             const esMia = t.responsable === currentUserId;
+            const externa = isExternalTask(t);
             const corriendo = timerActivo?.tarea_id === t.id;
             return (
-              <Card key={t.id} t={t} profiles={profiles}>
-                {corriendo && (
-                  <div className="mb-2 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800">
-                    <span>⏱ Cronómetro activo</span>
-                    <span className="ml-auto font-mono font-semibold">{elapsed}</span>
+              <Card key={t.id} t={t} profiles={profiles} profesionales={profesionales}>
+                {externa && isAdmin && (
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setFinishing(t)}
+                      className="rounded-md bg-emerald-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800"
+                    >
+                      ✓ Terminar
+                    </button>
+                    <button
+                      onClick={() => setDetalle(t)}
+                      className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-100"
+                    >
+                      Ver detalles
+                    </button>
                   </div>
                 )}
-                <div className="flex flex-wrap gap-2">
-                  {esMia && (
-                    <>
-                      {corriendo ? (
-                        <button
-                          onClick={() => run(() => pausarTarea(timerActivo!.id))}
-                          disabled={pending}
-                          className="rounded-md bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-200 disabled:opacity-60"
-                        >
-                          ⏸ Pausar
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => run(() => iniciarTiempo(t.id))}
-                          disabled={pending || !!timerActivo}
-                          className="rounded-md bg-neutral-100 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-200 disabled:opacity-60"
-                        >
-                          ▶ Tiempo
-                        </button>
-                      )}
-                      <button
-                        onClick={() => setFinishing(t)}
-                        className="rounded-md bg-emerald-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800"
-                      >
-                        ✓ Terminar
-                      </button>
-                      <button
-                        onClick={() => run(() => liberarTarea(t.id))}
-                        disabled={pending}
-                        className="rounded-md px-3 py-1.5 text-xs text-neutral-500 hover:underline"
-                      >
-                        Liberar
-                      </button>
-                    </>
-                  )}
+                {externa && !isAdmin && (
                   <button
                     onClick={() => setDetalle(t)}
                     className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-100"
                   >
                     Ver detalles
                   </button>
-                  {!esMia && <span className="text-xs text-neutral-400">Asignada, sin más acciones para ti</span>}
-                </div>
+                )}
+                {!externa && corriendo && (
+                  <div className="mb-2 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800">
+                    <span>⏱ Cronómetro activo</span>
+                    <span className="ml-auto font-mono font-semibold">{elapsed}</span>
+                  </div>
+                )}
+                {!externa && (
+                  <div className="flex flex-wrap gap-2">
+                    {esMia && (
+                      <>
+                        {corriendo ? (
+                          <button
+                            onClick={() => run(() => pausarTarea(timerActivo!.id))}
+                            disabled={pending}
+                            className="rounded-md bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-200 disabled:opacity-60"
+                          >
+                            ⏸ Pausar
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => run(() => iniciarTiempo(t.id))}
+                            disabled={pending || !!timerActivo}
+                            className="rounded-md bg-neutral-100 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-200 disabled:opacity-60"
+                          >
+                            ▶ Tiempo
+                          </button>
+                        )}
+                        <button
+                          onClick={() => setFinishing(t)}
+                          className="rounded-md bg-emerald-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800"
+                        >
+                          ✓ Terminar
+                        </button>
+                        <button
+                          onClick={() => run(() => liberarTarea(t.id))}
+                          disabled={pending}
+                          className="rounded-md px-3 py-1.5 text-xs text-neutral-500 hover:underline"
+                        >
+                          Liberar
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={() => setDetalle(t)}
+                      className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-100"
+                    >
+                      Ver detalles
+                    </button>
+                    {!esMia && <span className="text-xs text-neutral-400">Asignada, sin más acciones para ti</span>}
+                  </div>
+                )}
               </Card>
             );
           })}
@@ -274,7 +321,7 @@ export function TaskBoard({
           {pausadas.map((t) => {
             const esMia = t.responsable === currentUserId;
             return (
-              <Card key={t.id} t={t} profiles={profiles}>
+              <Card key={t.id} t={t} profiles={profiles} profesionales={profesionales}>
                 <div className="flex flex-wrap gap-2">
                   {esMia && (
                     <>
@@ -307,7 +354,7 @@ export function TaskBoard({
 
         <Column title="Terminadas" count={terminadas.length}>
           {terminadas.map((t) => (
-            <Card key={t.id} t={t} profiles={profiles}>
+            <Card key={t.id} t={t} profiles={profiles} profesionales={profesionales}>
               {isAdmin && <CalidadRating tarea={t} onRate={(c) => run(() => calificarCalidad(t.id, c))} disabled={pending} />}
               <div className="flex flex-wrap gap-2">
                 <button
@@ -332,7 +379,9 @@ export function TaskBoard({
         </Column>
       </div>
 
-      {detalle && <DetailModal tarea={detalle} profiles={profiles} empresas={empresas} onClose={() => setDetalle(null)} />}
+      {detalle && (
+        <DetailModal tarea={detalle} profiles={profiles} profesionales={profesionales} empresas={empresas} onClose={() => setDetalle(null)} />
+      )}
 
       {tomando && (
         <TomarModal
@@ -373,6 +422,7 @@ export function TaskBoard({
           proyectos={proyectos}
           empresas={empresas}
           profiles={profiles}
+          profesionales={profesionales}
           actividadesCatalogo={actividadesCatalogo}
           procesos={procesos}
           onClose={() => setCreateOpen(false)}
@@ -450,7 +500,18 @@ function Column({ title, count, children }: { title: string; count: number; chil
   );
 }
 
-function Card({ t, profiles, children }: { t: Tarea; profiles: Profile[]; children?: React.ReactNode }) {
+function Card({
+  t,
+  profiles,
+  profesionales,
+  children,
+}: {
+  t: Tarea;
+  profiles: Profile[];
+  profesionales: Profesional[];
+  children?: React.ReactNode;
+}) {
+  const externa = isExternalTask(t);
   return (
     <div className="rounded-md border border-neutral-200 bg-white p-3 shadow-sm">
       <span className={`mb-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${PRIORIDAD_CLASS[t.prioridad]}`}>
@@ -461,8 +522,15 @@ function Card({ t, profiles, children }: { t: Tarea; profiles: Profile[]; childr
         {t.clientes?.nombre && <div>Cliente: {t.clientes.nombre}</div>}
         {t.proyectos?.nombre && <div>Proyecto: {t.proyectos.nombre}</div>}
         {t.fecha_limite && <div>Vence: {t.fecha_limite}</div>}
-        {t.responsable && <div>Responsable: {nombreDe(profiles, t.responsable)}</div>}
-        {(t.horas_estimadas || t.horas_reales > 0) && (
+        {externa ? (
+          <div>
+            👤 Profesional externo: {nombreExterno(profesionales, t.responsable_externo_id)}
+            <div className="text-neutral-400">Seguimiento administrativo · sin cronómetro</div>
+          </div>
+        ) : (
+          t.responsable && <div>Responsable: {nombreDe(profiles, t.responsable)}</div>
+        )}
+        {!externa && (t.horas_estimadas || t.horas_reales > 0) && (
           <div>
             Horas: {Number(t.horas_reales).toFixed(1)}h{t.horas_estimadas ? ` / ${t.horas_estimadas}h est.` : ""}
           </div>
@@ -511,6 +579,7 @@ function CreateModal({
   proyectos,
   empresas,
   profiles,
+  profesionales,
   actividadesCatalogo,
   procesos,
   onClose,
@@ -521,6 +590,7 @@ function CreateModal({
   proyectos: Proyecto[];
   empresas: Empresa[];
   profiles: Profile[];
+  profesionales: Profesional[];
   actividadesCatalogo: ActividadCatalogo[];
   procesos: Proceso[];
   onClose: () => void;
@@ -530,10 +600,15 @@ function CreateModal({
   const [catalogoLocal, setCatalogoLocal] = useState(actividadesCatalogo);
   const [catalogoId, setCatalogoId] = useState("");
   const [titulo, setTitulo] = useState("");
-  const [responsableId, setResponsableId] = useState("");
-  const actividad = catalogoLocal.find((a) => a.id === catalogoId);
-
+  const [descripcion, setDescripcion] = useState("");
   const [procesoCodigo, setProcesoCodigo] = useState("");
+  const [clienteId, setClienteId] = useState("");
+  const [empresaId, setEmpresaId] = useState("");
+  // "INT|<id de profile>" o "EXT|<id de profesional>" — un solo select para equipo interno
+  // y profesionales externos, igual que el HTML de referencia.
+  const [responsableValue, setResponsableValue] = useState("");
+  const [estado, setEstado] = useState("Disponible");
+  const actividad = catalogoLocal.find((a) => a.id === catalogoId);
 
   function elegirActividad(id: string) {
     setCatalogoId(id);
@@ -541,8 +616,13 @@ function CreateModal({
     if (a) {
       setTitulo(`${a.codigo}_${a.subproceso}`);
       setProcesoCodigo(a.codigo);
+      if (!descripcion.trim() && a.descripcion) setDescripcion(a.descripcion);
     }
   }
+
+  const responsableInternoId = responsableValue.startsWith("INT|") ? responsableValue.slice(4) : "";
+  const responsableExternoId = responsableValue.startsWith("EXT|") ? responsableValue.slice(4) : "";
+  const empresasDelCliente = clienteId ? empresas.filter((e) => e.cliente_id === clienteId) : empresas;
 
   return (
     <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
@@ -554,7 +634,7 @@ function CreateModal({
         <h2 className="mb-4 text-lg font-semibold text-emerald-900">Publicar tarea</h2>
         <div className="space-y-3">
           <label className="block text-sm">
-            <span className="mb-1 block text-neutral-600">Actividad del mapa de procesos</span>
+            <span className="mb-1 block text-neutral-600">Actividad del mapa de procesos *</span>
             <select
               name="catalogo_actividad_id"
               value={catalogoId}
@@ -568,9 +648,12 @@ function CreateModal({
                 </option>
               ))}
             </select>
+            <span className="mt-1 block text-xs text-neutral-500">
+              Selecciona una actividad de la lista. El proceso y la descripción se completan automáticamente.
+            </span>
             {actividad && (
               <span className="mt-1 block text-xs text-neutral-500">
-                {actividad.descripcion || "Sin descripción"}
+                {actividad.codigo} · {actividad.subproceso}
                 {actividad.responsable_sugerido ? ` · Responsable sugerido: ${actividad.responsable_sugerido}` : ""}
               </span>
             )}
@@ -582,20 +665,34 @@ function CreateModal({
               }}
             />
           </label>
-          <label className="block text-sm">
-            <span className="mb-1 block text-neutral-600">Tarea por realizar</span>
-            <textarea
-              name="titulo"
-              required
-              value={titulo}
-              onChange={(e) => setTitulo(e.target.value)}
-              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
-            />
-          </label>
+          {catalogoId ? (
+            <input type="hidden" name="titulo" value={titulo} />
+          ) : (
+            <label className="block text-sm">
+              <span className="mb-1 block text-neutral-600">Actividad no catalogada *</span>
+              <input
+                name="titulo"
+                required
+                value={titulo}
+                onChange={(e) => setTitulo(e.target.value)}
+                placeholder="Escribe la actividad no catalogada"
+                className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+              />
+            </label>
+          )}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block text-sm">
-              <span className="mb-1 block text-neutral-600">Cliente</span>
-              <select name="cliente_id" required defaultValue="" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
+              <span className="mb-1 block text-neutral-600">Cliente *</span>
+              <select
+                name="cliente_id"
+                required
+                value={clienteId}
+                onChange={(e) => {
+                  setClienteId(e.target.value);
+                  setEmpresaId("");
+                }}
+                className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+              >
                 <option value="">Seleccione…</option>
                 {clientes.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -605,7 +702,23 @@ function CreateModal({
               </select>
             </label>
             <label className="block text-sm">
-              <span className="mb-1 block text-neutral-600">Proyecto</span>
+              <span className="mb-1 block text-neutral-600">Empresa atendida</span>
+              <select
+                name="empresa_atendida_id"
+                value={empresaId}
+                onChange={(e) => setEmpresaId(e.target.value)}
+                className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+              >
+                <option value="">Cliente directo / Sin empresa atendida</option>
+                {empresasDelCliente.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.nombre}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block text-neutral-600">Proyecto *</span>
               <select name="proyecto_id" required defaultValue="" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
                 <option value="">Seleccione…</option>
                 {proyectos.map((p) => (
@@ -617,7 +730,7 @@ function CreateModal({
               </select>
             </label>
             <label className="block text-sm">
-              <span className="mb-1 block text-neutral-600">Proceso</span>
+              <span className="mb-1 block text-neutral-600">Proceso *</span>
               <select
                 name="proceso_codigo"
                 required
@@ -633,33 +746,41 @@ function CreateModal({
                 ))}
               </select>
             </label>
-            <label className="block text-sm">
-              <span className="mb-1 block text-neutral-600">Empresa atendida</span>
-              <select name="empresa_atendida_id" defaultValue="" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
-                <option value="">Cliente directo / Sin empresa atendida</option>
-                {empresas.map((e) => (
-                  <option key={e.id} value={e.id}>
-                    {e.nombre}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-sm">
-              <span className="mb-1 block text-neutral-600">Responsable</span>
-              <select
-                name="responsable_id"
-                value={responsableId}
-                onChange={(e) => setResponsableId(e.target.value)}
-                className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
-              >
-                <option value="">Sin asignar / Disponible</option>
+          </div>
+          <label className="block text-sm">
+            <span className="mb-1 block text-neutral-600">Responsable</span>
+            <input type="hidden" name="responsable_id" value={responsableInternoId} />
+            <input type="hidden" name="responsable_externo_id" value={responsableExternoId} />
+            <select
+              value={responsableValue}
+              onChange={(e) => setResponsableValue(e.target.value)}
+              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+            >
+              <option value="">Sin asignar / Disponible</option>
+              <optgroup label="Equipo interno">
                 {profiles.map((p) => (
-                  <option key={p.id} value={p.id}>
+                  <option key={p.id} value={`INT|${p.id}`}>
                     {p.full_name || p.email}
                   </option>
                 ))}
-              </select>
-            </label>
+              </optgroup>
+              {profesionales.length > 0 && (
+                <optgroup label="Profesionales externos · seguimiento administrativo">
+                  {profesionales.map((p) => (
+                    <option key={p.id} value={`EXT|${p.id}`}>
+                      {p.nombre}
+                      {p.perfil ? ` · ${p.perfil}` : ""}
+                      {p.especialidad ? ` · ${p.especialidad}` : ""}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+            </select>
+            <span className="mt-1 block text-xs text-neutral-500">
+              Los profesionales externos provienen del catálogo de Profesionales. No tienen acceso al Banco de tareas ni aparecen en Agenda.
+            </span>
+          </label>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block text-sm">
               <span className="mb-1 block text-neutral-600">Prioridad</span>
               <select name="prioridad" defaultValue="Media" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
@@ -669,46 +790,60 @@ function CreateModal({
               </select>
             </label>
             <label className="block text-sm">
-              <span className="mb-1 block text-neutral-600">Fecha límite</span>
+              <span className="mb-1 block text-neutral-600">Fecha límite *</span>
               <input type="date" name="fecha_limite" required className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
             </label>
             <label className="block text-sm">
               <span className="mb-1 block text-neutral-600">Horas estimadas</span>
-              <input type="number" step="0.5" name="horas_estimadas" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+              <input type="number" step="0.5" min="0" name="horas_estimadas" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
             </label>
-            {responsableId && (
-              <>
-                <label className="block text-sm">
-                  <span className="mb-1 block text-neutral-600">Fecha de inicio (Agenda)</span>
-                  <input
-                    type="date"
-                    name="fecha_inicio_agenda"
-                    defaultValue={new Date().toISOString().slice(0, 10)}
-                    className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
-                  />
-                </label>
-                <label className="block text-sm">
-                  <span className="mb-1 block text-neutral-600">Hora de inicio (Agenda)</span>
-                  <input type="time" name="hora_inicio_agenda" defaultValue="08:00" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
-                </label>
-              </>
-            )}
+            <label className="block text-sm">
+              <span className="mb-1 block text-neutral-600">Fecha de inicio / Agenda</span>
+              <input type="date" name="fecha_inicio_agenda" defaultValue={new Date().toISOString().slice(0, 10)} className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block text-neutral-600">Hora de inicio / Agenda</span>
+              <input type="time" name="hora_inicio_agenda" defaultValue="08:00" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+            </label>
           </div>
           <label className="block text-sm">
             <span className="mb-1 block text-neutral-600">Descripción</span>
-            <textarea name="descripcion" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+            <textarea
+              name="descripcion"
+              value={descripcion}
+              onChange={(e) => setDescripcion(e.target.value)}
+              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+            />
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block text-neutral-600">Instrucciones</span>
+            <span className="mb-1 block text-neutral-600">Instrucciones para el desarrollo</span>
             <textarea name="instrucciones" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block text-neutral-600">Entregable requerido</span>
+            <span className="mb-1 block text-neutral-600">Entregables requeridos</span>
             <textarea name="entregable_requerido" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
           </label>
           <label className="block text-sm">
             <span className="mb-1 block text-neutral-600">Observaciones</span>
             <textarea name="notas_publicacion" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+          </label>
+
+          <div className="mt-2 border-t border-neutral-200 pt-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            Control administrativo
+          </div>
+          <label className="block text-sm">
+            <span className="mb-1 block text-neutral-600">Estado</span>
+            <select
+              name="estado"
+              value={estado}
+              onChange={(e) => setEstado(e.target.value)}
+              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+            >
+              <option>Disponible</option>
+              <option>En proceso</option>
+              <option>Pausada</option>
+              <option>Terminada</option>
+            </select>
           </label>
           <label className="block text-sm">
             <span className="mb-1 block text-neutral-600">Entregable / soporte final</span>
@@ -856,7 +991,19 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
   );
 }
 
-function DetailModal({ tarea, profiles, empresas, onClose }: { tarea: Tarea; profiles: Profile[]; empresas: Empresa[]; onClose: () => void }) {
+function DetailModal({
+  tarea,
+  profiles,
+  profesionales,
+  empresas,
+  onClose,
+}: {
+  tarea: Tarea;
+  profiles: Profile[];
+  profesionales: Profesional[];
+  empresas: Empresa[];
+  onClose: () => void;
+}) {
   const empresaNombre = empresas.find((e) => e.id === tarea.empresa_atendida_id)?.nombre;
   return (
     <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
@@ -875,7 +1022,7 @@ function DetailModal({ tarea, profiles, empresas, onClose }: { tarea: Tarea; pro
           <DetailRow label="Empresa atendida" value={empresaNombre} />
           <DetailRow label="Proyecto" value={tarea.proyectos?.nombre} />
           <DetailRow label="Fecha límite" value={tarea.fecha_limite} />
-          <DetailRow label="Responsable" value={nombreDe(profiles, tarea.responsable)} />
+          <DetailRow label="Responsable" value={asignadoLabel(tarea, profiles, profesionales)} />
           <DetailRow
             label="Horas"
             value={

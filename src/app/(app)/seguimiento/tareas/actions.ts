@@ -14,10 +14,17 @@ export async function crearTarea(formData: FormData) {
   } = await supabase.auth.getUser();
 
   const responsableId = (formData.get("responsable_id") as string) || null;
+  const responsableExternoId = (formData.get("responsable_externo_id") as string) || null;
   const tituloTarea = formData.get("titulo") as string;
   const clienteId = (formData.get("cliente_id") as string) || null;
   const proyectoId = (formData.get("proyecto_id") as string) || null;
   const horasEstimadas = (formData.get("horas_estimadas") as string) || null;
+  const estadoForm = (formData.get("estado") as string) || "Disponible";
+  const asignado = !!(responsableId || responsableExternoId);
+  // Si se asigna un responsable (interno o externo) desde la publicación y no se eligió otro
+  // Estado a mano, la tarea nace tomada (igual que si la hubiera tomado ella misma desde
+  // Disponibles). Si la Directora eligió explícitamente otro Estado, se respeta tal cual.
+  const estadoFinal = asignado && estadoForm === "Disponible" ? "En proceso" : estadoForm;
 
   const { data: nueva, error } = await supabase
     .from("tareas")
@@ -37,18 +44,18 @@ export async function crearTarea(formData: FormData) {
       publicado_por: user?.id ?? null,
       catalogo_actividad_id: formData.get("catalogo_actividad_id") || null,
       proceso_codigo: formData.get("proceso_codigo") || null,
-      // Si se asigna un responsable desde la publicación, la tarea nace tomada por esa
-      // persona (igual que si la hubiera tomado ella misma desde Disponibles).
-      ...(responsableId
-        ? { responsable: responsableId, estado: "En proceso", fecha_toma: new Date().toISOString().slice(0, 10) }
-        : {}),
+      responsable: responsableId,
+      responsable_externo_id: responsableExternoId,
+      estado: estadoFinal,
+      ...(asignado ? { fecha_toma: new Date().toISOString().slice(0, 10) } : {}),
     })
     .select("id")
     .single();
   if (error) return { error: error.message };
 
-  // Misma lógica que tomarTarea: si queda asignada desde el inicio, se crea el bloque de
-  // Agenda de una vez usando la fecha/hora de inicio indicadas en el formulario.
+  // Misma lógica que tomarTarea: si queda asignada desde el inicio a alguien del equipo interno,
+  // se crea el bloque de Agenda de una vez usando la fecha/hora indicadas en el formulario. Los
+  // profesionales externos no tienen acceso a la app ni aparecen en Agenda (no se crea bloque).
   if (responsableId && nueva) {
     const dia = (formData.get("fecha_inicio_agenda") as string) || new Date().toISOString().slice(0, 10);
     const horaInicio = (formData.get("hora_inicio_agenda") as string) || "08:00";
@@ -171,7 +178,11 @@ export async function terminarTarea(id: string, formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) return { error: "No hay sesión activa." };
 
-  const { data: tarea } = await supabase.from("tareas").select("titulo, cliente_id, proyecto_id, responsable").eq("id", id).single();
+  const { data: tarea } = await supabase
+    .from("tareas")
+    .select("titulo, cliente_id, proyecto_id, responsable, responsable_externo_id")
+    .eq("id", id)
+    .single();
   if (!tarea || (tarea.responsable !== user.id && !(await requiereAdmin()))) {
     return { error: "Solo quien tomó la tarea puede terminarla." };
   }
@@ -208,6 +219,8 @@ export async function terminarTarea(id: string, formData: FormData) {
     if (tarea.responsable) {
       const { data: perfil } = await supabase.from("profiles").select("cargo").eq("id", tarea.responsable).single();
       cargo = perfil?.cargo ?? null;
+    } else if (tarea.responsable_externo_id) {
+      cargo = "Profesional externo";
     }
     await supabase.from("actividades").insert({
       fecha: new Date().toISOString().slice(0, 10),

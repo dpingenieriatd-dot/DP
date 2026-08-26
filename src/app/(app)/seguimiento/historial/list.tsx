@@ -13,6 +13,7 @@ type Tarea = {
   clientes?: { nombre: string } | null;
   proyectos?: { nombre: string } | null;
   responsable: string | null;
+  responsable_externo_id: string | null;
   fecha_cierre: string | null;
   horas_reales: number;
   calidad_pct: number | null;
@@ -20,6 +21,7 @@ type Tarea = {
   archivado: boolean;
 };
 type Profile = { id: string; full_name: string | null; email: string | null };
+type Profesional = { id: string; nombre: string; perfil: string | null };
 
 const NIVELES = [
   { valor: 100, label: "5 = 100%" },
@@ -32,6 +34,7 @@ const NIVELES = [
 export function HistorialList({
   tareas,
   profiles,
+  profesionales,
   isAdmin,
   filtroProceso,
   filtroResponsable,
@@ -39,6 +42,7 @@ export function HistorialList({
 }: {
   tareas: Tarea[];
   profiles: Profile[];
+  profesionales: Profesional[];
   isAdmin: boolean;
   currentUserId: string | null;
   filtroProceso: { codigo: string; nombre: string } | null;
@@ -50,8 +54,12 @@ export function HistorialList({
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
 
-  const nombreResponsable = (id: string | null) => {
-    const p = profiles.find((p) => p.id === id);
+  const nombreResponsable = (t: Tarea) => {
+    if (t.responsable_externo_id) {
+      const ext = profesionales.find((p) => p.id === t.responsable_externo_id);
+      return ext ? `${ext.nombre}${ext.perfil ? ` · ${ext.perfil}` : ""} (externo)` : "Profesional externo";
+    }
+    const p = profiles.find((p) => p.id === t.responsable);
     return p ? p.full_name || p.email || "—" : "Sin asignar";
   };
 
@@ -164,7 +172,7 @@ function Tabla({
   title: string;
   sub: string;
   rows: Tarea[];
-  nombreResponsable: (id: string | null) => string;
+  nombreResponsable: (t: Tarea) => string;
   isAdmin: boolean;
   pending: boolean;
   onCalificar?: (id: string, calidad: number) => void;
@@ -198,7 +206,7 @@ function Tabla({
                   {t.clientes?.nombre || t.cliente || "—"}
                   {t.proyectos?.nombre && <div className="text-neutral-400">{t.proyectos.nombre}</div>}
                 </td>
-                <td className="px-3 py-2">{nombreResponsable(t.responsable)}</td>
+                <td className="px-3 py-2">{nombreResponsable(t)}</td>
                 <td className="px-3 py-2">{t.fecha_cierre || "—"}</td>
                 <td className="px-3 py-2">{t.horas_reales?.toFixed(2) ?? "0"}h</td>
                 <td className="px-3 py-2">

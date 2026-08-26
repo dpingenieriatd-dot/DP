@@ -16,12 +16,13 @@ export default async function HistorialPage({ searchParams }: { searchParams: Pr
 
   const [{ data: tareas }, isAdmin, userLabel, {
     data: { user },
-  }, { data: profiles }, { data: procesoInfo }, { data: responsableInfo }] = await Promise.all([
+  }, { data: profiles }, { data: profesionales }, { data: procesoInfo }, { data: responsableInfo }] = await Promise.all([
     query,
     requiereAdmin(),
     getCurrentProfileLabel(),
     supabase.auth.getUser(),
     supabase.from("profiles").select("id, full_name, email"),
+    supabase.from("profesionales").select("id, nombre, perfil"),
     proceso ? supabase.from("procesos").select("nombre").eq("codigo", proceso).single() : Promise.resolve({ data: null }),
     responsable ? supabase.from("profiles").select("full_name, email").eq("id", responsable).single() : Promise.resolve({ data: null }),
   ]);
@@ -30,6 +31,7 @@ export default async function HistorialPage({ searchParams }: { searchParams: Pr
     <HistorialList
       tareas={tareas ?? []}
       profiles={profiles ?? []}
+      profesionales={profesionales ?? []}
       isAdmin={isAdmin}
       currentUserId={user?.id ?? null}
       filtroProceso={proceso ? { codigo: proceso, nombre: procesoInfo?.nombre ?? proceso } : null}

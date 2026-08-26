@@ -17,6 +17,7 @@ export default async function Page() {
     { data: empresas },
     { data: actividadesCatalogo },
     { data: procesos },
+    { data: profesionales },
     { data: timerActivo },
     { data: miPerfil },
     userLabel,
@@ -25,9 +26,10 @@ export default async function Page() {
     supabase.from("profiles").select("id, full_name, email"),
     supabase.from("clientes").select("id, nombre").order("nombre"),
     supabase.from("proyectos").select("id, codigo, nombre").order("nombre"),
-    supabase.from("empresas_atendidas").select("id, nombre").order("nombre"),
+    supabase.from("empresas_atendidas").select("id, nombre, cliente_id").order("nombre"),
     supabase.from("catalogo_actividades").select("id, codigo, subproceso, descripcion, responsable_sugerido").order("codigo"),
     supabase.from("procesos").select("codigo, nombre").order("codigo"),
+    supabase.from("profesionales").select("id, nombre, perfil, especialidad").eq("estado", "Activo").order("nombre"),
     user
       ? supabase
           .from("registros_tiempo")
@@ -49,6 +51,7 @@ export default async function Page() {
       empresas={empresas ?? []}
       actividadesCatalogo={actividadesCatalogo ?? []}
       procesos={procesos ?? []}
+      profesionales={profesionales ?? []}
       currentUserId={user?.id ?? null}
       timerActivo={timerActivo ?? null}
       isAdmin={miPerfil?.role === "admin"}
