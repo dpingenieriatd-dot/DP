@@ -544,7 +544,7 @@ function CreateModal({
       <form
         action={onSubmit}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg rounded-lg bg-white p-6 shadow-lg"
+        className="max-h-[90vh] w-full max-w-lg overflow-auto rounded-lg bg-white p-6 shadow-lg"
       >
         <h2 className="mb-4 text-lg font-semibold text-emerald-900">Publicar tarea</h2>
         <div className="space-y-3">
@@ -839,7 +839,7 @@ function DetailModal({ tarea, profiles, empresas, onClose }: { tarea: Tarea; pro
   const empresaNombre = empresas.find((e) => e.id === tarea.empresa_atendida_id)?.nombre;
   return (
     <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-lg rounded-lg bg-white p-6 shadow-lg">
+      <div onClick={(e) => e.stopPropagation()} className="max-h-[90vh] w-full max-w-lg overflow-auto rounded-lg bg-white p-6 shadow-lg">
         <div className="mb-1 flex items-center gap-2">
           <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${PRIORIDAD_CLASS[tarea.prioridad]}`}>
             {tarea.prioridad}
