@@ -14,11 +14,9 @@ export default async function Page() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: profiles }, { data: clientes }, { data: proyectos }, { data: bloques }, { data: miPerfil }, { data: timerActivo }, userLabel, filtro, { data: registrosAbiertos }] =
+  const [{ data: profiles }, { data: bloques }, { data: miPerfil }, { data: timerActivo }, userLabel, filtro, { data: registrosAbiertos }] =
     await Promise.all([
       supabase.from("profiles").select("id, full_name, email, capacidad_semanal_horas").order("full_name"),
-      supabase.from("clientes").select("id, nombre").order("nombre"),
-      supabase.from("proyectos").select("id, codigo, nombre").order("nombre"),
       supabase
         .from("agenda_bloques")
         .select("*, clientes(nombre), proyectos(nombre), tareas(id, estado, responsable, horas_reales)")
@@ -47,8 +45,6 @@ export default async function Page() {
   return (
     <AgendaGrid
       profiles={profilesFiltrados}
-      clientes={clientes ?? []}
-      proyectos={proyectos ?? []}
       bloques={bloquesFiltrados}
       dias={semana.map((d) => toISODate(d))}
       recordatorioMinutos={miPerfil?.recordatorio_minutos_antes ?? 15}

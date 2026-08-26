@@ -299,7 +299,7 @@ function ActividadModal({
               onChange={(e) => elegirActividad(e.target.value)}
               className="in"
             >
-              <option value="">Otra actividad / no catalogada</option>
+              <option value="">Seleccionar actividad...</option>
               {catalogoLocal.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.codigo} · {a.subproceso}

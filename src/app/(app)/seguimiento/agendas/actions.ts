@@ -6,22 +6,6 @@ import { requiereAdmin } from "@/lib/auth";
 
 const PATH = "/seguimiento/agendas";
 
-export async function crearBloque(formData: FormData) {
-  const supabase = await createClient();
-  const { error } = await supabase.from("agenda_bloques").insert({
-    usuario_id: formData.get("usuario_id"),
-    dia: formData.get("dia"),
-    hora_inicio: formData.get("hora_inicio"),
-    horas: formData.get("horas") || 1,
-    tarea: formData.get("tarea") || null,
-    cliente_id: formData.get("cliente_id") || null,
-    proyecto_id: formData.get("proyecto_id") || null,
-  });
-  if (error) return { error: error.message };
-  revalidatePath(PATH);
-  revalidatePath("/seguimiento/capacidad");
-}
-
 /** Reprograma el bloque de una tarea a nueva fecha/hora — actualiza el mismo registro, nunca crea uno nuevo. */
 export async function reprogramarBloque(tareaId: string, dia: string, horaInicio: string) {
   const supabase = await createClient();

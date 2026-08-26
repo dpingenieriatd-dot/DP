@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { crearBloque, eliminarBloque, actualizarPreferenciasRecordatorio, reprogramarBloque } from "./actions";
+import { eliminarBloque, actualizarPreferenciasRecordatorio, reprogramarBloque } from "./actions";
 import { iniciarTiempo, pausarTarea, reanudarTarea, terminarTarea } from "../tareas/actions";
 import { KpiCard } from "@/components/kpi-card";
 import { Topbar } from "@/components/topbar";
@@ -9,8 +9,6 @@ import { ResponsableFiltro } from "@/components/responsable-filtro";
 import { useTiempoTotal } from "@/lib/use-elapsed";
 
 type Profile = { id: string; full_name: string | null; email: string | null; capacidad_semanal_horas: number };
-type Cliente = { id: string; nombre: string };
-type Proyecto = { id: string; codigo: string | null; nombre: string };
 type TimerActivo = { id: string; tarea_id: string; inicio: string } | null;
 type Bloque = {
   id: string;
@@ -56,8 +54,6 @@ function nombreCorto(fullName: string | null, email: string | null) {
 
 export function AgendaGrid({
   profiles,
-  clientes,
-  proyectos,
   bloques,
   dias,
   recordatorioMinutos,
@@ -71,8 +67,6 @@ export function AgendaGrid({
   registrosAbiertos,
 }: {
   profiles: Profile[];
-  clientes: Cliente[];
-  proyectos: Proyecto[];
   bloques: Bloque[];
   dias: string[];
   recordatorioMinutos: number;
@@ -85,19 +79,10 @@ export function AgendaGrid({
   isAdmin: boolean;
   registrosAbiertos: { id: string; tarea_id: string; inicio: string }[];
 }) {
-  const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [finishing, setFinishing] = useState<{ tareaId: string; titulo: string } | null>(null);
   const [reprogramando, setReprogramando] = useState<{ tareaId: string; titulo: string; dia: string; hora: string } | null>(null);
   const [pending, startTransition] = useTransition();
-
-  function submit(formData: FormData) {
-    startTransition(async () => {
-      const r = await crearBloque(formData);
-      if (r?.error) setError(r.error);
-      else setOpen(false);
-    });
-  }
 
   function del(id: string) {
     startTransition(async () => {
@@ -128,17 +113,7 @@ export function AgendaGrid({
         subtitle="Programación automática y cronómetro sincronizado"
         userLabel={userLabel ?? undefined}
         filter={<ResponsableFiltro profiles={todosLosProfiles} value={filtro} />}
-        actions={
-          <div className="flex items-center gap-2">
-            <RecordatorioSettings minutosInicial={recordatorioMinutos} sonidoInicial={recordatorioSonido} />
-            <button
-              onClick={() => setOpen(true)}
-              className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
-            >
-              + Agregar bloque
-            </button>
-          </div>
-        }
+        actions={<RecordatorioSettings minutosInicial={recordatorioMinutos} sonidoInicial={recordatorioSonido} />}
       />
 
       <div className="flex flex-col p-8 lg:min-h-0 lg:flex-1">
@@ -321,87 +296,6 @@ export function AgendaGrid({
           </tbody>
         </table>
       </div>
-
-      {open && (
-        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpen(false)}>
-          <form
-            action={submit}
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg"
-          >
-            <h2 className="mb-4 text-lg font-semibold text-emerald-900">Agregar bloque a la agenda</h2>
-            <div className="space-y-3">
-              <label className="block text-sm">
-                <span className="mb-1 block text-neutral-600">Persona</span>
-                <select name="usuario_id" required className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
-                  {profiles.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {nombreCorto(p.full_name, p.email)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block text-neutral-600">Día</span>
-                <select name="dia" required className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
-                  {dias.map((d, i) => (
-                    <option key={d} value={d}>
-                      {NOMBRES[i]} ({d}){ES_FIN_DE_SEMANA[i] ? " — extraordinario" : ""}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <label className="block text-sm">
-                  <span className="mb-1 block text-neutral-600">Hora inicio</span>
-                  <input type="time" name="hora_inicio" defaultValue="08:00" required className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
-                </label>
-                <label className="block text-sm">
-                  <span className="mb-1 block text-neutral-600">Duración (horas)</span>
-                  <input type="number" step="0.5" min="0.5" name="horas" defaultValue="2" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
-                </label>
-              </div>
-              <label className="block text-sm">
-                <span className="mb-1 block text-neutral-600">Tarea / actividad</span>
-                <input name="tarea" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
-              </label>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <label className="block text-sm">
-                  <span className="mb-1 block text-neutral-600">Cliente</span>
-                  <select name="cliente_id" defaultValue="" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
-                    <option value="">Seleccione…</option>
-                    {clientes.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.nombre}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block text-sm">
-                  <span className="mb-1 block text-neutral-600">Proyecto</span>
-                  <select name="proyecto_id" defaultValue="" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
-                    <option value="">Seleccione…</option>
-                    {proyectos.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.codigo ? `${p.codigo} · ` : ""}
-                        {p.nombre}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            </div>
-            <div className="mt-5 flex justify-end gap-2">
-              <button type="button" onClick={() => setOpen(false)} className="rounded-md px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-100">
-                Cancelar
-              </button>
-              <button type="submit" disabled={pending} className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60">
-                Agregar
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
 
       {finishing && (
         <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4" onClick={() => setFinishing(null)}>
