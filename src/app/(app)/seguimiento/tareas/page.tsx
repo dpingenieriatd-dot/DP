@@ -24,6 +24,7 @@ export default async function Page() {
     userLabel,
     filtro,
     { data: registrosAbiertos },
+    { data: agendaBloques },
   ] = await Promise.all([
     supabase.from("tareas").select("*, clientes(nombre), proyectos(nombre)").order("created_at", { ascending: false }),
     supabase.from("profiles").select("id, full_name, email"),
@@ -32,7 +33,7 @@ export default async function Page() {
     supabase.from("empresas_atendidas").select("id, nombre, cliente_id").order("nombre"),
     supabase.from("catalogo_actividades").select("id, codigo, subproceso, descripcion, responsable_sugerido").order("codigo"),
     supabase.from("procesos").select("codigo, nombre").order("codigo"),
-    supabase.from("profesionales").select("id, nombre, perfil, especialidad").eq("estado", "Activo").order("nombre"),
+    supabase.from("profesionales").select("id, nombre, perfil, especialidad, ciudad, correo, telefono").eq("estado", "Activo").order("nombre"),
     user
       ? supabase
           .from("registros_tiempo")
@@ -47,6 +48,7 @@ export default async function Page() {
     // Cronómetros abiertos de CUALQUIER persona — para mostrar el tiempo real corriendo en
     // cualquier tarjeta "En proceso", sin importar quién la esté viendo (igual que el HTML).
     supabase.from("registros_tiempo").select("id, tarea_id, inicio").is("fin", null),
+    supabase.from("agenda_bloques").select("tarea_id, dia, hora_inicio"),
   ]);
 
   const tareasFiltradas = filtro ? (tareas ?? []).filter((t) => t.responsable === filtro) : tareas ?? [];
@@ -65,6 +67,7 @@ export default async function Page() {
       currentUserId={user?.id ?? null}
       timerActivo={timerActivo ?? null}
       registrosAbiertos={registrosAbiertos ?? []}
+      agendaBloques={agendaBloques ?? []}
       isAdmin={miPerfil?.role === "admin"}
       userLabel={userLabel}
     />

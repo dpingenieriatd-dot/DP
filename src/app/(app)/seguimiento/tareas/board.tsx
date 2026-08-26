@@ -57,7 +57,8 @@ type Proyecto = { id: string; codigo: string | null; nombre: string };
 type Empresa = { id: string; nombre: string; cliente_id: string | null };
 type Proceso = { codigo: string; nombre: string };
 type ActividadCatalogo = { id: string; codigo: string; subproceso: string; descripcion: string | null; responsable_sugerido: string | null };
-type Profesional = { id: string; nombre: string; perfil: string | null; especialidad: string | null };
+type Profesional = { id: string; nombre: string; perfil: string | null; especialidad: string | null; ciudad?: string | null; correo?: string | null; telefono?: string | null };
+type AgendaBloque = { tarea_id: string; dia: string; hora_inicio: string | null };
 type TimerActivo = { id: string; tarea_id: string; inicio: string } | null;
 
 const PRIORIDAD_CLASS: Record<string, string> = {
@@ -101,6 +102,7 @@ export function TaskBoard({
   currentUserId,
   timerActivo,
   registrosAbiertos,
+  agendaBloques,
   isAdmin,
   userLabel,
 }: {
@@ -116,6 +118,7 @@ export function TaskBoard({
   currentUserId: string | null;
   timerActivo: TimerActivo;
   registrosAbiertos: { id: string; tarea_id: string; inicio: string }[];
+  agendaBloques: AgendaBloque[];
   isAdmin: boolean;
   userLabel: string | null;
 }) {
@@ -126,18 +129,13 @@ export function TaskBoard({
   const [reprogramando, setReprogramando] = useState<Tarea | null>(null);
   const [detalle, setDetalle] = useState<Tarea | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [desde, setDesde] = useState("");
-  const [hasta, setHasta] = useState("");
 
-  const enRango = tareas
-    .filter((t) => !desde || (t.fecha_limite && t.fecha_limite >= desde))
-    .filter((t) => !hasta || (t.fecha_limite && t.fecha_limite <= hasta));
-  const hayFiltros = !!(desde || hasta);
-  const disponibles = enRango.filter((t) => t.estado === "Disponible");
+  const disponibles = tareas.filter((t) => t.estado === "Disponible");
   // El HTML de referencia no separa un carril de "Pausadas" — quedan dentro de "En proceso"
   // con otro set de botones (Continuar/Reprogramar en vez de Iniciar/Pausar/Terminar/Devolver).
-  const enProceso = enRango.filter((t) => t.estado === "En proceso" || t.estado === "Pausada");
-  const terminadas = enRango.filter((t) => t.estado === "Terminada" && !t.archivado);
+  const enProceso = tareas.filter((t) => t.estado === "En proceso" || t.estado === "Pausada");
+  const terminadas = tareas.filter((t) => t.estado === "Terminada" && !t.archivado);
+  const archivadas = tareas.filter((t) => t.archivado).length;
 
   function run(fn: () => Promise<{ error?: string } | void>) {
     startTransition(async () => {
@@ -172,26 +170,6 @@ export function TaskBoard({
 
         <HelpBanner />
 
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          <label className="text-sm text-neutral-600">
-            Vence desde <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} className="ml-1 rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
-          </label>
-          <label className="text-sm text-neutral-600">
-            Vence hasta <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} className="ml-1 rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
-          </label>
-          {hayFiltros && (
-            <button
-              onClick={() => {
-                setDesde("");
-                setHasta("");
-              }}
-              className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 hover:bg-neutral-100"
-            >
-              Limpiar filtro
-            </button>
-          )}
-        </div>
-
         <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <KpiCard label="Disponibles" value={disponibles.length} color="emerald" />
           <KpiCard label="En proceso" value={enProceso.length} color="amber" />
@@ -201,7 +179,7 @@ export function TaskBoard({
             color="blue"
             action={
               <Link href="/seguimiento/historial" className="inline-block rounded-md border border-neutral-300 px-2 py-1 text-xs font-semibold text-neutral-600 hover:bg-neutral-50">
-                Ver finalizadas y archivadas
+                Ver finalizadas y archivadas ({archivadas})
               </Link>
             }
           />
@@ -362,6 +340,7 @@ export function TaskBoard({
           empresas={empresas}
           procesos={procesos}
           actividadesCatalogo={actividadesCatalogo}
+          agendaBloque={agendaBloques.find((b) => b.tarea_id === detalle.id) ?? null}
           onClose={() => setDetalle(null)}
         />
       )}
@@ -439,17 +418,19 @@ export function TaskBoard({
 }
 
 const PASOS = [
-  { titulo: "Revisa la tarea", detalle: "Abre la tarea para ver toda la información, instrucciones y observaciones." },
-  { titulo: "Inicia el cronómetro", detalle: "Úsalo para medir el tiempo real mientras desarrollas la tarea." },
-  { titulo: "Completa la tarea", detalle: "Desarrolla la actividad según las indicaciones." },
-  { titulo: "Finaliza y entrega", detalle: "Marca la tarea como terminada y adjunta lo requerido." },
-  { titulo: "Archiva o elimina", detalle: "Las tareas terminadas se archivan y las canceladas se eliminan." },
+  { titulo: "Revisa la tarea", detalle: "Abre “Ver detalles” para consultar descripción, instrucciones, observaciones y entregables." },
+  { titulo: "Toma y programa", detalle: "Al tomarla debes indicar fecha y hora; la Agenda se crea automáticamente." },
+  { titulo: "Mide el tiempo", detalle: "El cronómetro funciona solamente cuando la tarea está En proceso. Si no puedes continuarla, puedes devolverla a Disponibles." },
+  { titulo: "Finaliza", detalle: "Al terminar se detiene el cronómetro y queda el tiempo consolidado." },
+  { titulo: "Revisión y archivo", detalle: "La Directora revisa calidad y archiva. El historial queda en “Finalizadas y archivadas”." },
 ];
 
 function HelpBanner() {
   return (
-    <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-      <p className="mb-3 text-sm font-semibold text-emerald-900">¿Qué debes hacer en este módulo? Sigue estos 5 pasos:</p>
+    <div className="mb-6">
+      <div className="mb-3 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+        <strong>¿Qué debes hacer en este módulo?</strong> Sigue estos 5 pasos. Las acciones administrativas de eliminar, modificar estado y archivar corresponden únicamente a la Directora de Proyectos.
+      </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-5">
         {PASOS.map((p, i) => (
           <div key={p.titulo} className="flex gap-2">
@@ -992,6 +973,7 @@ function DetailModal({
   empresas,
   procesos,
   actividadesCatalogo,
+  agendaBloque,
   onClose,
 }: {
   tarea: Tarea;
@@ -1000,12 +982,15 @@ function DetailModal({
   empresas: Empresa[];
   procesos: Proceso[];
   actividadesCatalogo: ActividadCatalogo[];
+  agendaBloque: AgendaBloque | null;
   onClose: () => void;
 }) {
   const empresaNombre = empresas.find((e) => e.id === tarea.empresa_atendida_id)?.nombre;
   const procesoNombre = procesos.find((p) => p.codigo === tarea.proceso_codigo)?.nombre;
   const actividadCatalogo = actividadesCatalogo.find((a) => a.id === tarea.catalogo_actividad_id);
   const calidad = tarea.calidad_pct ? `${tarea.calidad_pct / 20}/5 · ${tarea.calidad_pct}%` : "Pendiente de calificación";
+  const externa = isExternalTask(tarea);
+  const profesionalExterno = externa ? profesionales.find((p) => p.id === tarea.responsable_externo_id) : null;
   return (
     <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} className="max-h-[90vh] w-full max-w-lg overflow-auto rounded-lg bg-white p-6 shadow-lg">
@@ -1025,8 +1010,17 @@ function DetailModal({
           <DetailRow label="Empresa atendida" value={empresaNombre} />
           <DetailRow label="Proyecto" value={tarea.proyectos?.nombre} />
           <DetailRow label="Proceso" value={tarea.proceso_codigo ? `${tarea.proceso_codigo} · ${procesoNombre ?? ""}` : null} />
-          <DetailRow label="Responsable" value={asignadoLabel(tarea, profiles, profesionales)} />
+          <DetailRow label="Responsable" value={`${asignadoLabel(tarea, profiles, profesionales) ?? "Sin asignar"}${externa ? " · Profesional externo" : ""}`} />
+          {externa && profesionalExterno && (
+            <DetailRow
+              label="Datos para seguimiento del profesional externo"
+              value={[profesionalExterno.perfil, profesionalExterno.especialidad, profesionalExterno.ciudad, profesionalExterno.correo, profesionalExterno.telefono]
+                .filter(Boolean)
+                .join(" · ")}
+            />
+          )}
           <DetailRow label="Fecha de entrega" value={tarea.fecha_limite} />
+          <DetailRow label="Agenda" value={agendaBloque ? `${agendaBloque.dia} · ${agendaBloque.hora_inicio ?? "Sin hora"}` : "Sin programar"} />
           <DetailRow label="Descripción" value={tarea.descripcion} />
           <DetailRow label="Instrucciones" value={tarea.instrucciones} />
           <DetailRow label="Entregables requeridos" value={tarea.entregable_requerido} />
