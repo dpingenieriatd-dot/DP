@@ -26,6 +26,7 @@ export default async function Page({
     { key: "nit", label: "NIT" },
     { key: "sector", label: "Sector" },
     { key: "contacto", label: "Contacto" },
+    { key: "cargo", label: "Cargo" },
     { key: "correo", label: "Correo del contacto", type: "email" },
     { key: "telefono", label: "Teléfono del contacto" },
     { key: "direccion", label: "Dirección" },

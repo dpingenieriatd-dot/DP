@@ -11,6 +11,8 @@ function fromForm(formData: FormData) {
     codigo: formData.get("codigo") || null,
     nombre: formData.get("nombre") || null,
     categoria: formData.get("categoria") || null,
+    cantidad: formData.get("cantidad") || 1,
+    ubicacion: formData.get("ubicacion") || null,
     custodio: formData.get("custodio") || null,
     valor_reposicion: formData.get("valor_reposicion") || null,
     vida_util_jornadas: formData.get("vida_util_jornadas") || null,

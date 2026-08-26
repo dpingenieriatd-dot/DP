@@ -9,6 +9,8 @@ const fields: Field[] = [
   { key: "codigo", label: "Código" },
   { key: "nombre", label: "Nombre", required: true },
   { key: "categoria", label: "Categoría" },
+  { key: "cantidad", label: "Cantidad", type: "number" },
+  { key: "ubicacion", label: "Ubicación" },
   { key: "custodio", label: "Custodio" },
   { key: "valor_reposicion", label: "Valor de reposición", type: "number" },
   { key: "vida_util_jornadas", label: "Vida útil (jornadas)", type: "number" },
@@ -27,7 +29,8 @@ export default async function Page() {
     return { ...r, costo_jornada };
   });
 
-  const valorTotal = items.reduce((s, r) => s + Number(r.valor_reposicion || 0), 0);
+  const unidadesTotal = items.reduce((s, r) => s + Number(r.cantidad || 0), 0);
+  const valorTotal = items.reduce((s, r) => s + Number(r.valor_reposicion || 0) * Number(r.cantidad || 1), 0);
 
   return (
     <CrudTable
@@ -35,8 +38,9 @@ export default async function Page() {
       subtitle="Catálogos · Orden alfabético por material"
       newLabel="Nuevo material"
       banner={
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <KpiCard label="Referencias" value={items.length} color="emerald" />
+          <KpiCard label="Unidades" value={unidadesTotal} color="emerald" />
           <KpiCard label="Valor reposición" value={money.format(valorTotal)} color="emerald" />
         </div>
       }

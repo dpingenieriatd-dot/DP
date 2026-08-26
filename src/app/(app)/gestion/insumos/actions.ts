@@ -12,10 +12,13 @@ function fromForm(formData: FormData) {
     categoria: formData.get("categoria") || null,
     descripcion: formData.get("descripcion") || null,
     unidad: formData.get("unidad") || null,
+    proveedor_id: formData.get("proveedor_id") || null,
     servicio: formData.get("servicio") || null,
     costo: formData.get("costo") || null,
     estado: formData.get("estado") || null,
     notas: formData.get("notas") || null,
+    // Se actualiza sola en cada guardado, igual que "Actualización" en el catálogo de referencia.
+    actualizacion: new Date().toISOString().slice(0, 10),
   };
 }
 

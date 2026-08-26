@@ -2,20 +2,30 @@ import { createClient } from "@/lib/supabase/server";
 import { CrudTable, type Field } from "@/components/crud-table";
 import { createInsumo, updateInsumo, deleteInsumo } from "./actions";
 
-const fields: Field[] = [
-  { key: "codigo", label: "Código" },
-  { key: "categoria", label: "Categoría" },
-  { key: "descripcion", label: "Insumo o servicio", required: true },
-  { key: "unidad", label: "Unidad" },
-  { key: "servicio", label: "Servicio (si no es insumo físico)" },
-  { key: "costo", label: "Costo de referencia", type: "number" },
-  { key: "estado", label: "Estado", type: "select", options: ["Activo", "Inactivo"] },
-  { key: "notas", label: "Observaciones", type: "textarea" },
-];
-
 export default async function Page() {
   const supabase = await createClient();
-  const { data: rows } = await supabase.from("insumos").select("*").order("descripcion");
+  const [{ data: rows }, { data: proveedores }] = await Promise.all([
+    supabase.from("insumos").select("*").order("descripcion"),
+    supabase.from("proveedores").select("id, nombre").order("nombre"),
+  ]);
+
+  const fields: Field[] = [
+    { key: "codigo", label: "Código" },
+    { key: "categoria", label: "Categoría" },
+    { key: "descripcion", label: "Insumo o servicio", required: true },
+    { key: "unidad", label: "Unidad" },
+    {
+      key: "proveedor_id",
+      label: "Proveedor",
+      type: "select",
+      optionEntries: (proveedores ?? []).map((p) => ({ value: p.id, label: p.nombre })),
+    },
+    { key: "servicio", label: "Servicio (si no es insumo físico)" },
+    { key: "costo", label: "Costo de referencia", type: "number" },
+    { key: "estado", label: "Estado", type: "select", options: ["Activo", "Inactivo"] },
+    { key: "actualizacion", label: "Actualización", tableOnly: true },
+    { key: "notas", label: "Observaciones", type: "textarea" },
+  ];
 
   return (
     <CrudTable

@@ -13,6 +13,7 @@ function fromForm(formData: FormData) {
     nit: formData.get("nit") || null,
     sector: formData.get("sector") || null,
     contacto: formData.get("contacto") || null,
+    cargo: formData.get("cargo") || null,
     correo: formData.get("correo") || null,
     telefono: formData.get("telefono") || null,
     ciudad: formData.get("ciudad") || null,
