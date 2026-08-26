@@ -10,6 +10,7 @@ const fields: Field[] = [
   { key: "tipo", label: "Tipo", type: "select", options: ["Empresa privada", "Empresa pública", "Empresa mixta", "Persona natural"] },
   { key: "sector", label: "Sector" },
   { key: "contacto", label: "Contacto" },
+  { key: "cargo", label: "Cargo" },
   { key: "correo", label: "Correo", type: "email" },
   { key: "telefono", label: "Teléfono" },
   { key: "ciudad", label: "Ciudad" },
