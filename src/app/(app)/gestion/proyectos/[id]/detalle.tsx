@@ -29,6 +29,7 @@ type PresupuestoCalc = { pre: { id: string; codigo: string | null; nombre: strin
 
 export function ProyectoDetalle({
   proyecto,
+  cotizacion,
   clientes,
   empresas,
   profiles,
@@ -36,6 +37,7 @@ export function ProyectoDetalle({
   compras,
 }: {
   proyecto: Proyecto;
+  cotizacion: { codigo: string | null; fecha_aprobacion: string | null; medio_aprobacion: string | null } | null;
   clientes: { id: string; nombre: string }[];
   empresas: { id: string; nombre: string }[];
   profiles: { id: string; full_name: string | null; email: string | null }[];
@@ -65,6 +67,13 @@ export function ProyectoDetalle({
         <div className="space-y-6">
         <form action={guardar} className="space-y-3 rounded-lg border border-neutral-200 bg-white p-5">
           <h2 className="font-semibold text-emerald-900">Datos del proyecto</h2>
+          {cotizacion && (cotizacion.fecha_aprobacion || cotizacion.codigo) && (
+            <p className="rounded-md bg-neutral-50 p-2.5 text-xs text-neutral-600">
+              Nace de la cotización <strong>{cotizacion.codigo ?? "—"}</strong>
+              {cotizacion.fecha_aprobacion ? `, aprobada por el cliente el ${fmtFecha(cotizacion.fecha_aprobacion)}` : ""}
+              {cotizacion.medio_aprobacion ? ` (${cotizacion.medio_aprobacion})` : ""}.
+            </p>
+          )}
           <Campo label="Nombre">
             <input name="nombre" defaultValue={proyecto.nombre} required className="in" />
           </Campo>
@@ -200,6 +209,10 @@ export function ProyectoDetalle({
       </div>
     </div>
   );
+}
+
+function fmtFecha(v: string) {
+  return new Date(v + "T00:00:00").toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" });
 }
 
 function Campo({ label, children }: { label: string; children: React.ReactNode }) {

@@ -218,19 +218,23 @@ export function calcularEstadoProyecto(p: {
 export type EstadoTiempo = "a_tiempo" | "por_vencer" | "atrasado" | "sin_fecha" | "cerrado";
 
 /** Semáforo de cronograma a partir de la fecha de entrega del proyecto.
- *  v1: solo fechas de inicio/fin del proyecto (los hitos vienen después). */
+ *  v1: solo fechas de inicio/fin del proyecto (los hitos vienen después).
+ *  "A tiempo" significa literalmente "no ha pasado la fecha de entrega" — el
+ *  avance real vs. tiempo transcurrido es otra dimensión (viene de Seguimiento). */
 export function calcularCronograma(
   fechaFin: string | null | undefined,
   estado: string,
-  hoy: Date = new Date(),
+  opts: { hoy?: Date; diasAviso?: number } = {},
 ): { estado: EstadoTiempo; dias: number | null } {
   if (estado === "Finalizado" || estado === "Cancelado" || estado === "Rechazado") {
     return { estado: "cerrado", dias: null };
   }
   if (!fechaFin) return { estado: "sin_fecha", dias: null };
+  const hoy = opts.hoy ?? new Date();
+  const diasAviso = opts.diasAviso ?? 15;
   const fin = new Date(fechaFin + "T00:00:00");
   const dias = Math.round((fin.getTime() - new Date(hoy.toISOString().slice(0, 10) + "T00:00:00").getTime()) / 86_400_000);
   if (dias < 0) return { estado: "atrasado", dias };
-  if (dias <= 15) return { estado: "por_vencer", dias };
+  if (dias <= diasAviso) return { estado: "por_vencer", dias };
   return { estado: "a_tiempo", dias };
 }

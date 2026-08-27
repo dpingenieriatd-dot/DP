@@ -61,6 +61,7 @@ type SettingsInput = {
   margin_pct?: number | string | null;
   iva_pct?: number | string | null;
   umbral_ejecucion_pct?: number | string | null;
+  dias_aviso_entrega?: number | string | null;
 } | null;
 
 export function construirFilasControl(input: {
@@ -72,6 +73,7 @@ export function construirFilasControl(input: {
   nombreCliente: (id: string | null) => string;
 }): FilaControl[] {
   const umbralRiesgoPct = Number(input.settings?.umbral_ejecucion_pct ?? 80);
+  const diasAviso = Number(input.settings?.dias_aviso_entrega ?? 15);
 
   const rank = (r: FilaControl) =>
     r.semaforoPlata === "critico" ? 0 : r.tiempo === "atrasado" ? 1 : r.semaforoPlata === "riesgo" ? 2 : 3;
@@ -97,7 +99,7 @@ export function construirFilasControl(input: {
         compras: input.compras.filter((c) => c.proyecto_id === p.id),
         umbralRiesgoPct,
       });
-      const crono = calcularCronograma(p.fecha_fin, p.estado);
+      const crono = calcularCronograma(p.fecha_fin, p.estado, { diasAviso });
       return {
         id: p.id,
         codigo: p.codigo,
@@ -128,6 +130,7 @@ export function resumenControl(filas: FilaControl[]) {
     activos: filas.length,
     enRiesgo: filas.filter((r) => r.semaforoPlata !== "sano").length,
     atrasados: filas.filter((r) => r.tiempo === "atrasado").length,
+    sinFecha: filas.filter((r) => r.tiempo === "sin_fecha").length,
     gananciaProyectada: conValor.reduce((s, r) => s + r.gananciaProyectada, 0),
     gananciaReal: conValor.reduce((s, r) => s + r.gananciaReal, 0),
     comprometido: filas.reduce((s, r) => s + r.comprometido, 0),

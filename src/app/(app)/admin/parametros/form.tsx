@@ -10,6 +10,7 @@ type Settings = {
   monthly_expenses: number;
   monthly_income: number;
   umbral_ejecucion_pct: number;
+  dias_aviso_entrega: number;
 };
 
 type Efectividad = {
@@ -61,6 +62,12 @@ export function ParametrosForm({ settings, efectividad }: { settings: Settings; 
           </Campo>
           <p className="-mt-1 text-xs text-neutral-400">
             En el Control de proyectos, un proyecto pasa a &quot;En atención&quot; (amarillo) al gastar este % del presupuesto. El rojo se dispara al 100% o si la ganancia real es negativa.
+          </p>
+          <Campo label="Aviso previo a la entrega (días)">
+            <input type="number" step="1" min="1" name="dias_aviso_entrega" defaultValue={settings?.dias_aviso_entrega ?? 15} className="in" />
+          </Campo>
+          <p className="-mt-1 text-xs text-neutral-400">
+            Un proyecto pasa a &quot;Por vencer&quot; (amarillo) en el semáforo de tiempo cuando faltan estos días o menos para la fecha de entrega.
           </p>
           <Campo label="Gastos mensuales de la empresa">
             <input type="number" name="monthly_expenses" defaultValue={settings?.monthly_expenses ?? 0} className="in" />

@@ -20,6 +20,14 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
   if (!proyecto) notFound();
 
+  const { data: cotizacion } = proyecto.cotizacion_id
+    ? await supabase
+        .from("cotizaciones")
+        .select("codigo, fecha_aprobacion, medio_aprobacion")
+        .eq("id", proyecto.cotizacion_id)
+        .single()
+    : { data: null };
+
   // El costo real del proyecto sale de sus compras registradas, no de un campo manual.
   const realCompras = (compras ?? [])
     .filter((c) => !c.archivado)
@@ -35,6 +43,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   return (
     <ProyectoDetalle
       proyecto={proyecto}
+      cotizacion={cotizacion}
       clientes={clientes ?? []}
       empresas={empresas ?? []}
       profiles={profiles ?? []}

@@ -64,6 +64,9 @@ export function CotizacionDoc({
   codigo,
   fecha,
   vigenciaDias,
+  estado,
+  fechaAprobacion,
+  medioAprobacion,
   clienteNombre,
   clienteNit,
   empresaNombre,
@@ -82,6 +85,9 @@ export function CotizacionDoc({
   codigo: string;
   fecha: string | null;
   vigenciaDias: number | null;
+  estado?: string | null;
+  fechaAprobacion?: string | null;
+  medioAprobacion?: string | null;
   clienteNombre: string;
   clienteNit: string | null;
   empresaNombre: string;
@@ -114,6 +120,12 @@ export function CotizacionDoc({
             <Text style={styles.codigo}>{codigo}</Text>
             <Text style={styles.meta}>Fecha: {fmtDate(fecha)}</Text>
             {vigenciaDias != null && <Text style={styles.meta}>Vigencia: {vigenciaDias} días</Text>}
+            {estado === "Aprobada" && fechaAprobacion && (
+              <Text style={[styles.meta, { color: "#27500a" }]}>
+                Aprobada el {fmtDate(fechaAprobacion)}
+                {medioAprobacion ? ` (${medioAprobacion})` : ""}
+              </Text>
+            )}
           </View>
         </View>
 

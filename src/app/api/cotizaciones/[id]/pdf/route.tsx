@@ -36,6 +36,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       codigo={cotizacion.codigo || "—"}
       fecha={cotizacion.fecha}
       vigenciaDias={cotizacion.vigencia_dias}
+      estado={cotizacion.estado}
+      fechaAprobacion={cotizacion.fecha_aprobacion}
+      medioAprobacion={cotizacion.medio_aprobacion}
       clienteNombre={cotizacion.clientes?.nombre ?? "—"}
       clienteNit={cotizacion.clientes?.nit ?? null}
       empresaNombre={cotizacion.empresas_atendidas?.nombre ?? "—"}

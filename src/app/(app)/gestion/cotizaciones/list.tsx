@@ -6,6 +6,8 @@ import { Paperclip, FilterX } from "lucide-react";
 import { eliminarCotizacion, aprobarYCrearProyecto, rechazarCotizacion } from "./actions";
 import { money } from "@/lib/finance";
 
+const hoyISO = () => new Date().toISOString().slice(0, 10);
+
 type Cotizacion = {
   id: string;
   codigo: string | null;
@@ -56,7 +58,7 @@ export function CotizacionesList({
   soportes: { cotizacion_id: string }[];
 }) {
   const [pending, startTransition] = useTransition();
-  const [porAprobar, setPorAprobar] = useState<string | null>(null);
+  const [aprobando, setAprobando] = useState<Cotizacion | null>(null);
   const [porRechazar, setPorRechazar] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [columnaFiltro, setColumnaFiltro] = useState("");
@@ -90,16 +92,6 @@ export function CotizacionesList({
         `${c.codigo ?? ""} ${c.nombre} ${clienteNombre(c.cliente_id)}`.toLowerCase().includes(busqueda.toLowerCase())
     )
     .filter((c) => !columnaFiltro || !valorFiltro || valorColumna(c, columnaFiltro).toLowerCase().includes(valorFiltro.toLowerCase()));
-
-  function aprobar(c: Cotizacion) {
-    if (porAprobar !== c.id) {
-      setPorAprobar(c.id);
-      return;
-    }
-    startTransition(async () => {
-      await aprobarYCrearProyecto(c.id);
-    });
-  }
 
   function rechazar(c: Cotizacion) {
     if (porRechazar !== c.id) {
@@ -227,8 +219,8 @@ export function CotizacionesList({
                   <td className="whitespace-nowrap px-3 py-2 text-right">
                     {(c.estado === "Borrador" || c.estado === "Pendiente por definir" || c.estado === "Enviada") && (
                       <>
-                        <button onClick={() => aprobar(c)} disabled={pending} className="mr-3 text-xs font-semibold text-emerald-700 hover:underline">
-                          {porAprobar === c.id ? "¿Confirmar? Aprobar y crear proyecto" : "Aprobar → crear proyecto"}
+                        <button onClick={() => setAprobando(c)} disabled={pending} className="mr-3 text-xs font-semibold text-emerald-700 hover:underline">
+                          Aprobar → crear proyecto
                         </button>
                         <button onClick={() => rechazar(c)} disabled={pending} className="mr-3 text-xs font-semibold text-red-600 hover:underline">
                           {porRechazar === c.id ? "¿Confirmar? Rechazar" : "Rechazar"}
@@ -264,6 +256,82 @@ export function CotizacionesList({
             )}
           </tbody>
         </table>
+      </div>
+
+      {aprobando && <AprobarModal cotizacion={aprobando} onClose={() => setAprobando(null)} />}
+    </div>
+  );
+}
+
+function AprobarModal({ cotizacion, onClose }: { cotizacion: Cotizacion; onClose: () => void }) {
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [fechaAprobacion, setFechaAprobacion] = useState(hoyISO());
+  const [medioAprobacion, setMedioAprobacion] = useState("");
+  const [fechaInicio, setFechaInicio] = useState(hoyISO());
+  const [fechaFin, setFechaFin] = useState("");
+
+  function confirmar() {
+    if (!fechaFin) return setError("Indica la fecha de entrega comprometida.");
+    if (fechaFin < fechaInicio) return setError("La fecha de entrega no puede ser anterior a la de inicio.");
+    setError(null);
+    startTransition(async () => {
+      const r = await aprobarYCrearProyecto(cotizacion.id, { fechaAprobacion, medioAprobacion, fechaInicio, fechaFin });
+      if (r?.error) setError(r.error);
+      // en éxito el Server Action hace redirect al proyecto, no hace falta cerrar
+    });
+  }
+
+  const campo = "w-full rounded-md border border-neutral-300 px-3 py-2 text-sm";
+
+  return (
+    <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
+        <h2 className="text-lg font-semibold text-emerald-900">Aprobar cotización {cotizacion.codigo}</h2>
+        <p className="mt-0.5 text-xs text-neutral-500">
+          Se crea el proyecto y su presupuesto. Estas fechas alimentan el semáforo de tiempo del Control de proyectos.
+        </p>
+
+        <div className="mt-4 space-y-3">
+          <label className="block text-sm">
+            <span className="mb-1 block text-neutral-600">Fecha en que el cliente aprobó</span>
+            <input type="date" value={fechaAprobacion} onChange={(e) => setFechaAprobacion(e.target.value)} className={campo} />
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block text-neutral-600">Cómo aprobó <span className="text-neutral-400">(opcional)</span></span>
+            <input
+              value={medioAprobacion}
+              onChange={(e) => setMedioAprobacion(e.target.value)}
+              placeholder="Correo, orden de compra firmada, acta…"
+              className={campo}
+            />
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block text-sm">
+              <span className="mb-1 block text-neutral-600">Inicio del proyecto</span>
+              <input type="date" value={fechaInicio} onChange={(e) => setFechaInicio(e.target.value)} className={campo} />
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block text-neutral-600">Entrega comprometida</span>
+              <input type="date" value={fechaFin} onChange={(e) => setFechaFin(e.target.value)} required className={campo} />
+            </label>
+          </div>
+        </div>
+
+        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+
+        <div className="mt-5 flex justify-end gap-2">
+          <button onClick={onClose} disabled={pending} className="rounded-md px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-100">
+            Cancelar
+          </button>
+          <button
+            onClick={confirmar}
+            disabled={pending}
+            className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
+          >
+            {pending ? "Creando proyecto…" : "Aprobar y crear proyecto"}
+          </button>
+        </div>
       </div>
     </div>
   );

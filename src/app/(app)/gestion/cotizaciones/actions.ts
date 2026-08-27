@@ -268,15 +268,31 @@ const CATEGORIA_POR_TIPO: Record<string, string> = {
   material: "Materiales / desgaste",
 };
 
+export type AprobacionPayload = {
+  fechaAprobacion: string;
+  medioAprobacion: string;
+  fechaInicio: string;
+  fechaFin: string;
+};
+
 /**
  * Aprobar crea el Proyecto Y un primer Presupuesto sembrado con los ítems de
  * la cotización como costo inicial (uno por ítem, mismo tipo/descripción).
  * Ese presupuesto luego se ajusta con costos reales en el módulo
  * Presupuestos — la cotización nunca cambia, es la oferta fija que se le
  * hizo al cliente.
+ *
+ * En el mismo paso se registran las fechas del proyecto (inicio y entrega
+ * comprometida) y la aprobación del cliente (fecha + medio) — sin fecha de
+ * entrega no hay semáforo de tiempo en el Control de proyectos.
  */
-export async function aprobarYCrearProyecto(cotizacionId: string) {
+export async function aprobarYCrearProyecto(cotizacionId: string, aprobacion: AprobacionPayload) {
   const supabase = await createClient();
+
+  const fechaInicio = aprobacion.fechaInicio || null;
+  const fechaFin = aprobacion.fechaFin || null;
+  if (!fechaFin) return { error: "Indica la fecha de entrega comprometida del proyecto." };
+  if (fechaInicio && fechaFin < fechaInicio) return { error: "La fecha de entrega no puede ser anterior a la de inicio." };
 
   const [{ data: cot, error: fetchError }, { data: items }] = await Promise.all([
     supabase.from("cotizaciones").select("*").eq("id", cotizacionId).single(),
@@ -284,7 +300,14 @@ export async function aprobarYCrearProyecto(cotizacionId: string) {
   ]);
   if (fetchError || !cot) return { error: fetchError?.message || "No se encontró la cotización." };
 
-  await supabase.from("cotizaciones").update({ estado: "Aprobada" }).eq("id", cotizacionId);
+  await supabase
+    .from("cotizaciones")
+    .update({
+      estado: "Aprobada",
+      fecha_aprobacion: aprobacion.fechaAprobacion || new Date().toISOString().slice(0, 10),
+      medio_aprobacion: aprobacion.medioAprobacion || null,
+    })
+    .eq("id", cotizacionId);
 
   const codigoProyecto = await generarCodigoProyecto(supabase);
   const { data: proyecto, error: proyError } = await supabase
@@ -297,6 +320,8 @@ export async function aprobarYCrearProyecto(cotizacionId: string) {
       responsable_id: cot.responsable_id,
       cotizacion_id: cot.id,
       estado: "Planeado",
+      fecha_inicio: fechaInicio,
+      fecha_fin: fechaFin,
     })
     .select("id")
     .single();

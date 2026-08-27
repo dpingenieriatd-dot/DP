@@ -72,6 +72,16 @@ export function ControlProyectos({ rows }: { rows: FilaControl[] }) {
         </div>
       </div>
 
+      {t.sinFecha > 0 && (
+        <p className="mb-3 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900">
+          <CalendarClock size={14} className="shrink-0" />
+          <span>
+            {t.sinFecha} {t.sinFecha === 1 ? "proyecto en curso no tiene" : "proyectos en curso no tienen"} fecha de entrega — el semáforo de
+            tiempo no puede evaluarlos. Ábrelos desde la tabla y complétala en &quot;Datos del proyecto&quot;.
+          </span>
+        </p>
+      )}
+
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <Tot label="Proyectos activos" valor={String(t.activos)} />
         <Tot label="En atención / sobre presup." valor={String(t.enRiesgo)} alerta={t.enRiesgo > 0} icon={<AlertTriangle size={13} />} />
