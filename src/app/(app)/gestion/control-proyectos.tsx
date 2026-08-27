@@ -2,50 +2,25 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, CalendarClock, TrendingUp } from "lucide-react";
+import { AlertTriangle, CalendarClock, Download, TrendingUp } from "lucide-react";
 import { money, type EstadoPlata, type EstadoTiempo } from "@/lib/finance";
+import { etiquetaPlata, etiquetaTiempo, resumenControl, type FilaControl } from "@/lib/control-proyectos";
 
-export type FilaControl = {
-  id: string;
-  codigo: string | null;
-  nombre: string;
-  cliente: string;
-  clienteId: string | null;
-  estado: string;
-  valorAprobado: number;
-  plan: number;
-  comprometido: number;
-  pagado: number;
-  disponible: number;
-  gananciaProyectada: number;
-  gananciaReal: number;
-  ejecutadoPct: number;
-  semaforoPlata: EstadoPlata;
-  sinValorAprobado: boolean;
-  tiempo: EstadoTiempo;
-  diasTiempo: number | null;
+export type { FilaControl };
+
+const PLATA_CLS: Record<EstadoPlata, string> = {
+  sano: "bg-emerald-100 text-emerald-800",
+  riesgo: "bg-amber-100 text-amber-800",
+  critico: "bg-red-100 text-red-700",
 };
 
-const PLATA_PILL: Record<EstadoPlata, { txt: string; cls: string }> = {
-  sano: { txt: "En presupuesto", cls: "bg-emerald-100 text-emerald-800" },
-  riesgo: { txt: "En atención", cls: "bg-amber-100 text-amber-800" },
-  critico: { txt: "Sobre presupuesto", cls: "bg-red-100 text-red-700" },
+const TIEMPO_CLS: Record<EstadoTiempo, string> = {
+  a_tiempo: "bg-emerald-100 text-emerald-800",
+  por_vencer: "bg-amber-100 text-amber-800",
+  atrasado: "bg-red-100 text-red-700",
+  cerrado: "bg-neutral-200 text-neutral-600",
+  sin_fecha: "bg-neutral-100 text-neutral-500",
 };
-
-function tiempoPill(t: EstadoTiempo, dias: number | null) {
-  switch (t) {
-    case "a_tiempo":
-      return { txt: "A tiempo", cls: "bg-emerald-100 text-emerald-800" };
-    case "por_vencer":
-      return { txt: `Vence en ${dias} d`, cls: "bg-amber-100 text-amber-800" };
-    case "atrasado":
-      return { txt: `Atrasado ${Math.abs(dias ?? 0)} d`, cls: "bg-red-100 text-red-700" };
-    case "cerrado":
-      return { txt: "Cerrado", cls: "bg-neutral-200 text-neutral-600" };
-    default:
-      return { txt: "Sin fecha", cls: "bg-neutral-100 text-neutral-500" };
-  }
-}
 
 export function ControlProyectos({ rows }: { rows: FilaControl[] }) {
   const [clienteFiltro, setClienteFiltro] = useState("");
@@ -57,18 +32,8 @@ export function ControlProyectos({ rows }: { rows: FilaControl[] }) {
   }, [rows]);
 
   const visibles = clienteFiltro ? rows.filter((r) => r.clienteId === clienteFiltro) : rows;
-
-  const t = useMemo(() => {
-    const conValor = visibles.filter((r) => !r.sinValorAprobado);
-    return {
-      activos: visibles.length,
-      enRiesgo: visibles.filter((r) => r.semaforoPlata !== "sano").length,
-      atrasados: visibles.filter((r) => r.tiempo === "atrasado").length,
-      gananciaProyectada: conValor.reduce((s, r) => s + r.gananciaProyectada, 0),
-      gananciaReal: conValor.reduce((s, r) => s + r.gananciaReal, 0),
-      comprometido: visibles.reduce((s, r) => s + r.comprometido, 0),
-    };
-  }, [visibles]);
+  const t = useMemo(() => resumenControl(visibles), [visibles]);
+  const pdfHref = `/api/gestion/control-proyectos/pdf${clienteFiltro ? `?cliente=${clienteFiltro}` : ""}`;
 
   return (
     <section className="rounded-lg border border-neutral-200 bg-white p-5">
@@ -81,20 +46,30 @@ export function ControlProyectos({ rows }: { rows: FilaControl[] }) {
             Cada proyecto con su presupuesto, lo gastado en compras y si va a tiempo. Se calcula solo desde la cotización aprobada, el presupuesto y las compras.
           </p>
         </div>
-        {clientes.length > 1 && (
-          <select
-            value={clienteFiltro}
-            onChange={(e) => setClienteFiltro(e.target.value)}
-            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm"
+        <div className="flex items-center gap-2">
+          {clientes.length > 1 && (
+            <select
+              value={clienteFiltro}
+              onChange={(e) => setClienteFiltro(e.target.value)}
+              className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm"
+            >
+              <option value="">Todos los clientes</option>
+              {clientes.map(([id, nombre]) => (
+                <option key={id} value={id}>
+                  {nombre}
+                </option>
+              ))}
+            </select>
+          )}
+          <a
+            href={pdfHref}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1.5 rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-50"
           >
-            <option value="">Todos los clientes</option>
-            {clientes.map(([id, nombre]) => (
-              <option key={id} value={id}>
-                {nombre}
-              </option>
-            ))}
-          </select>
-        )}
+            <Download size={14} /> PDF
+          </a>
+        </div>
       </div>
 
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
@@ -122,8 +97,6 @@ export function ControlProyectos({ rows }: { rows: FilaControl[] }) {
           </thead>
           <tbody>
             {visibles.map((r) => {
-              const plata = PLATA_PILL[r.semaforoPlata];
-              const tp = tiempoPill(r.tiempo, r.diasTiempo);
               return (
                 <tr key={r.id} className="border-t border-neutral-100 hover:bg-neutral-50">
                   <td className="px-3 py-2">
@@ -149,10 +122,14 @@ export function ControlProyectos({ rows }: { rows: FilaControl[] }) {
                     {r.sinValorAprobado ? <span className="font-normal text-neutral-400">sin valor aprobado</span> : money.format(r.gananciaReal)}
                   </td>
                   <td className="px-3 py-2">
-                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${plata.cls}`}>{plata.txt}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${PLATA_CLS[r.semaforoPlata]}`}>
+                      {etiquetaPlata(r.semaforoPlata)}
+                    </span>
                   </td>
                   <td className="px-3 py-2">
-                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${tp.cls}`}>{tp.txt}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${TIEMPO_CLS[r.tiempo]}`}>
+                      {etiquetaTiempo(r.tiempo, r.diasTiempo)}
+                    </span>
                   </td>
                 </tr>
               );

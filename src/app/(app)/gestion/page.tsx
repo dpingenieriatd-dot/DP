@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
-import { calcularEstadoProyecto, calcularCronograma, costoBasePresupuesto, money } from "@/lib/finance";
+import { money } from "@/lib/finance";
+import { construirFilasControl, EN_CURSO } from "@/lib/control-proyectos";
 import { CrecimientoFiltro, LimpiarFiltrosBoton } from "./crecimiento-filtro";
-import { ControlProyectos, type FilaControl } from "./control-proyectos";
+import { ControlProyectos } from "./control-proyectos";
 import { MESES } from "@/lib/meses";
 import { KpiCard } from "@/components/kpi-card";
 import { Filter, TrendingUp, CalendarRange, ClipboardList } from "lucide-react";
@@ -37,77 +38,31 @@ export default async function GestionInicioPage({
       supabase.from("settings").select("*").eq("id", 1).single(),
     ]);
 
-  const umbralRiesgoPct = Number(settings?.umbral_ejecucion_pct ?? 80);
   const nombreCliente = (id: string | null) => clientes?.find((c) => c.id === id)?.nombre ?? "—";
   const nombreEmpresa = (id: string | null) => empresas?.find((e) => e.id === id)?.nombre ?? "—";
 
-  /** Estado consolidado de un proyecto: cotización aprobada (valor) + presupuesto (plan) + compras (gasto real). */
-  const estadoDe = (proyectoId: string) => {
-    const pres = (presupuestos ?? []).filter((p) => p.proyecto_id === proyectoId);
-    const comprasDe = (compras ?? []).filter((c) => c.proyecto_id === proyectoId);
-    const valorAprobado = pres.reduce((s, p) => s + Number(p.valor_cotizado || 0), 0);
-    const planCosto = pres.reduce(
-      (s, p) => s + costoBasePresupuesto(p, (costos ?? []).filter((c) => c.presupuesto_id === p.id)),
-      0,
-    );
-    const ref = pres[0];
-    return calcularEstadoProyecto({
-      valorAprobado,
-      planCosto,
-      adminPct: Number(ref?.admin_pct ?? settings?.admin_pct ?? 15),
-      margenPct: Number(ref?.margen_pct ?? settings?.margin_pct ?? 30),
-      respIva: ref?.resp_iva ?? true,
-      ivaPct: Number(ref?.iva_pct ?? settings?.iva_pct ?? 19),
-      compras: comprasDe,
-      umbralRiesgoPct,
-    });
-  };
+  const todasLasFilas = construirFilasControl({
+    proyectos: (proyectos ?? []).map((p) => ({ ...p })),
+    presupuestos: presupuestos ?? [],
+    costos: costos ?? [],
+    compras: compras ?? [],
+    settings,
+    nombreCliente,
+  });
+  const controlRows = todasLasFilas.filter((r) => EN_CURSO.has(r.estado));
+  const estadoPorProyecto = new Map(todasLasFilas.map((r) => [r.id, r]));
 
   const metricaProyecto = (proyectoId: string) => {
-    const e = estadoDe(proyectoId);
+    const r = estadoPorProyecto.get(proyectoId);
     const pres = (presupuestos ?? []).filter((p) => p.proyecto_id === proyectoId);
     return {
       valor: pres.reduce((s, p) => s + Number(p.valor_cotizado || 0), 0),
-      costoVigente: e.comprometido,
-      utilidad: e.gananciaReal,
+      costoVigente: r?.comprometido ?? 0,
+      utilidad: r?.gananciaReal ?? 0,
     };
   };
 
   const todos = (proyectos ?? []).map((p) => ({ ...p, _fecha: fechaProyecto(p), ...metricaProyecto(p.id) }));
-
-  const EN_CURSO = new Set(["Planeado", "En ejecución", "En ejecucion", "Suspendido"]);
-  const controlRows: FilaControl[] = (proyectos ?? [])
-    .filter((p) => EN_CURSO.has(p.estado))
-    .map((p) => {
-      const e = estadoDe(p.id);
-      const pres = (presupuestos ?? []).filter((x) => x.proyecto_id === p.id);
-      const plan = pres.reduce((s, x) => s + costoBasePresupuesto(x, (costos ?? []).filter((c) => c.presupuesto_id === x.id)), 0);
-      const crono = calcularCronograma(p.fecha_fin, p.estado);
-      return {
-        id: p.id,
-        codigo: p.codigo,
-        nombre: p.nombre,
-        cliente: nombreCliente(p.cliente_id),
-        clienteId: p.cliente_id,
-        estado: p.estado,
-        valorAprobado: pres.reduce((s, x) => s + Number(x.valor_cotizado || 0), 0),
-        plan,
-        comprometido: e.comprometido,
-        pagado: e.pagado,
-        disponible: e.disponible,
-        gananciaProyectada: e.gananciaProyectada,
-        gananciaReal: e.gananciaReal,
-        ejecutadoPct: e.ejecutadoPct,
-        semaforoPlata: e.semaforo,
-        sinValorAprobado: e.sinValorAprobado,
-        tiempo: crono.estado,
-        diasTiempo: crono.dias,
-      };
-    })
-    .sort((a, b) => {
-      const rank = (r: FilaControl) => (r.semaforoPlata === "critico" ? 0 : r.tiempo === "atrasado" ? 1 : r.semaforoPlata === "riesgo" ? 2 : 3);
-      return rank(a) - rank(b) || (a.codigo ?? "").localeCompare(b.codigo ?? "");
-    });
 
   const anios = [...new Set(todos.map((p) => Number(p._fecha.slice(0, 4))))].filter((a) => a >= 2000 && a <= 2100).sort();
   const anioActual = anioParam ? Number(anioParam) : anios[anios.length - 1] ?? new Date().getFullYear();
