@@ -243,7 +243,7 @@ export function CotizacionForm({
               </select>
             </Campo>
 
-            <Campo label="Número de personas">
+            <Campo label="Unidad">
               <input type="number" min={1} value={personas} onChange={(e) => setPersonas(Number(e.target.value))} className="in" />
             </Campo>
             <Campo label="Vigencia de la oferta (días)">
@@ -493,9 +493,25 @@ export function CotizacionForm({
           <button type="button" disabled={pending} onClick={() => guardar(null)} className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60">
             {pending ? "Guardando…" : editing ? "Guardar cambios" : "Guardar cotización"}
           </button>
-          <button type="button" disabled title="Próximamente" className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-400">
-            Descargar cotización
-          </button>
+          {editing ? (
+            <a
+              href={`/api/cotizaciones/${editing.id}/pdf`}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50"
+            >
+              Descargar cotización
+            </a>
+          ) : (
+            <button
+              type="button"
+              disabled
+              title="Guarda la cotización primero para poder descargarla"
+              className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-400"
+            >
+              Descargar cotización
+            </button>
+          )}
         </div>
       </div>
 

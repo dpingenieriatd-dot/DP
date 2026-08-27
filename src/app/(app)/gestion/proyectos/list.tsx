@@ -7,7 +7,7 @@ import { archivarProyecto } from "./actions";
 import { money } from "@/lib/finance";
 
 type Fila = {
-  proy: { id: string; codigo: string | null; nombre: string; estado: string; fecha_inicio: string | null; fecha_fin: string | null };
+  proy: { id: string; codigo: string | null; nombre: string; estado: string; estadoMostrado: string; archivado: boolean; fecha_inicio: string | null; fecha_fin: string | null };
   cliente: string;
   nitCliente: string;
   responsable: string;
@@ -15,6 +15,16 @@ type Fila = {
   valorAprobado: number;
   costoVigente: number;
   gananciaTotal: number;
+};
+
+const ESTADO_CLASS: Record<string, string> = {
+  Planeado: "bg-sky-100 text-sky-700",
+  "En ejecución": "bg-emerald-100 text-emerald-700",
+  Suspendido: "bg-amber-100 text-amber-700",
+  Finalizado: "bg-neutral-200 text-neutral-600",
+  Cancelado: "bg-red-100 text-red-700",
+  Rechazado: "bg-red-100 text-red-700",
+  Archivado: "bg-neutral-200 text-neutral-600",
 };
 
 const COLUMNAS = [
@@ -41,7 +51,7 @@ export function ProyectosList({ filas }: { filas: Fila[] }) {
     if (key === "cliente") return f.cliente;
     if (key === "nit") return f.nitCliente;
     if (key === "responsable") return f.responsable;
-    if (key === "estado") return f.proy.estado;
+    if (key === "estado") return f.proy.estadoMostrado;
     return "";
   };
 
@@ -103,7 +113,7 @@ export function ProyectosList({ filas }: { filas: Fila[] }) {
       <div className="mb-3 flex items-start gap-2 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
         <Link2 size={16} className="mt-0.5 shrink-0" />
         <div>
-          <strong>Los proyectos nacen de cotizaciones aprobadas.</strong> El código PROY_AAAA_### es único y ascendente; la cotización de origen y el NIT del cliente quedan vinculados al proyecto. Los costos y utilidad vienen del Presupuesto vigente.
+          <strong>Los proyectos nacen de cotizaciones aprobadas o rechazadas.</strong> El código PROY_AAAA_### es único y ascendente; la cotización de origen y el NIT del cliente quedan vinculados al proyecto. Los costos y utilidad vienen del Presupuesto vigente.
         </div>
       </div>
 
@@ -139,7 +149,11 @@ export function ProyectosList({ filas }: { filas: Fila[] }) {
                 <td className="px-3 py-2">{cliente}</td>
                 <td className="px-3 py-2 text-neutral-500">{nitCliente}</td>
                 <td className="px-3 py-2">{responsable}</td>
-                <td className="px-3 py-2">{proy.estado}</td>
+                <td className="px-3 py-2">
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${ESTADO_CLASS[proy.estadoMostrado] ?? "bg-neutral-100 text-neutral-600"}`}>
+                    {proy.estadoMostrado}
+                  </span>
+                </td>
                 <td className="px-3 py-2 text-neutral-500">{proy.fecha_inicio ? proy.fecha_inicio.slice(0, 7) : "—"}</td>
                 <td className="px-3 py-2 text-neutral-500">{proy.fecha_fin ? proy.fecha_fin.slice(0, 7) : "—"}</td>
                 <td className="px-3 py-2 text-right">{money.format(valorAprobado)}</td>
@@ -150,30 +164,31 @@ export function ProyectosList({ filas }: { filas: Fila[] }) {
                     <Link href={`/gestion/proyectos/${proy.id}`} className="text-xs font-medium text-emerald-700 hover:underline">
                       Abrir / Editar
                     </Link>
-                    {confirmingId === proy.id ? (
-                      <span className="inline-flex items-center gap-2 text-xs">
-                        <span className="text-neutral-500">¿Archivar?</span>
-                        <button
-                          onClick={() =>
-                            startTransition(async () => {
-                              await archivarProyecto(proy.id);
-                              setConfirmingId(null);
-                            })
-                          }
-                          disabled={pending}
-                          className="font-semibold text-red-600 hover:underline"
-                        >
-                          Sí
+                    {!proy.archivado &&
+                      (confirmingId === proy.id ? (
+                        <span className="inline-flex items-center gap-2 text-xs">
+                          <span className="text-neutral-500">¿Archivar?</span>
+                          <button
+                            onClick={() =>
+                              startTransition(async () => {
+                                await archivarProyecto(proy.id);
+                                setConfirmingId(null);
+                              })
+                            }
+                            disabled={pending}
+                            className="font-semibold text-red-600 hover:underline"
+                          >
+                            Sí
+                          </button>
+                          <button onClick={() => setConfirmingId(null)} className="text-neutral-500 hover:underline">
+                            No
+                          </button>
+                        </span>
+                      ) : (
+                        <button onClick={() => setConfirmingId(proy.id)} className="text-xs font-medium text-red-600 hover:underline">
+                          Archivar
                         </button>
-                        <button onClick={() => setConfirmingId(null)} className="text-neutral-500 hover:underline">
-                          No
-                        </button>
-                      </span>
-                    ) : (
-                      <button onClick={() => setConfirmingId(proy.id)} className="text-xs font-medium text-red-600 hover:underline">
-                        Archivar
-                      </button>
-                    )}
+                      ))}
                   </div>
                 </td>
               </tr>

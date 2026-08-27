@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Paperclip, FilterX } from "lucide-react";
-import { eliminarCotizacion, aprobarYCrearProyecto } from "./actions";
+import { eliminarCotizacion, aprobarYCrearProyecto, rechazarCotizacion } from "./actions";
 import { money } from "@/lib/finance";
 
 type Cotizacion = {
@@ -57,6 +57,7 @@ export function CotizacionesList({
 }) {
   const [pending, startTransition] = useTransition();
   const [porAprobar, setPorAprobar] = useState<string | null>(null);
+  const [porRechazar, setPorRechazar] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [columnaFiltro, setColumnaFiltro] = useState("");
   const [valorFiltro, setValorFiltro] = useState("");
@@ -97,6 +98,17 @@ export function CotizacionesList({
     }
     startTransition(async () => {
       await aprobarYCrearProyecto(c.id);
+    });
+  }
+
+  function rechazar(c: Cotizacion) {
+    if (porRechazar !== c.id) {
+      setPorRechazar(c.id);
+      return;
+    }
+    startTransition(async () => {
+      await rechazarCotizacion(c.id);
+      setPorRechazar(null);
     });
   }
 
@@ -214,13 +226,21 @@ export function CotizacionesList({
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-right">
                     {(c.estado === "Borrador" || c.estado === "Pendiente por definir" || c.estado === "Enviada") && (
-                      <button onClick={() => aprobar(c)} disabled={pending} className="mr-3 text-xs font-semibold text-emerald-700 hover:underline">
-                        {porAprobar === c.id ? "¿Confirmar? Aprobar y crear proyecto" : "Aprobar → crear proyecto"}
-                      </button>
+                      <>
+                        <button onClick={() => aprobar(c)} disabled={pending} className="mr-3 text-xs font-semibold text-emerald-700 hover:underline">
+                          {porAprobar === c.id ? "¿Confirmar? Aprobar y crear proyecto" : "Aprobar → crear proyecto"}
+                        </button>
+                        <button onClick={() => rechazar(c)} disabled={pending} className="mr-3 text-xs font-semibold text-red-600 hover:underline">
+                          {porRechazar === c.id ? "¿Confirmar? Rechazar" : "Rechazar"}
+                        </button>
+                      </>
                     )}
                     <Link href={`/gestion/cotizaciones/${c.id}`} className="mr-2 text-xs font-medium text-emerald-700 hover:underline">
                       Editar
                     </Link>
+                    <a href={`/api/cotizaciones/${c.id}/pdf`} target="_blank" rel="noreferrer" className="mr-2 text-xs font-medium text-emerald-700 hover:underline">
+                      PDF
+                    </a>
                     <button
                       onClick={() =>
                         startTransition(async () => {

@@ -341,3 +341,41 @@ export async function aprobarYCrearProyecto(cotizacionId: string) {
   revalidatePath("/gestion/presupuestos");
   redirect(`/gestion/proyectos/${proyecto.id}`);
 }
+
+/**
+ * Rechazar deja un registro en Proyectos con estado "Rechazado" — igual que
+ * Aprobar crea uno "Planeado" — para que la lista de Proyectos muestre en un
+ * solo lugar el resultado de cada cotización, sin presupuesto ni costos
+ * porque un proyecto rechazado nunca se ejecuta.
+ */
+export async function rechazarCotizacion(cotizacionId: string) {
+  const supabase = await createClient();
+
+  const { data: cot, error: fetchError } = await supabase.from("cotizaciones").select("*").eq("id", cotizacionId).single();
+  if (fetchError || !cot) return { error: fetchError?.message || "No se encontró la cotización." };
+
+  await supabase.from("cotizaciones").update({ estado: "Rechazada" }).eq("id", cotizacionId);
+
+  const codigoProyecto = await generarCodigoProyecto(supabase);
+  const { error: proyError } = await supabase.from("proyectos").insert({
+    codigo: codigoProyecto,
+    nombre: cot.nombre,
+    cliente_id: cot.cliente_id,
+    empresa_id: cot.empresa_id,
+    responsable_id: cot.responsable_id,
+    cotizacion_id: cot.id,
+    estado: "Rechazado",
+  });
+  if (proyError) return { error: proyError.message };
+
+  await crearNotificacion(supabase, {
+    usuarioId: cot.creado_por,
+    tipo: "cotizacion_estado",
+    titulo: "Cotización rechazada",
+    mensaje: cot.nombre,
+    enlace: "/gestion/cotizaciones",
+  });
+
+  revalidatePath(PATH);
+  revalidatePath("/gestion/proyectos");
+}

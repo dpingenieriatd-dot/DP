@@ -6,7 +6,7 @@ export default async function Page() {
   const supabase = await createClient();
 
   const [{ data: proyectos }, { data: clientes }, { data: profiles }, { data: presupuestos }, { data: costos }, { data: cotizaciones }] = await Promise.all([
-    supabase.from("proyectos").select("*").eq("archivado", false).order("nombre"),
+    supabase.from("proyectos").select("*").order("created_at", { ascending: false }),
     supabase.from("clientes").select("id, nombre, nit").order("nombre"),
     supabase.from("profiles").select("id, full_name, email").order("full_name"),
     supabase.from("presupuestos").select("*"),
@@ -34,7 +34,7 @@ export default async function Page() {
     }
     const cotizacion = cotizacionDe(proy.cotizacion_id);
     return {
-      proy,
+      proy: { ...proy, estadoMostrado: proy.archivado ? "Archivado" : proy.estado },
       cliente: nombreDe(clientes, proy.cliente_id),
       nitCliente: nitDe(proy.cliente_id),
       responsable: nombreDe(profiles, proy.responsable_id),
