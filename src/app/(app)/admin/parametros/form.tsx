@@ -9,6 +9,7 @@ type Settings = {
   iva_pct: number;
   monthly_expenses: number;
   monthly_income: number;
+  umbral_ejecucion_pct: number;
 };
 
 type Efectividad = {
@@ -55,6 +56,12 @@ export function ParametrosForm({ settings, efectividad }: { settings: Settings; 
           <Campo label="IVA predeterminado (%)">
             <input type="number" step="0.1" name="iva_pct" defaultValue={settings?.iva_pct ?? 19} className="in" />
           </Campo>
+          <Campo label="Alerta de ejecución del presupuesto (%)">
+            <input type="number" step="1" min="1" max="100" name="umbral_ejecucion_pct" defaultValue={settings?.umbral_ejecucion_pct ?? 80} className="in" />
+          </Campo>
+          <p className="-mt-1 text-xs text-neutral-400">
+            En el Control de proyectos, un proyecto pasa a &quot;En atención&quot; (amarillo) al gastar este % del presupuesto. El rojo se dispara al 100% o si la ganancia real es negativa.
+          </p>
           <Campo label="Gastos mensuales de la empresa">
             <input type="number" name="monthly_expenses" defaultValue={settings?.monthly_expenses ?? 0} className="in" />
           </Campo>

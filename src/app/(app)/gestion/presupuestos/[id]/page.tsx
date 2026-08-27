@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { calcularPresupuesto, calcularControlCostos, calcularCotizacionItems } from "@/lib/finance";
+import { calcularPresupuesto, calcularControlCostos, calcularCotizacionItems, costoBasePresupuesto } from "@/lib/finance";
 import { PresupuestoDetalle } from "./detalle";
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
@@ -18,8 +18,17 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
   if (!presupuesto) notFound();
 
-  const f = calcularPresupuesto(presupuesto);
-  const control = calcularControlCostos(costos ?? [], f.valorCotizado, f.admin, f.iva);
+  // El costo real sale de las compras del proyecto, no del campo manual de cada línea.
+  const { data: compras } = presupuesto.proyecto_id
+    ? await supabase.from("compras").select("cantidad, valor_unitario, archivado").eq("proyecto_id", presupuesto.proyecto_id)
+    : { data: [] };
+  const realCompras = (compras ?? [])
+    .filter((c) => !c.archivado)
+    .reduce((s, c) => s + Number(c.cantidad || 0) * Number(c.valor_unitario || 0), 0);
+  const hayCompras = (compras ?? []).some((c) => !c.archivado);
+
+  const f = calcularPresupuesto({ ...presupuesto, costos: costoBasePresupuesto(presupuesto, costos ?? []) });
+  const control = calcularControlCostos(costos ?? [], f.valorCotizado, f.admin, f.iva, hayCompras ? realCompras : undefined);
 
   let baseCotizacion = null;
   if (presupuesto.cotizaciones) {
@@ -57,5 +66,14 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     };
   }
 
-  return <PresupuestoDetalle presupuesto={presupuesto} costos={costos ?? []} f={f} control={control} baseCotizacion={baseCotizacion} />;
+  return (
+    <PresupuestoDetalle
+      presupuesto={presupuesto}
+      costos={costos ?? []}
+      f={f}
+      control={control}
+      baseCotizacion={baseCotizacion}
+      hayCompras={hayCompras}
+    />
+  );
 }

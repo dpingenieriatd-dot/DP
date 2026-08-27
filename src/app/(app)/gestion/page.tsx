@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
-import { calcularPresupuesto, calcularControlCostos, money } from "@/lib/finance";
+import { calcularEstadoProyecto, calcularCronograma, costoBasePresupuesto, money } from "@/lib/finance";
 import { CrecimientoFiltro, LimpiarFiltrosBoton } from "./crecimiento-filtro";
+import { ControlProyectos, type FilaControl } from "./control-proyectos";
 import { MESES } from "@/lib/meses";
 import { KpiCard } from "@/components/kpi-card";
 import { Filter, TrendingUp, CalendarRange, ClipboardList } from "lucide-react";
@@ -25,34 +26,88 @@ export default async function GestionInicioPage({
   const { anio: anioParam, mes: mesParam, cliente: clienteFiltro, empresa: empresaFiltro } = await searchParams;
   const supabase = await createClient();
 
-  const [{ data: proyectos }, { data: clientes }, { data: empresas }, { data: presupuestos }, { data: costos }] = await Promise.all([
-    supabase.from("proyectos").select("id, codigo, nombre, cliente_id, empresa_id, estado, fecha_inicio, created_at").eq("archivado", false),
-    supabase.from("clientes").select("id, nombre").order("nombre"),
-    supabase.from("empresas_atendidas").select("id, nombre").order("nombre"),
-    supabase.from("presupuestos").select("*"),
-    supabase.from("presupuesto_costos").select("presupuesto_id, presupuestado, real"),
-  ]);
+  const [{ data: proyectos }, { data: clientes }, { data: empresas }, { data: presupuestos }, { data: costos }, { data: compras }, { data: settings }] =
+    await Promise.all([
+      supabase.from("proyectos").select("id, codigo, nombre, cliente_id, empresa_id, estado, fecha_inicio, fecha_fin, created_at").eq("archivado", false),
+      supabase.from("clientes").select("id, nombre").order("nombre"),
+      supabase.from("empresas_atendidas").select("id, nombre").order("nombre"),
+      supabase.from("presupuestos").select("*"),
+      supabase.from("presupuesto_costos").select("presupuesto_id, presupuestado, real"),
+      supabase.from("compras").select("proyecto_id, cantidad, valor_unitario, estado_pago, archivado").eq("archivado", false),
+      supabase.from("settings").select("*").eq("id", 1).single(),
+    ]);
 
+  const umbralRiesgoPct = Number(settings?.umbral_ejecucion_pct ?? 80);
   const nombreCliente = (id: string | null) => clientes?.find((c) => c.id === id)?.nombre ?? "—";
   const nombreEmpresa = (id: string | null) => empresas?.find((e) => e.id === id)?.nombre ?? "—";
 
+  /** Estado consolidado de un proyecto: cotización aprobada (valor) + presupuesto (plan) + compras (gasto real). */
+  const estadoDe = (proyectoId: string) => {
+    const pres = (presupuestos ?? []).filter((p) => p.proyecto_id === proyectoId);
+    const comprasDe = (compras ?? []).filter((c) => c.proyecto_id === proyectoId);
+    const valorAprobado = pres.reduce((s, p) => s + Number(p.valor_cotizado || 0), 0);
+    const planCosto = pres.reduce(
+      (s, p) => s + costoBasePresupuesto(p, (costos ?? []).filter((c) => c.presupuesto_id === p.id)),
+      0,
+    );
+    const ref = pres[0];
+    return calcularEstadoProyecto({
+      valorAprobado,
+      planCosto,
+      adminPct: Number(ref?.admin_pct ?? settings?.admin_pct ?? 15),
+      margenPct: Number(ref?.margen_pct ?? settings?.margin_pct ?? 30),
+      respIva: ref?.resp_iva ?? true,
+      ivaPct: Number(ref?.iva_pct ?? settings?.iva_pct ?? 19),
+      compras: comprasDe,
+      umbralRiesgoPct,
+    });
+  };
+
   const metricaProyecto = (proyectoId: string) => {
-    const pre = (presupuestos ?? []).filter((p) => p.proyecto_id === proyectoId);
-    let valor = 0;
-    let costoVigente = 0;
-    let utilidad = 0;
-    for (const p of pre) {
-      const f = calcularPresupuesto(p);
-      const items = (costos ?? []).filter((c) => c.presupuesto_id === p.id);
-      const control = calcularControlCostos(items, f.valorCotizado, f.admin, f.iva);
-      valor += f.valorCotizado;
-      costoVigente += control.plan;
-      utilidad += control.gananciaActual;
-    }
-    return { valor, costoVigente, utilidad };
+    const e = estadoDe(proyectoId);
+    const pres = (presupuestos ?? []).filter((p) => p.proyecto_id === proyectoId);
+    return {
+      valor: pres.reduce((s, p) => s + Number(p.valor_cotizado || 0), 0),
+      costoVigente: e.comprometido,
+      utilidad: e.gananciaReal,
+    };
   };
 
   const todos = (proyectos ?? []).map((p) => ({ ...p, _fecha: fechaProyecto(p), ...metricaProyecto(p.id) }));
+
+  const EN_CURSO = new Set(["Planeado", "En ejecución", "En ejecucion", "Suspendido"]);
+  const controlRows: FilaControl[] = (proyectos ?? [])
+    .filter((p) => EN_CURSO.has(p.estado))
+    .map((p) => {
+      const e = estadoDe(p.id);
+      const pres = (presupuestos ?? []).filter((x) => x.proyecto_id === p.id);
+      const plan = pres.reduce((s, x) => s + costoBasePresupuesto(x, (costos ?? []).filter((c) => c.presupuesto_id === x.id)), 0);
+      const crono = calcularCronograma(p.fecha_fin, p.estado);
+      return {
+        id: p.id,
+        codigo: p.codigo,
+        nombre: p.nombre,
+        cliente: nombreCliente(p.cliente_id),
+        clienteId: p.cliente_id,
+        estado: p.estado,
+        valorAprobado: pres.reduce((s, x) => s + Number(x.valor_cotizado || 0), 0),
+        plan,
+        comprometido: e.comprometido,
+        pagado: e.pagado,
+        disponible: e.disponible,
+        gananciaProyectada: e.gananciaProyectada,
+        gananciaReal: e.gananciaReal,
+        ejecutadoPct: e.ejecutadoPct,
+        semaforoPlata: e.semaforo,
+        sinValorAprobado: e.sinValorAprobado,
+        tiempo: crono.estado,
+        diasTiempo: crono.dias,
+      };
+    })
+    .sort((a, b) => {
+      const rank = (r: FilaControl) => (r.semaforoPlata === "critico" ? 0 : r.tiempo === "atrasado" ? 1 : r.semaforoPlata === "riesgo" ? 2 : 3);
+      return rank(a) - rank(b) || (a.codigo ?? "").localeCompare(b.codigo ?? "");
+    });
 
   const anios = [...new Set(todos.map((p) => Number(p._fecha.slice(0, 4))))].filter((a) => a >= 2000 && a <= 2100).sort();
   const anioActual = anioParam ? Number(anioParam) : anios[anios.length - 1] ?? new Date().getFullYear();
@@ -116,9 +171,13 @@ export default async function GestionInicioPage({
   return (
     <div className="p-8">
       <h1 className="text-2xl font-semibold text-emerald-900">Inicio</h1>
-      <p className="mt-1 text-sm text-neutral-500">Panel principal · Crecimiento y rentabilidad con la información registrada</p>
+      <p className="mt-1 text-sm text-neutral-500">Panel principal · Estado de los proyectos y crecimiento con la información registrada</p>
 
-      <div className="mt-4 rounded-lg border border-neutral-200 bg-white p-4">
+      <div className="mt-5">
+        <ControlProyectos rows={controlRows} />
+      </div>
+
+      <div className="mt-8 rounded-lg border border-neutral-200 bg-white p-4">
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-1.5 font-semibold text-emerald-900">

@@ -11,6 +11,7 @@ export async function actualizarSettings(formData: FormData) {
       admin_pct: formData.get("admin_pct") || 15,
       margin_pct: formData.get("margin_pct") || 30,
       iva_pct: formData.get("iva_pct") || 19,
+      umbral_ejecucion_pct: formData.get("umbral_ejecucion_pct") || 80,
       monthly_expenses: formData.get("monthly_expenses") || 0,
       monthly_income: formData.get("monthly_income") || 0,
     })

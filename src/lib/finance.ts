@@ -49,9 +49,11 @@ export type CostoItem = { presupuestado: number; real: number };
  * (no se recalculan sobre el gasto real: son el costo administrativo y el IVA
  * de la cotización aprobada, tal como lo hace el Anexo 2).
  */
-export function calcularControlCostos(items: CostoItem[], valorCotizado: number, admin: number, iva: number) {
+export function calcularControlCostos(items: CostoItem[], valorCotizado: number, admin: number, iva: number, realOverride?: number) {
   const plan = items.reduce((a, x) => a + Number(x.presupuestado || 0), 0);
-  const real = items.reduce((a, x) => a + Number(x.real || 0), 0);
+  // El costo real sale de las compras del proyecto cuando se pasa realOverride;
+  // el `real` manual de cada línea solo se usa donde no hay compras conectadas.
+  const real = realOverride !== undefined ? realOverride : items.reduce((a, x) => a + Number(x.real || 0), 0);
   const disponible = plan - real;
   const gananciaEst = valorCotizado - plan - admin - iva;
   const gananciaActual = valorCotizado - real - admin - iva;
@@ -142,3 +144,93 @@ export function calcularEfectivoEsperado(p: ContratoInputs) {
 }
 
 export const money = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
+
+// ---------------------------------------------------------------------------
+// Estado consolidado de un proyecto — junta cotización aprobada (valor),
+// presupuesto (plan de costos) y compras (gasto real) en un solo cálculo.
+// El gasto real ya NO se captura a mano: sale de las compras registradas
+// contra el proyecto. Lo usa el tablero "Control de proyectos" del Inicio de
+// Gestión y las listas/detalles de Proyectos.
+// ---------------------------------------------------------------------------
+
+export type CompraProyecto = {
+  cantidad: number | string | null;
+  valor_unitario: number | string | null;
+  estado_pago?: string | null;
+  archivado?: boolean | null;
+};
+
+export type EstadoPlata = "sano" | "riesgo" | "critico";
+
+const nz = (v: unknown) => Number(v || 0);
+
+/** Costo base del presupuesto: suma de lo presupuestado en las líneas del control
+ *  de costos; si aún no hay líneas (presupuestos históricos migrados) se usa el
+ *  costo directo guardado en el registro. */
+export function costoBasePresupuesto(
+  registro: { costos: number | string | null },
+  lineas: { presupuestado: number | string | null }[],
+) {
+  if (lineas.length) return lineas.reduce((s, c) => s + nz(c.presupuestado), 0);
+  return nz(registro.costos);
+}
+
+export function calcularEstadoProyecto(p: {
+  valorAprobado: number;
+  planCosto: number;
+  adminPct: number;
+  margenPct: number;
+  respIva: boolean;
+  ivaPct: number;
+  compras: CompraProyecto[];
+  umbralRiesgoPct?: number;
+}) {
+  const activas = p.compras.filter((c) => !c.archivado);
+  const comprometido = activas.reduce((s, c) => s + nz(c.cantidad) * nz(c.valor_unitario), 0);
+  const pagado = activas
+    .filter((c) => c.estado_pago === "Pagado")
+    .reduce((s, c) => s + nz(c.cantidad) * nz(c.valor_unitario), 0);
+
+  const a = nz(p.adminPct) / 100;
+  const u = nz(p.margenPct) / 100;
+  const admin = p.planCosto * a;
+  const factor = u >= 0.999 ? 1 + a : (1 + a) / (1 - u);
+  const iva = p.respIva ? p.planCosto * factor * (nz(p.ivaPct) / 100) : 0;
+
+  const sinValorAprobado = p.valorAprobado <= 0;
+  const gananciaProyectada = p.valorAprobado - p.planCosto - admin - iva;
+  const gananciaReal = p.valorAprobado - comprometido - admin - iva;
+  const disponible = p.planCosto - comprometido;
+  const ejecutadoPct = p.planCosto > 0 ? (comprometido / p.planCosto) * 100 : 0;
+
+  const umbral = p.umbralRiesgoPct ?? 80;
+  // >1 peso por encima del plan (evita falsos rojos por redondeo cuando el
+  // gasto calza exacto con lo presupuestado).
+  const sobregirado = p.planCosto > 0 && comprometido - p.planCosto > 1;
+  let semaforo: EstadoPlata;
+  if (sobregirado || (!sinValorAprobado && gananciaReal < 0)) semaforo = "critico";
+  else if (p.planCosto > 0 && ejecutadoPct >= umbral) semaforo = "riesgo";
+  else semaforo = "sano";
+
+  return { comprometido, pagado, admin, iva, gananciaProyectada, gananciaReal, disponible, ejecutadoPct, semaforo, sinValorAprobado };
+}
+
+export type EstadoTiempo = "a_tiempo" | "por_vencer" | "atrasado" | "sin_fecha" | "cerrado";
+
+/** Semáforo de cronograma a partir de la fecha de entrega del proyecto.
+ *  v1: solo fechas de inicio/fin del proyecto (los hitos vienen después). */
+export function calcularCronograma(
+  fechaFin: string | null | undefined,
+  estado: string,
+  hoy: Date = new Date(),
+): { estado: EstadoTiempo; dias: number | null } {
+  if (estado === "Finalizado" || estado === "Cancelado" || estado === "Rechazado") {
+    return { estado: "cerrado", dias: null };
+  }
+  if (!fechaFin) return { estado: "sin_fecha", dias: null };
+  const fin = new Date(fechaFin + "T00:00:00");
+  const dias = Math.round((fin.getTime() - new Date(hoy.toISOString().slice(0, 10) + "T00:00:00").getTime()) / 86_400_000);
+  if (dias < 0) return { estado: "atrasado", dias };
+  if (dias <= 15) return { estado: "por_vencer", dias };
+  return { estado: "a_tiempo", dias };
+}

@@ -50,12 +50,14 @@ export function PresupuestoDetalle({
   f,
   control,
   baseCotizacion,
+  hayCompras,
 }: {
   presupuesto: Presupuesto;
   costos: Costo[];
   f: ReturnType<typeof calcularPresupuesto>;
   control: ReturnType<typeof calcularControlCostos>;
   baseCotizacion: BaseCotizacion | null;
+  hayCompras: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -279,9 +281,11 @@ export function PresupuestoDetalle({
         <div className="mb-3 flex items-center justify-between">
           <div>
             <h2 className="flex items-center gap-1.5 font-semibold text-emerald-900">
-              <ListChecks size={16} /> Control de costos del proyecto
+              <ListChecks size={16} /> Plan de costos del proyecto
             </h2>
-            <p className="text-xs text-neutral-500">Empieza con los ítems de la cotización base. Aquí sí puedes agregar, modificar o eliminar ítems según la ejecución real del proyecto.</p>
+            <p className="text-xs text-neutral-500">
+              Empieza con los ítems de la cotización base. Aquí ajustas lo <strong>presupuestado</strong>; el costo real ejecutado sale de las compras del proyecto.
+            </p>
           </div>
           <div className="flex gap-2">
             {presupuesto.cotizaciones && (
@@ -297,7 +301,7 @@ export function PresupuestoDetalle({
                 ↻ Restaurar base
               </button>
             )}
-            {presupuesto.proyectos && (
+            {presupuesto.proyectos && !hayCompras && (
               <button
                 onClick={() =>
                   startTransition(async () => {
@@ -321,6 +325,11 @@ export function PresupuestoDetalle({
             </button>
           </div>
         </div>
+        {hayCompras && (
+          <p className="mb-3 rounded-md border border-emerald-200 bg-emerald-50 p-2.5 text-xs text-emerald-900">
+            El <strong>costo real ejecutado</strong> ({money.format(control.real)}) se toma de las compras registradas contra este proyecto y se actualiza solo. La columna &quot;Real&quot; de abajo es de referencia y no se edita a mano.
+          </p>
+        )}
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-xs uppercase text-neutral-500">
@@ -329,7 +338,7 @@ export function PresupuestoDetalle({
               <th className="py-1">Descripción</th>
               <th className="py-1">Proveedor / responsable</th>
               <th className="py-1 text-right">Presupuestado</th>
-              <th className="py-1 text-right">Real ejecutado</th>
+              <th className="py-1 text-right">Real{hayCompras ? " (ref.)" : " ejecutado"}</th>
               <th className="py-1 text-right">Variación</th>
               <th className="py-1">Estado</th>
               <th />
@@ -341,6 +350,7 @@ export function PresupuestoDetalle({
                 key={c.id}
                 costo={c}
                 presupuestoId={presupuesto.id}
+                hayCompras={hayCompras}
                 onDelete={() => startTransition(async () => { await eliminarCosto(presupuesto.id, c.id); })}
                 pending={pending}
               />
@@ -348,7 +358,7 @@ export function PresupuestoDetalle({
             {costos.length === 0 && (
               <tr>
                 <td colSpan={9} className="py-6 text-center text-neutral-400">
-                  No hay costos registrados. Usa &quot;Restaurar base&quot;, &quot;Agregar costo&quot; o &quot;Importar desde Compras&quot;.
+                  No hay ítems en el plan. Usa &quot;Restaurar base&quot; o &quot;Agregar costo&quot;.
                 </td>
               </tr>
             )}
@@ -378,9 +388,13 @@ export function PresupuestoDetalle({
                 <Campo label="Presupuestado">
                   <input type="number" step="0.01" name="presupuestado" defaultValue={editingItem?.presupuestado ?? 0} className="in" />
                 </Campo>
-                <Campo label="Real ejecutado">
-                  <input type="number" step="0.01" name="real" defaultValue={editingItem?.real ?? 0} className="in" />
-                </Campo>
+                {hayCompras ? (
+                  <input type="hidden" name="real" value={editingItem?.real ?? 0} />
+                ) : (
+                  <Campo label="Real ejecutado">
+                    <input type="number" step="0.01" name="real" defaultValue={editingItem?.real ?? 0} className="in" />
+                  </Campo>
+                )}
               </div>
               <Campo label="Estado">
                 <select name="estado" defaultValue={editingItem?.estado ?? "Planeado"} className="in">
@@ -465,11 +479,13 @@ function OrigenBadge({ origen }: { origen: string }) {
 function CostoRow({
   costo,
   presupuestoId,
+  hayCompras,
   onDelete,
   pending,
 }: {
   costo: Costo;
   presupuestoId: string;
+  hayCompras: boolean;
   onDelete: () => void;
   pending: boolean;
 }) {
@@ -515,7 +531,11 @@ function CostoRow({
         <input type="number" step="0.01" value={presupuestado} onChange={(e) => setPresupuestado(e.target.value)} onBlur={() => guardar()} className={`${inputClass} text-right`} />
       </td>
       <td className="py-1.5 pr-2">
-        <input type="number" step="0.01" value={real} onChange={(e) => setReal(e.target.value)} onBlur={() => guardar()} className={`${inputClass} text-right`} />
+        {hayCompras ? (
+          <div className="px-2 py-1 text-right text-xs text-neutral-400">{money.format(Number(real || 0))}</div>
+        ) : (
+          <input type="number" step="0.01" value={real} onChange={(e) => setReal(e.target.value)} onBlur={() => guardar()} className={`${inputClass} text-right`} />
+        )}
       </td>
       <td className={`py-1.5 pr-2 text-right ${disponible < 0 ? "text-red-600" : ""}`}>{money.format(disponible)}</td>
       <td className="py-1.5 pr-2">

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { calcularPresupuesto, calcularControlCostos } from "@/lib/finance";
+import { calcularPresupuesto, calcularControlCostos, costoBasePresupuesto } from "@/lib/finance";
 import { ProyectoDetalle } from "./detalle";
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
@@ -20,10 +20,15 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
   if (!proyecto) notFound();
 
+  // El costo real del proyecto sale de sus compras registradas, no de un campo manual.
+  const realCompras = (compras ?? [])
+    .filter((c) => !c.archivado)
+    .reduce((s, c) => s + Number(c.cantidad || 0) * Number(c.valor_unitario || 0), 0);
+
   const presupuestosConCalc = (presupuestos ?? []).map((pre) => {
-    const f = calcularPresupuesto(pre);
     const items = (costos ?? []).filter((c) => c.presupuesto_id === pre.id);
-    const control = calcularControlCostos(items, f.valorCotizado, f.admin, f.iva);
+    const f = calcularPresupuesto({ ...pre, costos: costoBasePresupuesto(pre, items) });
+    const control = calcularControlCostos(items, f.valorCotizado, f.admin, f.iva, realCompras);
     return { pre, f, control };
   });
 
