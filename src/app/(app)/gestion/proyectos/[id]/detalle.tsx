@@ -106,6 +106,9 @@ export function ProyectoDetalle({
                 <option>Suspendido</option>
                 <option>Finalizado</option>
                 <option>Cancelado</option>
+                {/* Lo pone el flujo "Rechazar" de Cotizaciones; se incluye para que
+                    guardar el proyecto no lo pise silenciosamente con "Planeado". */}
+                <option>Rechazado</option>
               </select>
             </Campo>
             <Campo label="Fecha de inicio">

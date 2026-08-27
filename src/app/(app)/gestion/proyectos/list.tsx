@@ -43,6 +43,12 @@ export function ProyectosList({ filas }: { filas: Fila[] }) {
   const [busqueda, setBusqueda] = useState("");
   const [columnaFiltro, setColumnaFiltro] = useState("");
   const [valorFiltro, setValorFiltro] = useState("");
+  const [mostrarInactivos, setMostrarInactivos] = useState(false);
+
+  // Un proyecto rechazado nunca se ejecuta y uno archivado ya se cerró: no son
+  // trabajo en curso, así que por defecto no cuentan ni aparecen en la lista.
+  const esInactivo = (f: Fila) => f.proy.archivado || f.proy.estado === "Rechazado";
+  const ocultos = filas.filter(esInactivo).length;
 
   const valorColumna = (f: Fila, key: string) => {
     if (key === "codigo") return f.proy.codigo ?? "";
@@ -56,6 +62,7 @@ export function ProyectosList({ filas }: { filas: Fila[] }) {
   };
 
   const visibles = filas
+    .filter((f) => mostrarInactivos || !esInactivo(f))
     .filter((f) => !busqueda || `${f.proy.codigo ?? ""} ${f.proy.nombre} ${f.cliente}`.toLowerCase().includes(busqueda.toLowerCase()))
     .filter((f) => !columnaFiltro || !valorFiltro || valorColumna(f, columnaFiltro).toLowerCase().includes(valorFiltro.toLowerCase()));
 
@@ -65,7 +72,7 @@ export function ProyectosList({ filas }: { filas: Fila[] }) {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold text-emerald-900">Proyectos</h1>
-            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">{filas.length}</span>
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">{visibles.length}</span>
           </div>
           <p className="mt-1 text-sm text-neutral-500">Panel principal · Proyecto consecutivo, cotización origen y NIT del cliente</p>
         </div>
@@ -108,6 +115,12 @@ export function ProyectosList({ filas }: { filas: Fila[] }) {
         >
           <FilterX size={14} /> Limpiar filtro
         </button>
+        {ocultos > 0 && (
+          <label className="flex items-center gap-2 rounded-md border border-neutral-300 px-3 py-2 text-sm text-neutral-600">
+            <input type="checkbox" checked={mostrarInactivos} onChange={(e) => setMostrarInactivos(e.target.checked)} />
+            Mostrar archivados y rechazados ({ocultos})
+          </label>
+        )}
       </div>
 
       <div className="mb-3 flex items-start gap-2 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">

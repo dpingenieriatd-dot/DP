@@ -221,7 +221,7 @@ export function PresupuestoDetalle({
           <Campo label="Nombre">
             <input name="nombre" defaultValue={presupuesto.nombre} required className="in" />
           </Campo>
-          <Campo label="Costo directo base">
+          <Campo label="Costo directo base (referencia de la cotización aprobada)">
             <input type="number" step="0.01" name="costos" defaultValue={presupuesto.costos} className="in" />
           </Campo>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -251,14 +251,24 @@ export function PresupuestoDetalle({
         </form>
 
         <div className="rounded-lg border border-neutral-200 bg-white p-5 text-sm">
-          <h2 className="mb-2 font-semibold text-emerald-900">Resumen financiero</h2>
-          <Fila label="Costo directo" valor={money.format(f.costos)} />
+          <h2 className="font-semibold text-emerald-900">Resumen financiero</h2>
+
+          <p className="mt-2 text-xs font-semibold uppercase text-neutral-400">Referencia · cotización aprobada</p>
+          <p className="mb-1 text-xs text-neutral-400">
+            Cifras fijas de la oferta que aceptó el cliente (costos administrativos e IVA se calculan sobre este costo, como el Anexo 2). No cambian al ajustar el control de costos.
+          </p>
+          <Fila label="Costo directo (cotización aprobada)" valor={money.format(f.costos)} />
           <Fila label={`Costos administrativos (${presupuesto.admin_pct}%)`} valor={money.format(f.admin)} />
           <Fila label={`Utilidad esperada (${presupuesto.margen_pct}%)`} valor={money.format(f.utilidadEsperada)} />
           <Fila label="Valor" valor={money.format(f.valor)} bold />
-          <Fila label={`IVA de los costos del proyecto (${presupuesto.iva_pct}%)`} valor={money.format(f.iva)} />
+          <Fila label={`IVA (${presupuesto.iva_pct}%)`} valor={money.format(f.iva)} />
           <Fila label="Valor sugerido al cliente" valor={money.format(f.valorSugerido)} bold />
-          <div className="my-2 border-t border-neutral-100" />
+
+          <div className="my-3 border-t border-neutral-100" />
+          <p className="text-xs font-semibold uppercase text-neutral-400">Control del proyecto · líneas vigentes</p>
+          <p className="mb-1 text-xs text-neutral-400">Se mueven con lo que registres en el control de costos de abajo.</p>
+          <Fila label="Presupuesto vigente (plan)" valor={money.format(control.plan)} />
+          <Fila label="Costo real ejecutado" valor={money.format(control.real)} />
           <Fila label="Disponible (plan − real)" valor={money.format(control.disponible)} />
           <Fila label="Ganancia estimada (vs. plan)" valor={money.format(control.gananciaEst)} bold />
           <Fila label="Ganancia según costos reales" valor={money.format(control.gananciaActual)} bold />
