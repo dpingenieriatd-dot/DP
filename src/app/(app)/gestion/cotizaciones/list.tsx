@@ -59,6 +59,8 @@ export function CotizacionesList({
 }) {
   const [pending, startTransition] = useTransition();
   const [aprobando, setAprobando] = useState<Cotizacion | null>(null);
+  const [porEliminar, setPorEliminar] = useState<Cotizacion | null>(null);
+  const [errorEliminar, setErrorEliminar] = useState<string | null>(null);
   const [porRechazar, setPorRechazar] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [columnaFiltro, setColumnaFiltro] = useState("");
@@ -234,12 +236,12 @@ export function CotizacionesList({
                       PDF
                     </a>
                     <button
-                      onClick={() =>
-                        startTransition(async () => {
-                          await eliminarCotizacion(c.id);
-                        })
-                      }
-                      className="text-xs font-medium text-red-600 hover:underline"
+                      onClick={() => {
+                        setErrorEliminar(null);
+                        setPorEliminar(c);
+                      }}
+                      disabled={pending}
+                      className="text-xs font-medium text-red-600 hover:underline disabled:opacity-60"
                     >
                       Eliminar
                     </button>
@@ -259,6 +261,53 @@ export function CotizacionesList({
       </div>
 
       {aprobando && <AprobarModal cotizacion={aprobando} onClose={() => setAprobando(null)} />}
+
+      {porEliminar && (
+        <div
+          className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => !pending && setPorEliminar(null)}
+        >
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
+            <h2 className="text-lg font-semibold text-red-700">Eliminar cotización</h2>
+            <p className="mt-2 text-sm text-neutral-600">
+              Se eliminará la cotización <strong>{porEliminar.codigo || porEliminar.nombre}</strong> y sus ítems.
+              {proyectoDe(porEliminar.id) && (
+                <>
+                  {" "}
+                  Como fue aprobada, también se eliminarán el proyecto{" "}
+                  <strong>{proyectoDe(porEliminar.id)}</strong>
+                  {presupuestoDe(porEliminar.id) ? ` y su presupuesto ${presupuestoDe(porEliminar.id)}` : " y su presupuesto"}.
+                  Si ese proyecto ya tiene compras o tareas registradas, no se podrá.
+                </>
+              )}{" "}
+              Esta acción no se puede deshacer.
+            </p>
+            {errorEliminar && <p className="mt-3 text-sm text-red-600">{errorEliminar}</p>}
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => setPorEliminar(null)}
+                disabled={pending}
+                className="rounded-md px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-100 disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() =>
+                  startTransition(async () => {
+                    const r = await eliminarCotizacion(porEliminar.id);
+                    if (r?.error) setErrorEliminar(r.error);
+                    else setPorEliminar(null);
+                  })
+                }
+                disabled={pending}
+                className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+              >
+                {pending ? "Eliminando…" : "Sí, eliminar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

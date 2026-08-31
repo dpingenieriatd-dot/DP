@@ -236,11 +236,63 @@ export async function actualizarCotizacion(id: string, payload: CotizacionPayloa
   revalidatePath(PATH);
 }
 
+/**
+ * Eliminar una cotización. Si fue aprobada, también borra en cascada el
+ * proyecto y el presupuesto que nacieron de ella (la BD tiene llaves foráneas
+ * en RESTRICT: sin esto, "Eliminar" fallaba en silencio). Se bloquea —con un
+ * mensaje claro— si ese proyecto ya tiene ejecución real (compras, tareas,
+ * actividades o bloques de agenda): en ese caso no es dato de prueba y hay que
+ * limpiarlo a mano antes.
+ */
 export async function eliminarCotizacion(id: string) {
   const supabase = await createClient();
+
+  const [{ data: proys }, { data: presusDirectos }] = await Promise.all([
+    supabase.from("proyectos").select("id, codigo").eq("cotizacion_id", id),
+    supabase.from("presupuestos").select("id").eq("cotizacion_id", id),
+  ]);
+  const proyectoIds = (proys ?? []).map((p) => p.id);
+
+  if (proyectoIds.length) {
+    const [compras, tareas, actividades, agenda] = await Promise.all([
+      supabase.from("compras").select("id", { count: "exact", head: true }).in("proyecto_id", proyectoIds),
+      supabase.from("tareas").select("id", { count: "exact", head: true }).in("proyecto_id", proyectoIds),
+      supabase.from("actividades").select("id", { count: "exact", head: true }).in("proyecto_id", proyectoIds),
+      supabase.from("agenda_bloques").select("id", { count: "exact", head: true }).in("proyecto_id", proyectoIds),
+    ]);
+    const partes: string[] = [];
+    if (compras.count) partes.push(`${compras.count} compra(s)`);
+    if (tareas.count) partes.push(`${tareas.count} tarea(s)`);
+    if (actividades.count) partes.push(`${actividades.count} actividad(es)`);
+    if (agenda.count) partes.push(`${agenda.count} bloque(s) de agenda`);
+    if (partes.length) {
+      const cods = (proys ?? []).map((p) => p.codigo).filter(Boolean).join(", ") || "asociado";
+      return {
+        error: `No se puede eliminar: el proyecto ${cods} ya tiene ${partes.join(", ")}. Quita esos registros primero si de verdad quieres borrarlo.`,
+      };
+    }
+  }
+
+  // Borrar el proyecto arrastra su presupuesto, costos e ítems (llaves en CASCADE).
+  if (proyectoIds.length) {
+    const { error } = await supabase.from("proyectos").delete().in("id", proyectoIds);
+    if (error) return { error: error.message };
+  }
+  // Presupuestos que apuntaban a la cotización sin pasar por esos proyectos (borde raro).
+  const presuSueltos = (presusDirectos ?? []).map((p) => p.id);
+  if (presuSueltos.length) {
+    const { error } = await supabase.from("presupuestos").delete().in("id", presuSueltos);
+    if (error) return { error: error.message };
+  }
+
   const { error } = await supabase.from("cotizaciones").delete().eq("id", id);
   if (error) return { error: error.message };
+
   revalidatePath(PATH);
+  revalidatePath("/gestion/proyectos");
+  revalidatePath("/gestion/presupuestos");
+  revalidatePath("/gestion");
+  return { ok: true };
 }
 
 /**
