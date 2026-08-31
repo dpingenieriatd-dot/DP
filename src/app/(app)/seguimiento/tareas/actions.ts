@@ -260,6 +260,8 @@ export async function eliminarTarea(id: string) {
   const { error } = await supabase.from("tareas").delete().eq("id", id);
   if (error) return { error: error.message };
   revalidatePath(PATH);
+  revalidatePath("/seguimiento/actividades");
+  revalidatePath("/seguimiento/historial");
 }
 
 export async function archivarTarea(id: string) {
