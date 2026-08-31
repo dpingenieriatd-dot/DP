@@ -5,7 +5,7 @@ import { Document, Page, View, Text, Image, StyleSheet, renderToFile } from "@re
 const logoPath = path.join(process.cwd(), "public", "logo-dp.png");
 const logoDataUri = "data:image/png;base64," + fs.readFileSync(logoPath).toString("base64");
 
-const OUT = "C:\\Users\\cesar\\DP\\Documentacion_Proyecto\\16_Guia_de_Usuario.pdf";
+const OUT = "C:\\Users\\cesar\\DP\\Documentacion_Proyecto\\19_Guia_de_Usuario.pdf";
 
 const C = {
   verdeOscuro: "#27500A",
