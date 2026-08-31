@@ -277,7 +277,7 @@ export function CotizacionesList({
                   Como fue aprobada, también se eliminarán el proyecto{" "}
                   <strong>{proyectoDe(porEliminar.id)}</strong>
                   {presupuestoDe(porEliminar.id) ? ` y su presupuesto ${presupuestoDe(porEliminar.id)}` : " y su presupuesto"}.
-                  Si ese proyecto ya tiene compras o tareas registradas, no se podrá.
+                  Si ese proyecto ya tiene compras o tareas activas (sin archivar), no se podrá.
                 </>
               )}{" "}
               Esta acción no se puede deshacer.

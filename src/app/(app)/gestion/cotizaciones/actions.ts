@@ -239,10 +239,13 @@ export async function actualizarCotizacion(id: string, payload: CotizacionPayloa
 /**
  * Eliminar una cotización. Si fue aprobada, también borra en cascada el
  * proyecto y el presupuesto que nacieron de ella (la BD tiene llaves foráneas
- * en RESTRICT: sin esto, "Eliminar" fallaba en silencio). Se bloquea —con un
- * mensaje claro— si ese proyecto ya tiene ejecución real (compras, tareas,
- * actividades o bloques de agenda): en ese caso no es dato de prueba y hay que
- * limpiarlo a mano antes.
+ * en RESTRICT: sin esto, "Eliminar" fallaba en silencio).
+ *
+ * Se bloquea —con un mensaje claro— solo si el proyecto tiene trabajo ACTIVO:
+ * compras o tareas sin archivar. Lo que ya está archivado (dado de baja por el
+ * usuario) no bloquea y se limpia junto con el proyecto — antes esas compras
+ * archivadas, invisibles en la página de Compras, bloqueaban el borrado sin que
+ * el usuario pudiera hacer nada.
  */
 export async function eliminarCotizacion(id: string) {
   const supabase = await createClient();
@@ -254,27 +257,27 @@ export async function eliminarCotizacion(id: string) {
   const proyectoIds = (proys ?? []).map((p) => p.id);
 
   if (proyectoIds.length) {
-    const [compras, tareas, actividades, agenda] = await Promise.all([
-      supabase.from("compras").select("id", { count: "exact", head: true }).in("proyecto_id", proyectoIds),
-      supabase.from("tareas").select("id", { count: "exact", head: true }).in("proyecto_id", proyectoIds),
-      supabase.from("actividades").select("id", { count: "exact", head: true }).in("proyecto_id", proyectoIds),
-      supabase.from("agenda_bloques").select("id", { count: "exact", head: true }).in("proyecto_id", proyectoIds),
+    const [compras, tareas] = await Promise.all([
+      supabase.from("compras").select("id", { count: "exact", head: true }).in("proyecto_id", proyectoIds).eq("archivado", false),
+      supabase.from("tareas").select("id", { count: "exact", head: true }).in("proyecto_id", proyectoIds).eq("archivado", false),
     ]);
     const partes: string[] = [];
-    if (compras.count) partes.push(`${compras.count} compra(s)`);
-    if (tareas.count) partes.push(`${tareas.count} tarea(s)`);
-    if (actividades.count) partes.push(`${actividades.count} actividad(es)`);
-    if (agenda.count) partes.push(`${agenda.count} bloque(s) de agenda`);
+    if (compras.count) partes.push(`${compras.count} compra(s) activa(s)`);
+    if (tareas.count) partes.push(`${tareas.count} tarea(s) activa(s)`);
     if (partes.length) {
       const cods = (proys ?? []).map((p) => p.codigo).filter(Boolean).join(", ") || "asociado";
       return {
-        error: `No se puede eliminar: el proyecto ${cods} ya tiene ${partes.join(", ")}. Quita esos registros primero si de verdad quieres borrarlo.`,
+        error: `No se puede eliminar: el proyecto ${cods} ya tiene ${partes.join(" y ")}. Archívalas o quítalas primero.`,
       };
     }
-  }
 
-  // Borrar el proyecto arrastra su presupuesto, costos e ítems (llaves en CASCADE).
-  if (proyectoIds.length) {
+    // Hijos que la BD tiene en RESTRICT: compras/tareas archivadas, actividades y
+    // bloques de agenda. El presupuesto, sus costos e ítems caen solos (CASCADE).
+    await supabase.from("compras").delete().in("proyecto_id", proyectoIds);
+    await supabase.from("agenda_bloques").delete().in("proyecto_id", proyectoIds);
+    await supabase.from("actividades").delete().in("proyecto_id", proyectoIds);
+    await supabase.from("tareas").delete().in("proyecto_id", proyectoIds);
+
     const { error } = await supabase.from("proyectos").delete().in("id", proyectoIds);
     if (error) return { error: error.message };
   }
