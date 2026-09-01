@@ -36,7 +36,7 @@ type Soporte = { id: string; cotizacion_id: string; nombre_archivo: string; stor
 type ItemExistente = { id: string; tipo: "insumo" | "profesional" | "material"; descripcion: string; unidad: string; cantidad: number; costo_unitario: number; precio_cliente_override: number | null };
 
 export type Insumo = { id: string; codigo: string | null; descripcion: string; unidad: string | null; costo: number };
-export type Profesional = { id: string; codigo: string | null; nombre: string; perfil: string | null; tarifa_hora: number | null };
+export type Profesional = { id: string; nombre: string; perfil: string | null; tarifa_hora: number | null };
 export type Material = { id: string; codigo: string | null; nombre: string; valor_reposicion: number; vida_util_jornadas: number };
 
 type ItemLocal = ItemPayload & { key: string };
