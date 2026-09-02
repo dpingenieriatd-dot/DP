@@ -266,8 +266,8 @@ function ContratoCard({ proyecto }: { proyecto: Proyecto }) {
         <Campo label="% Retención en la fuente">
           <input type="number" step="any" min="0" name="retencion_pct" defaultValue={proyecto.retencion_pct ?? 0} className="in" />
         </Campo>
-        <Campo label="% ICA">
-          <input type="number" step="any" min="0" name="ica_pct" defaultValue={proyecto.ica_pct ?? 0} className="in" />
+        <Campo label="Tarifa ICA (por mil)">
+          <input type="number" step="any" min="0" name="ica_pct" defaultValue={proyecto.ica_pct ?? 0} className="in" placeholder="Ej. 9,66" />
         </Campo>
       </div>
 

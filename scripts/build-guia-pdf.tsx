@@ -739,7 +739,7 @@ function Doc() {
           items={[
             "Datos del proyecto: nombre, cliente, empresa atendida, responsable, estado, fechas de inicio y cierre, observaciones. Muestra también de qué cotización nació y cuándo la aprobó el cliente.",
             "Estados: Planeado, En ejecución, Suspendido, Finalizado, Cancelado (y Rechazado, para los que salen de una cotización rechazada).",
-            "Contrato y retenciones: se ingresa el valor del contrato, si aplica IVA, y los porcentajes de retención en la fuente, ICA y otras retenciones. La plataforma calcula el efectivo neto esperado, es decir, cuánto le llega realmente a D&P después de lo que el cliente retiene y paga a la DIAN.",
+            "Contrato y retenciones: se ingresa el valor del contrato, si aplica IVA, el porcentaje de retención en la fuente, la tarifa de ICA (por mil, ej. 9,66) y otras retenciones. La plataforma calcula el efectivo neto esperado, es decir, cuánto le llega realmente a D&P después de lo que el cliente retiene y paga a la DIAN.",
             "Presupuestos y Compras del proyecto: se listan en la misma ficha.",
             "Archivar: saca el proyecto de la lista principal (se puede volver a mostrar con la casilla Mostrar archivados y rechazados).",
           ]}

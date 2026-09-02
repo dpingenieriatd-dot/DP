@@ -108,8 +108,8 @@ export type ContratoInputs = {
   contrato_incluye_iva: boolean;
   iva_aplica: boolean;
   iva_pct: number;
-  retencion_pct: number;
-  ica_pct: number;
+  retencion_pct: number; // porcentaje (ej. 11)
+  ica_pct: number; // tarifa POR MIL (ej. 9,66), no porcentaje
   otras_retenciones: number;
 };
 
@@ -123,6 +123,12 @@ export type ContratoInputs = {
  *
  * Retención en la fuente e ICA se calculan sobre la base SIN IVA (estándar
  * en Colombia: esos impuestos no se calculan sobre el IVA mismo).
+ *
+ * OJO con las unidades: la retención en la fuente se digita como PORCENTAJE
+ * (11 % honorarios → /100), pero el ICA se digita como TARIFA POR MIL
+ * (Bogotá servicios 9,66 x 1.000 → /1000), que es como lo cobran los
+ * municipios y como lo entrega la contadora. `ica_pct` conserva ese nombre
+ * histórico de columna pero su valor es la tarifa por mil.
  */
 export function calcularEfectivoEsperado(p: ContratoInputs) {
   const contratoValor = Number(p.contrato_valor || 0);
@@ -136,7 +142,7 @@ export function calcularEfectivoEsperado(p: ContratoInputs) {
   const valorConIva = valorSinIva + iva;
 
   const retencion = valorSinIva * (retencionPct / 100);
-  const ica = valorSinIva * (icaPct / 100);
+  const ica = valorSinIva * (icaPct / 1000); // tarifa por mil, no porcentaje
 
   const efectivoNetoEsperado = valorConIva - retencion - ica - otrasRetenciones;
 
