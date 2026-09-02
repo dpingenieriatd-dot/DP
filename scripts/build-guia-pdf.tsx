@@ -220,7 +220,7 @@ function Doc() {
           <Text style={s.coverSubtitle2}>Seguimiento del equipo · Gestión de cotizaciones, proyectos, presupuestos y compras</Text>
           <Text style={s.coverSubtitle2}>Manual completo de funcionalidades y procesos</Text>
         </View>
-        <Text style={s.coverFooter}>Agosto de 2026 · Versión detallada</Text>
+        <Text style={s.coverFooter}>Septiembre de 2026 · Versión detallada</Text>
       </Page>
 
       {/* ---------- Contenido ---------- */}
@@ -959,7 +959,7 @@ function Doc() {
         <View style={{ height: 12 }} />
         <View style={s.divider} />
         <P>
-          Esta guía describe la plataforma tal como está en agosto de 2026. Para dudas puntuales, escribe a la Directora
+          Esta guía describe la plataforma tal como está en septiembre de 2026. Para dudas puntuales, escribe a la Directora
           de Proyectos.
         </P>
       </ContentPage>
