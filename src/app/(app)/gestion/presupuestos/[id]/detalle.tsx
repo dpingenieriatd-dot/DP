@@ -218,7 +218,11 @@ export function PresupuestoDetalle({
         </div>
         <div className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
           <Mini label="Disponible" valor={money.format(control.disponible)} warn={control.disponible < 0} />
-          <Mini label="Ganancia según costos reales" valor={money.format(control.gananciaActual)} warn={control.gananciaActual < 0} />
+          <Mini
+            label="Ganancia según costos reales"
+            valor={control.real > 0 ? money.format(control.gananciaActual) : "— sin costos reales"}
+            warn={control.real > 0 && control.gananciaActual < 0}
+          />
           <Mini label="Costos admin. + IVA de los costos del proyecto" valor={money.format(f.admin + f.iva)} />
         </div>
       </div>
@@ -272,13 +276,17 @@ export function PresupuestoDetalle({
 
           <p className="mt-2 text-xs font-semibold uppercase text-neutral-400">Referencia · cotización aprobada</p>
           <p className="mb-1 text-xs text-neutral-400">
-            Cifras fijas de la oferta que aceptó el cliente (costos administrativos e IVA se calculan sobre este costo, como el Anexo 2). No cambian al ajustar el control de costos.
+            Cifras de la oferta que aceptó el cliente. La utilidad es la real de esta cotización (precio cotizado − costo − administración − IVA), no una reconstrucción con el margen objetivo. No cambian al ajustar el control de costos.
           </p>
           <Fila label="Costo directo (cotización aprobada)" valor={money.format(f.costos)} />
           <Fila label={`Costos administrativos (${presupuesto.admin_pct}%)`} valor={money.format(f.admin)} />
-          <Fila label={`Utilidad esperada (${presupuesto.margen_pct}%)`} valor={money.format(f.utilidadEsperada)} />
-          <Fila label="Valor" valor={money.format(f.valor)} bold />
-          <Fila label={`IVA (${presupuesto.iva_pct}%)`} valor={money.format(f.iva)} />
+          {f.iva > 0 && <Fila label="IVA" valor={money.format(f.iva)} />}
+          <Fila
+            label={`Utilidad de la oferta (margen real ${(f.margenOferta * 100).toFixed(1)}%)`}
+            valor={money.format(f.utilidadOferta)}
+            warn={f.utilidadOferta < 0}
+          />
+          <Fila label="Valor cotizado al cliente" valor={money.format(f.valorCotizado)} bold />
 
           <div className="my-3 border-t border-neutral-100" />
           <p className="text-xs font-semibold uppercase text-neutral-400">Control del proyecto · líneas vigentes</p>
@@ -287,7 +295,11 @@ export function PresupuestoDetalle({
           <Fila label="Costo real ejecutado" valor={money.format(control.real)} />
           <Fila label="Disponible (plan − real)" valor={money.format(control.disponible)} />
           <Fila label="Ganancia estimada (vs. plan)" valor={money.format(control.gananciaEst)} bold />
-          <Fila label="Ganancia según costos reales" valor={money.format(control.gananciaActual)} bold />
+          <Fila
+            label="Ganancia según costos reales"
+            valor={control.real > 0 ? money.format(control.gananciaActual) : "— sin costos reales"}
+            bold
+          />
         </div>
       </div>
 
@@ -442,9 +454,9 @@ function Campo({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function Fila({ label, valor, bold }: { label: string; valor: string; bold?: boolean }) {
+function Fila({ label, valor, bold, warn }: { label: string; valor: string; bold?: boolean; warn?: boolean }) {
   return (
-    <div className={`flex justify-between py-0.5 ${bold ? "font-semibold text-emerald-900" : "text-neutral-600"}`}>
+    <div className={`flex justify-between py-0.5 ${warn ? "font-semibold text-red-600" : bold ? "font-semibold text-emerald-900" : "text-neutral-600"}`}>
       <span>{label}</span>
       <span>{valor}</span>
     </div>

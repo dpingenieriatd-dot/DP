@@ -88,7 +88,11 @@ export function ControlProyectos({ rows }: { rows: FilaControl[] }) {
         <Tot label="Atrasados" valor={String(t.atrasados)} alerta={t.atrasados > 0} icon={<CalendarClock size={13} />} />
         <Tot label="Comprometido en compras" valor={money.format(t.comprometido)} />
         <Tot label="Ganancia proyectada" valor={money.format(t.gananciaProyectada)} alerta={t.gananciaProyectada < 0} />
-        <Tot label="Ganancia real (según compras)" valor={money.format(t.gananciaReal)} alerta={t.gananciaReal < 0} />
+        <Tot
+          label={`Ganancia real (${t.proyectosConCompras} con compras)`}
+          valor={t.proyectosConCompras === 0 ? "—" : money.format(t.gananciaReal)}
+          alerta={t.proyectosConCompras > 0 && t.gananciaReal < 0}
+        />
       </div>
 
       <div className="overflow-auto rounded-md border border-neutral-200">
@@ -128,8 +132,14 @@ export function ControlProyectos({ rows }: { rows: FilaControl[] }) {
                   <td className={`px-3 py-2 text-right tabular-nums ${r.disponible < 0 ? "text-red-600" : ""}`}>
                     {money.format(r.disponible)}
                   </td>
-                  <td className={`px-3 py-2 text-right font-semibold tabular-nums ${!r.sinValorAprobado && r.gananciaReal < 0 ? "text-red-600" : "text-emerald-900"}`}>
-                    {r.sinValorAprobado ? <span className="font-normal text-neutral-400">sin valor aprobado</span> : money.format(r.gananciaReal)}
+                  <td className={`px-3 py-2 text-right font-semibold tabular-nums ${!r.sinValorAprobado && r.comprometido > 0 && r.gananciaReal < 0 ? "text-red-600" : "text-emerald-900"}`}>
+                    {r.sinValorAprobado ? (
+                      <span className="font-normal text-neutral-400">sin valor aprobado</span>
+                    ) : r.comprometido === 0 ? (
+                      <span className="font-normal text-neutral-400">sin compras aún</span>
+                    ) : (
+                      money.format(r.gananciaReal)
+                    )}
                   </td>
                   <td className="px-3 py-2">
                     <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${PLATA_CLS[r.semaforoPlata]}`}>

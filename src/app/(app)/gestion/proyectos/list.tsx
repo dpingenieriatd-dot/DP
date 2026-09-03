@@ -144,8 +144,8 @@ export function ProyectosList({ filas }: { filas: Fila[] }) {
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Mes inicio</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Mes cierre</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Valor aprobado</th>
-              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Costo vigente</th>
-              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Utilidad vigente</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Comprometido</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Utilidad proyectada</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Acciones</th>
             </tr>
           </thead>

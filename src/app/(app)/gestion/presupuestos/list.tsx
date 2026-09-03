@@ -154,8 +154,8 @@ export function PresupuestosList({ filas }: { filas: Fila[] }) {
                 <td className="px-3 py-2 text-right">{money.format(control.real)}</td>
                 <td className={`px-3 py-2 text-right ${control.disponible < 0 ? "text-red-600" : ""}`}>{money.format(control.disponible)}</td>
                 <td className="px-3 py-2 text-right">{money.format(control.gananciaEst)}</td>
-                <td className={`px-3 py-2 text-right font-semibold ${control.gananciaActual < 0 ? "text-red-600" : "text-emerald-700"}`}>
-                  {money.format(control.gananciaActual)}
+                <td className={`px-3 py-2 text-right font-semibold ${control.real > 0 && control.gananciaActual < 0 ? "text-red-600" : "text-emerald-700"}`}>
+                  {control.real > 0 ? money.format(control.gananciaActual) : <span className="font-normal text-neutral-400">—</span>}
                 </td>
                 <td className="px-3 py-2">{ejecucionDe(control)}</td>
                 <td className="px-3 py-2 text-neutral-500">{proyectoEstado}</td>

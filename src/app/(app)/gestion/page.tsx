@@ -58,7 +58,11 @@ export default async function GestionInicioPage({
     return {
       valor: pres.reduce((s, p) => s + Number(p.valor_cotizado || 0), 0),
       costoVigente: r?.comprometido ?? 0,
-      utilidad: r?.gananciaReal ?? 0,
+      // Utilidad PROYECTADA (valor aprobado − plan − admin − IVA): estable y con
+      // sentido aunque el proyecto aún no tenga compras registradas. Antes se
+      // usaba gananciaReal (− lo comprometido), que sin compras ≈ el valor
+      // completo del contrato e inflaba la utilidad del período.
+      utilidad: r?.gananciaProyectada ?? 0,
     };
   };
 
@@ -150,12 +154,12 @@ export default async function GestionInicioPage({
       <div className="mt-4 flex items-start gap-2 rounded-md border border-sky-200 bg-sky-50 p-3 text-xs text-sky-800">
         <TrendingUp size={16} className="mt-0.5 shrink-0" />
         <div>
-          <strong>Cómo leer el crecimiento:</strong> el tablero no inventa fechas de creación de las bases. Cuenta clientes y empresas según los proyectos registrados en cada período y calcula la utilidad desde el presupuesto/costo vigente.
+          <strong>Cómo leer el crecimiento:</strong> el tablero no inventa fechas de creación de las bases. Cuenta clientes y empresas según los proyectos registrados en cada período. La <strong>utilidad proyectada</strong> es el margen del contrato: valor aprobado − plan de costos − administración − IVA (antes de retenciones). No depende de que ya haya compras registradas.
         </div>
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-        <KpiCard label="Utilidad del período" value={money.format(utilidadPeriodo)} subtitle={`${pctTexto(utilidadPeriodo, utilidadPrevio)} ${compareLabel}`} />
+        <KpiCard label="Utilidad proyectada del período" value={money.format(utilidadPeriodo)} subtitle={`${pctTexto(utilidadPeriodo, utilidadPrevio)} ${compareLabel}`} />
         <KpiCard label="Valor aprobado" value={money.format(valorAprobado)} subtitle="Proyectos del filtro" />
         <KpiCard label="Proyectos" value={delPeriodo.length} subtitle="En el período seleccionado" />
         <KpiCard label="Clientes atendidos" value={clientesAtendidos} subtitle={`Base general: ${clientes?.length ?? 0}`} />
@@ -173,11 +177,11 @@ export default async function GestionInicioPage({
               <tr className="text-left text-[11px] uppercase text-neutral-500">
                 <th className="px-3 py-2">Mes</th>
                 <th className="px-3 py-2 text-right">Valor aprobado</th>
-                <th className="px-3 py-2 text-right">Utilidad</th>
+                <th className="px-3 py-2 text-right">Utilidad proyectada</th>
                 <th className="px-3 py-2 text-right">Proyectos</th>
                 <th className="px-3 py-2 text-right">Clientes</th>
                 <th className="px-3 py-2 text-right">Empresas</th>
-                <th className="px-3 py-2 text-right">Variación utilidad</th>
+                <th className="px-3 py-2 text-right">Variación</th>
               </tr>
             </thead>
             <tbody>
@@ -220,8 +224,8 @@ export default async function GestionInicioPage({
                 <th className="px-3 py-2">Fecha</th>
                 <th className="px-3 py-2">Estado</th>
                 <th className="px-3 py-2 text-right">Valor aprobado</th>
-                <th className="px-3 py-2 text-right">Costo vigente</th>
-                <th className="px-3 py-2 text-right">Utilidad</th>
+                <th className="px-3 py-2 text-right">Comprometido en compras</th>
+                <th className="px-3 py-2 text-right">Utilidad proyectada</th>
               </tr>
             </thead>
             <tbody>

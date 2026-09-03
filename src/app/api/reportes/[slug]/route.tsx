@@ -153,7 +153,7 @@ async function reportePresupuestos(supabase: SupabaseClient, filters?: ReportFil
       proyecto: p.proyectos?.nombre ?? "—",
       costos: fmtMoney(f.costos),
       admin: fmtMoney(f.admin),
-      utilidad: fmtMoney(f.utilidadEsperada),
+      utilidad: fmtMoney(f.utilidadOferta),
       iva: fmtMoney(f.iva),
       cotizado: fmtMoney(f.valorCotizado),
       viable: f.viable ? "Viable" : "No viable",
@@ -161,7 +161,7 @@ async function reportePresupuestos(supabase: SupabaseClient, filters?: ReportFil
   });
 
   let kpis: KpiItem[] | undefined;
-  let subtitle = "Costos, utilidad esperada e IVA por presupuesto";
+  let subtitle = "Costos, utilidad real de la oferta e IVA por presupuesto";
   if (filters?.proyectoId) {
     const totalCostos = (presupuestos ?? []).reduce((a, p) => a + calcularPresupuesto(p).costos, 0);
     const totalCotizado = (presupuestos ?? []).reduce((a, p) => a + calcularPresupuesto(p).valorCotizado, 0);
@@ -182,7 +182,7 @@ async function reportePresupuestos(supabase: SupabaseClient, filters?: ReportFil
       { key: "proyecto", label: "Proyecto", width: 1.8 },
       { key: "costos", label: "Costos", width: 1 },
       { key: "admin", label: "Admin.", width: 1 },
-      { key: "utilidad", label: "Utilidad esp.", width: 1 },
+      { key: "utilidad", label: "Utilidad", width: 1 },
       { key: "iva", label: "IVA", width: 1 },
       { key: "cotizado", label: "Valor cotizado", width: 1.1 },
       { key: "viable", label: "Viabilidad", width: 0.9 },

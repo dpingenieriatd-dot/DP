@@ -135,13 +135,17 @@ export function construirFilasControl(input: {
 
 export function resumenControl(filas: FilaControl[]) {
   const conValor = filas.filter((r) => !r.sinValorAprobado);
+  // La ganancia real solo tiene sentido para proyectos que ya tienen compras
+  // registradas — si no, gananciaReal ≈ el valor completo del contrato.
+  const conCompras = conValor.filter((r) => r.comprometido > 0);
   return {
     activos: filas.length,
     enRiesgo: filas.filter((r) => r.semaforoPlata !== "sano").length,
     atrasados: filas.filter((r) => r.tiempo === "atrasado").length,
     sinFecha: filas.filter((r) => r.tiempo === "sin_fecha").length,
     gananciaProyectada: conValor.reduce((s, r) => s + r.gananciaProyectada, 0),
-    gananciaReal: conValor.reduce((s, r) => s + r.gananciaReal, 0),
+    gananciaReal: conCompras.reduce((s, r) => s + r.gananciaReal, 0),
+    proyectosConCompras: conCompras.length,
     comprometido: filas.reduce((s, r) => s + r.comprometido, 0),
   };
 }

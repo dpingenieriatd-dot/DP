@@ -30,21 +30,23 @@ export function calcularPresupuesto(p: PresupuestoBase) {
   const u = margenPct / 100;
   const admin = costos * a;
   const factor = u >= 0.999 ? 1 + a : (1 + a) / (1 - u);
-  const valor = costos * factor; // valor comercial antes de IVA
-  const utilidadEsperada = Math.max(0, valor - costos - admin);
+  const valor = costos * factor; // valor comercial "a tarifa" (referencia interna)
+  const utilidadEsperada = Math.max(0, valor - costos - admin); // utilidad "a tarifa"
   // IVA: el efectivo de la cotización (IVA por ítem) si se propagó; si no,
   // estimación clásica de iva_pct% sobre todo el valor cuando responde IVA.
   const iva = p.iva_monto != null ? Number(p.iva_monto) : p.resp_iva ? valor * (ivaPct / 100) : 0;
 
   const valorCotizado = Number(p.valor_cotizado || 0);
-  // "Viable" = lo que se cotizó cubre el costo directo + la administración
-  // (+ el IVA, que no es ingreso de D&P): es decir, el proyecto no da pérdida.
-  // Antes se comparaba contra un "valor sugerido" a tarifa; ahora se mide
-  // contra lo que realmente se cotizó.
-  const margenNeg = valorCotizado - costos - admin - iva;
-  const viable = margenNeg >= 0;
+  // Utilidad y margen REALES de esta oferta: sobre lo que efectivamente se
+  // cotizó (no la reconstrucción "a tarifa"). Pueden ser < objetivo o
+  // negativos. `utilidadOferta` es también el criterio de viabilidad:
+  // viable = la cotización cubre costo directo + admin (+ IVA) → no da pérdida.
+  const utilidadOferta = valorCotizado - costos - admin - iva;
+  const margenOferta = valorCotizado > 0 ? utilidadOferta / valorCotizado : 0;
+  const margenNeg = utilidadOferta; // alias histórico
+  const viable = utilidadOferta >= 0;
 
-  return { costos, admin, utilidadEsperada, valor, iva, valorCotizado, margenNeg, viable };
+  return { costos, admin, utilidadEsperada, utilidadOferta, margenOferta, valor, iva, valorCotizado, margenNeg, viable };
 }
 
 export type CostoItem = { presupuestado: number; real: number };

@@ -60,7 +60,7 @@ export async function GET(req: Request) {
     presupuesto: m(r.plan),
     gastado: m(r.comprometido),
     disponible: m(r.disponible),
-    ganancia: r.sinValorAprobado ? "sin valor aprobado" : m(r.gananciaReal),
+    ganancia: r.sinValorAprobado ? "sin valor aprobado" : r.comprometido === 0 ? "sin compras aún" : m(r.gananciaReal),
     plata: etiquetaPlata(r.semaforoPlata),
     tiempo: etiquetaTiempo(r.tiempo, r.diasTiempo),
   }));
@@ -74,7 +74,7 @@ export async function GET(req: Request) {
         { label: "Con alerta de plata", value: String(t.enRiesgo) },
         { label: "Atrasados", value: String(t.atrasados) },
         { label: "Ganancia proyectada", value: m(t.gananciaProyectada) },
-        { label: "Ganancia real (compras)", value: m(t.gananciaReal) },
+        { label: `Ganancia real (${t.proyectosConCompras} con compras)`, value: t.proyectosConCompras === 0 ? "—" : m(t.gananciaReal) },
       ]}
       columns={COLUMNS}
       rows={rows}

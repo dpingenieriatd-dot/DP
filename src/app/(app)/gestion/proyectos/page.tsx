@@ -48,7 +48,9 @@ export default async function Page() {
       umbralRiesgoPct,
     });
     const costoVigente = estado.comprometido;
-    const gananciaTotal = estado.gananciaReal;
+    // Utilidad PROYECTADA (vs. plan): estable aunque no haya compras. gananciaReal
+    // sin compras ≈ el valor completo del contrato.
+    const gananciaTotal = estado.gananciaProyectada;
     const cotizacion = cotizacionDe(proy.cotizacion_id);
     return {
       proy: { ...proy, estadoMostrado: proy.archivado ? "Archivado" : proy.estado },
