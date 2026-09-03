@@ -41,13 +41,13 @@ drop trigger if exists trg_cotizacion_enlaces_max_10 on cotizacion_enlaces;
 create trigger trg_cotizacion_enlaces_max_10 before insert on cotizacion_enlaces
   for each row execute function cotizacion_enlaces_max_10();
 
--- Fuera la tabla de soportes por archivo y el bucket (vacíos).
+-- Fuera la tabla de soportes por archivo (estaba vacía).
 drop table if exists cotizacion_soportes;
 
-drop policy if exists "gestion: leer soportes de cotización" on storage.objects;
-drop policy if exists "gestion: subir soportes de cotización" on storage.objects;
-drop policy if exists "gestion: eliminar soportes de cotización" on storage.objects;
-delete from storage.objects where bucket_id = 'cotizacion-soportes';
-delete from storage.buckets where id = 'cotizacion-soportes';
+-- El bucket 'cotizacion-soportes' y sus políticas quedan huérfanos pero
+-- inofensivos (0 archivos). Supabase NO permite borrar storage.objects /
+-- storage.buckets desde SQL ("Direct deletion from storage tables is not
+-- allowed"). Para limpiarlo del todo, borrar el bucket a mano en el
+-- Dashboard: Storage → cotizacion-soportes → Delete bucket. Opcional.
 
 notify pgrst, 'reload schema';
