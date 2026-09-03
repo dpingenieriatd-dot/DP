@@ -12,6 +12,7 @@ type Fila = {
   control: ReturnType<typeof calcularControlCostos>;
   proyectoCodigo: string;
   proyectoNombre: string;
+  proyectoEstado: string;
   cotizacionCodigo: string;
   cliente: string;
   nit: string;
@@ -26,7 +27,7 @@ const COLUMNAS = [
   { key: "nombre", label: "Nombre" },
 ];
 
-function estadoDe(control: ReturnType<typeof calcularControlCostos>) {
+function ejecucionDe(control: ReturnType<typeof calcularControlCostos>) {
   if (control.plan > 0 && control.real > control.plan) return "Excedido";
   if (control.real > 0) return `${Math.round((control.real / control.plan) * 100)}% ejecutado`;
   return "Sin ejecutar";
@@ -115,7 +116,7 @@ export function PresupuestosList({ filas }: { filas: Fila[] }) {
       </div>
 
       <div className="min-h-[360px] overflow-auto rounded-lg border border-neutral-200 bg-white lg:min-h-0 lg:flex-1">
-        <table className="w-full min-w-[1250px] text-xs">
+        <table className="w-full min-w-[1360px] text-xs">
           <thead>
             <tr className="text-left text-[11px] uppercase text-neutral-500">
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Cód. presupuesto</th>
@@ -130,12 +131,13 @@ export function PresupuestosList({ filas }: { filas: Fila[] }) {
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Disponible</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Ganancia estimada</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Utilidad vigente</th>
-              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Estado</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Ejecución</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Estado del proyecto</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Acciones</th>
             </tr>
           </thead>
           <tbody>
-            {visibles.map(({ pre, f, control, proyectoCodigo, cotizacionCodigo, cliente, nit }) => (
+            {visibles.map(({ pre, f, control, proyectoCodigo, proyectoEstado, cotizacionCodigo, cliente, nit }) => (
               <tr key={pre.id} className="border-t border-neutral-100 hover:bg-neutral-50">
                 <td className="px-3 py-2">
                   <Link href={`/gestion/presupuestos/${pre.id}`} className="font-medium text-emerald-700 hover:underline">
@@ -155,7 +157,8 @@ export function PresupuestosList({ filas }: { filas: Fila[] }) {
                 <td className={`px-3 py-2 text-right font-semibold ${control.gananciaActual < 0 ? "text-red-600" : "text-emerald-700"}`}>
                   {money.format(control.gananciaActual)}
                 </td>
-                <td className="px-3 py-2">{estadoDe(control)}</td>
+                <td className="px-3 py-2">{ejecucionDe(control)}</td>
+                <td className="px-3 py-2 text-neutral-500">{proyectoEstado}</td>
                 <td className="whitespace-nowrap px-3 py-2">
                   <div className="flex flex-wrap gap-3">
                     <Link href={`/gestion/presupuestos/${pre.id}`} className="text-xs font-medium text-emerald-700 hover:underline">
@@ -191,7 +194,7 @@ export function PresupuestosList({ filas }: { filas: Fila[] }) {
             ))}
             {visibles.length === 0 && (
               <tr>
-                <td colSpan={14} className="px-3 py-8 text-center text-neutral-400">
+                <td colSpan={15} className="px-3 py-8 text-center text-neutral-400">
                   {filas.length === 0 ? "No hay presupuestos registrados." : "Ningún registro coincide con los filtros."}
                 </td>
               </tr>

@@ -7,7 +7,7 @@ export default async function Page() {
 
   const [{ data: presupuestos }, { data: proyectos }, { data: costos }, { data: clientes }, { data: cotizaciones }, { data: compras }] = await Promise.all([
     supabase.from("presupuestos").select("*").order("nombre"),
-    supabase.from("proyectos").select("id, codigo, nombre, cliente_id").eq("archivado", false).order("nombre"),
+    supabase.from("proyectos").select("id, codigo, nombre, cliente_id, estado").eq("archivado", false).order("nombre"),
     supabase.from("presupuesto_costos").select("presupuesto_id, presupuestado, real"),
     supabase.from("clientes").select("id, nombre, nit"),
     supabase.from("cotizaciones").select("id, codigo"),
@@ -38,6 +38,7 @@ export default async function Page() {
       control,
       proyectoCodigo: proyecto?.codigo || "—",
       proyectoNombre: proyecto?.nombre || "—",
+      proyectoEstado: proyecto?.estado || "—",
       cotizacionCodigo: cotizacion?.codigo || "—",
       cliente: cliente?.nombre ?? "—",
       nit: cliente?.nit ?? "—",
