@@ -337,13 +337,35 @@ export function CotizacionForm({
                           min={0}
                           step={100}
                           value={Math.round(local.precio_cliente_override ?? i.autoUnitClient)}
-                          title={`Automático: ${money.format(i.autoUnitClient)}`}
+                          title={`Automático (costo × factor): ${money.format(i.autoUnitClient)}`}
                           onChange={(e) => {
                             const v = Number(e.target.value);
-                            actualizarItem(local.key, { precio_cliente_override: Number.isFinite(v) && v > 0 ? v : null });
+                            const auto = Math.round(i.autoUnitClient);
+                            // Solo cuenta como "Manual" si el valor difiere del automático:
+                            // teclear el mismo número que el auto no lo saca de Auto.
+                            actualizarItem(local.key, {
+                              precio_cliente_override: Number.isFinite(v) && v > 0 && v !== auto ? v : null,
+                            });
                           }}
                           className="w-28 rounded-md border border-neutral-300 px-2 py-1 text-right font-semibold"
                         />
+                        <div className="mt-1 flex items-center justify-end gap-1 text-[10px]">
+                          {local.precio_cliente_override != null ? (
+                            <>
+                              <span className="rounded-full bg-amber-100 px-1.5 py-0.5 font-semibold text-amber-700">Manual</span>
+                              <button
+                                type="button"
+                                onClick={() => actualizarItem(local.key, { precio_cliente_override: null })}
+                                title={`Volver a automático: ${money.format(i.autoUnitClient)}`}
+                                className="font-semibold text-neutral-400 hover:text-emerald-700"
+                              >
+                                ↺ auto
+                              </button>
+                            </>
+                          ) : (
+                            <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 font-semibold text-emerald-700">Auto</span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-3 py-2 text-right font-semibold">{money.format(i.subtotalCliente)}</td>
                       <td className="px-3 py-2 text-center">
@@ -384,7 +406,11 @@ export function CotizacionForm({
               <h2 className="flex items-center gap-1.5 text-sm font-semibold text-emerald-900">
                 <SlidersHorizontal size={15} /> Parámetros de esta cotización
               </h2>
-              <p className="mt-1 text-xs text-neutral-500">Puedes modificar administración y utilidad según esta propuesta. Los cambios solo afectan esta cotización.</p>
+              <p className="mt-1 text-xs text-neutral-500">
+                Administración y utilidad definen el precio automático de cada ítem (costo × factor). Cambiarlos recalcula
+                las filas en <span className="font-semibold text-emerald-700">Auto</span>; las filas en{" "}
+                <span className="font-semibold text-amber-700">Manual</span> conservan el precio que pusiste. Solo afectan esta cotización.
+              </p>
             </div>
             <div className="flex flex-wrap items-end gap-3">
               <label className="text-xs text-neutral-500">
@@ -405,10 +431,21 @@ export function CotizacionForm({
           </div>
 
           <div className="mt-4 space-y-1.5 border-t border-neutral-100 pt-4 text-sm">
-            <Linea label="Costos directos (interno)" valor={calc.direct} />
+            <Linea label="Costo directo interno" valor={calc.direct} />
             <Linea label={`Costos administrativos (${adminPct}%)`} valor={calc.admin} />
-            <Linea label={`Utilidad esperada (${margenPct}% del valor antes de IVA)`} valor={calc.utilidad} />
-            <Linea label="Valor comercial antes de IVA" valor={calc.base} />
+            <div className={`flex items-center justify-between ${calc.utilidadReal < 0 ? "text-red-600" : "text-neutral-600"}`}>
+              <span>
+                Utilidad real de la oferta
+                {calc.clientSubtotal > 0 && (
+                  <span className="ml-1 text-xs text-neutral-400">(margen real {(calc.margenReal * 100).toFixed(1)}%)</span>
+                )}
+              </span>
+              <span>{money.format(calc.utilidadReal)}</span>
+            </div>
+            <div className="flex items-center justify-between border-t border-neutral-200 pt-2 font-semibold text-neutral-700">
+              <span>Precio a cliente antes de IVA</span>
+              <span>{money.format(calc.clientSubtotal)}</span>
+            </div>
             <Linea label="IVA (19%)" valor={calc.clientIva} />
             <div className="flex items-center justify-between border-t border-emerald-200 pt-2 text-base font-bold text-emerald-900">
               <span>Total cotizado al cliente</span>
@@ -416,7 +453,9 @@ export function CotizacionForm({
             </div>
           </div>
           <p className="mt-3 text-xs text-neutral-400">
-            El PDF del cliente solo muestra descripción, cantidad, valor unitario comercial, subtotal, IVA y total. Nunca muestra costos internos, administración ni utilidad.
+            &quot;Costo directo + Costos administrativos + Utilidad real = Precio a cliente antes de IVA&quot;. La utilidad
+            real sale de los precios que quedaron en la tabla, no del margen objetivo — puede ser menor al objetivo o
+            negativa si se descontó por debajo del costo. El PDF del cliente nunca muestra costos internos, administración ni utilidad.
           </p>
         </div>
 

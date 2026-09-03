@@ -63,8 +63,14 @@ export function calcularControlCostos(items: CostoItem[], valorCotizado: number,
 /**
  * Motor de ítems de cotización — igual al del HTML de referencia (dpQuoteCalc):
  * cada ítem tiene un costo interno unitario (tomado del catálogo al agregarlo);
- * el precio cliente unitario es costo × factor, salvo que se haya editado a mano
- * (precio_cliente_override). valor_cotizado real = suma de subtotales cliente + IVA.
+ * el precio cliente unitario es costo × factor ("Auto"), salvo que se haya
+ * editado a mano ("Manual", precio_cliente_override). El valor cotizado real
+ * (clientTotal) = suma de subtotales cliente + IVA — sale de los precios reales
+ * de la tabla, NO del factor. Por eso admin%/margen% solo mueven el total a
+ * través de los ítems en Auto; los ítems en Manual quedan como los fijó el
+ * usuario. `utilidadReal`/`margenReal` reflejan la oferta tal cual quedó
+ * (pueden ser < objetivo o negativas); `base`/`utilidad`/`sugerido` son las
+ * cifras "a tarifa" derivadas solo del factor.
  */
 export type ItemCotizacion = {
   cantidad: number;
@@ -100,7 +106,13 @@ export function calcularCotizacionItems(
   const clientIva = aplicaIva ? clientSubtotal * ivaFrac : 0;
   const clientTotal = clientSubtotal + clientIva;
 
-  return { direct, admin, utilidad, base, iva, sugerido, itemsCalculados, clientSubtotal, clientIva, clientTotal, factor, aplicaIva };
+  // Utilidad/margen REALES de la oferta: sobre el precio que efectivamente se
+  // cobra (clientSubtotal), no sobre el "a tarifa" (base). direct + admin +
+  // utilidadReal = clientSubtotal siempre, así el desglose cuadra en pantalla.
+  const utilidadReal = clientSubtotal - direct - admin;
+  const margenReal = clientSubtotal > 0 ? utilidadReal / clientSubtotal : 0;
+
+  return { direct, admin, utilidad, utilidadReal, margenReal, base, iva, sugerido, itemsCalculados, clientSubtotal, clientIva, clientTotal, factor, aplicaIva };
 }
 
 export type ContratoInputs = {
