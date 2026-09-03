@@ -251,6 +251,12 @@ export function PresupuestoDetalle({
           </div>
           <Campo label="Valor cotizado al cliente">
             <input type="number" step="0.01" name="valor_cotizado" defaultValue={presupuesto.valor_cotizado} className="in" />
+            {baseCotizacion && Math.abs(Number(presupuesto.valor_cotizado) - baseCotizacion.valorAprobado) > 1 && (
+              <p className="mt-1 text-xs text-amber-700">
+                Difiere de la cotización {baseCotizacion.codigo ?? ""} ({money.format(baseCotizacion.valorAprobado)}).
+                Este valor es el que usan el control del proyecto y los reportes.
+              </p>
+            )}
           </Campo>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex items-center gap-3">

@@ -1,5 +1,6 @@
 import {
   calcularEstadoProyecto,
+  calcularPresupuesto,
   calcularCronograma,
   costoBasePresupuesto,
   type EstadoPlata,
@@ -47,6 +48,7 @@ type PresupuestoInput = {
   margen_pct: number | string | null;
   resp_iva: boolean | null;
   iva_pct: number | string | null;
+  iva_monto?: number | string | null;
 };
 type CostoInput = { presupuesto_id: string; presupuestado: number | string | null };
 type CompraInput = {
@@ -84,18 +86,25 @@ export function construirFilasControl(input: {
   return input.proyectos
     .map((p) => {
       const pres = input.presupuestos.filter((x) => x.proyecto_id === p.id);
-      const ref = pres[0];
-      const planCosto = pres.reduce(
-        (s, x) => s + costoBasePresupuesto(x, input.costos.filter((c) => c.presupuesto_id === x.id)),
-        0,
+      // admin e IVA se calculan por presupuesto (mismas cifras que la ficha) y
+      // se suman — no un % del "primer presupuesto" sobre el plan total.
+      const porPresupuesto = pres.map((x) =>
+        calcularPresupuesto({
+          costos: costoBasePresupuesto(x, input.costos.filter((c) => c.presupuesto_id === x.id)),
+          admin_pct: Number(x.admin_pct ?? input.settings?.admin_pct ?? 15),
+          margen_pct: Number(x.margen_pct ?? input.settings?.margin_pct ?? 30),
+          resp_iva: x.resp_iva ?? true,
+          iva_pct: Number(x.iva_pct ?? input.settings?.iva_pct ?? 19),
+          valor_cotizado: Number(x.valor_cotizado || 0),
+          iva_monto: x.iva_monto == null ? null : Number(x.iva_monto),
+        }),
       );
+      const planCosto = porPresupuesto.reduce((s, f) => s + f.costos, 0);
       const e = calcularEstadoProyecto({
         valorAprobado: pres.reduce((s, x) => s + Number(x.valor_cotizado || 0), 0),
         planCosto,
-        adminPct: Number(ref?.admin_pct ?? input.settings?.admin_pct ?? 15),
-        margenPct: Number(ref?.margen_pct ?? input.settings?.margin_pct ?? 30),
-        respIva: ref?.resp_iva ?? true,
-        ivaPct: Number(ref?.iva_pct ?? input.settings?.iva_pct ?? 19),
+        admin: porPresupuesto.reduce((s, f) => s + f.admin, 0),
+        iva: porPresupuesto.reduce((s, f) => s + f.iva, 0),
         compras: input.compras.filter((c) => c.proyecto_id === p.id),
         umbralRiesgoPct,
       });

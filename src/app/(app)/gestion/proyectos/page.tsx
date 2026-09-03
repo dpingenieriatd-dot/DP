@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { calcularEstadoProyecto, costoBasePresupuesto } from "@/lib/finance";
+import { calcularEstadoProyecto, calcularPresupuesto, costoBasePresupuesto } from "@/lib/finance";
 import { ProyectosList } from "./list";
 
 export default async function Page() {
@@ -28,17 +28,22 @@ export default async function Page() {
 
   const filas = (proyectos ?? []).map((proy) => {
     const presDelProyecto = (presupuestos ?? []).filter((p) => p.proyecto_id === proy.id);
-    const ref = presDelProyecto[0];
+    const porPresupuesto = presDelProyecto.map((p) =>
+      calcularPresupuesto({
+        costos: costoBasePresupuesto(p, (costos ?? []).filter((c) => c.presupuesto_id === p.id)),
+        admin_pct: Number(p.admin_pct ?? settings?.admin_pct ?? 15),
+        margen_pct: Number(p.margen_pct ?? settings?.margin_pct ?? 30),
+        resp_iva: p.resp_iva ?? true,
+        iva_pct: Number(p.iva_pct ?? settings?.iva_pct ?? 19),
+        valor_cotizado: Number(p.valor_cotizado || 0),
+        iva_monto: p.iva_monto == null ? null : Number(p.iva_monto),
+      }),
+    );
     const estado = calcularEstadoProyecto({
       valorAprobado: presDelProyecto.reduce((s, p) => s + Number(p.valor_cotizado || 0), 0),
-      planCosto: presDelProyecto.reduce(
-        (s, p) => s + costoBasePresupuesto(p, (costos ?? []).filter((c) => c.presupuesto_id === p.id)),
-        0,
-      ),
-      adminPct: Number(ref?.admin_pct ?? settings?.admin_pct ?? 15),
-      margenPct: Number(ref?.margen_pct ?? settings?.margin_pct ?? 30),
-      respIva: ref?.resp_iva ?? true,
-      ivaPct: Number(ref?.iva_pct ?? settings?.iva_pct ?? 19),
+      planCosto: porPresupuesto.reduce((s, f) => s + f.costos, 0),
+      admin: porPresupuesto.reduce((s, f) => s + f.admin, 0),
+      iva: porPresupuesto.reduce((s, f) => s + f.iva, 0),
       compras: (compras ?? []).filter((c) => c.proyecto_id === proy.id),
       umbralRiesgoPct,
     });

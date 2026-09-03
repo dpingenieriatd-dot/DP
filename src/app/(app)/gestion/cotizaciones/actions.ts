@@ -398,7 +398,16 @@ export async function aprobarYCrearProyecto(cotizacionId: string, aprobacion: Ap
       nombre: cot.nombre,
       empresa_id: cot.empresa_id,
       costos: costosSemilla,
+      // Hereda los parámetros de la cotización aprobada (luego editables en el
+      // presupuesto). Antes NO se copiaban y el presupuesto nacía con 15/30/19.
+      admin_pct: cot.admin_pct ?? 15,
+      margen_pct: cot.margen_pct ?? 30,
+      iva_pct: 19, // las cotizaciones tienen el IVA fijo en 19 %
       resp_iva: cot.resp_iva ?? true,
+      // PENDIENTE POR DECISIÓN (ver PENDIENTES.md): valor_cotizado se siembra
+      // aquí pero el campo es editable en el presupuesto, así que puede
+      // divergir de la cotización. Downstream (control, reportes) usa el del
+      // presupuesto; la lista de Cotizaciones y el PDF, el de la cotización.
       valor_cotizado: cot.valor_cotizado,
       iva_monto: cot.iva_monto ?? null,
     })

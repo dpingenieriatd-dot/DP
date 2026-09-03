@@ -199,10 +199,12 @@ export function costoBasePresupuesto(
 export function calcularEstadoProyecto(p: {
   valorAprobado: number;
   planCosto: number;
-  adminPct: number;
-  margenPct: number;
-  respIva: boolean;
-  ivaPct: number;
+  /** Costo administrativo e IVA ABSOLUTOS del/los presupuesto(s) del proyecto,
+   *  ya calculados con `calcularPresupuesto` por quien llama. Así el tablero
+   *  usa exactamente las mismas cifras que la ficha del presupuesto y respeta
+   *  el `iva_monto` de la cotización (antes reestimaba 19 % sobre el plan). */
+  admin: number;
+  iva: number;
   compras: CompraProyecto[];
   umbralRiesgoPct?: number;
 }) {
@@ -212,11 +214,8 @@ export function calcularEstadoProyecto(p: {
     .filter((c) => c.estado_pago === "Pagado")
     .reduce((s, c) => s + nz(c.cantidad) * nz(c.valor_unitario), 0);
 
-  const a = nz(p.adminPct) / 100;
-  const u = nz(p.margenPct) / 100;
-  const admin = p.planCosto * a;
-  const factor = u >= 0.999 ? 1 + a : (1 + a) / (1 - u);
-  const iva = p.respIva ? p.planCosto * factor * (nz(p.ivaPct) / 100) : 0;
+  const admin = nz(p.admin);
+  const iva = nz(p.iva);
 
   const sinValorAprobado = p.valorAprobado <= 0;
   const gananciaProyectada = p.valorAprobado - p.planCosto - admin - iva;
