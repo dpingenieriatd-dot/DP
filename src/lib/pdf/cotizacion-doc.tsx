@@ -52,11 +52,6 @@ const styles = StyleSheet.create({
 
 const fmtDate = (v: string | null | undefined) => (v ? new Date(v + "T00:00:00").toLocaleDateString("es-CO") : "—");
 
-export type CotizacionPdfItem = {
-  descripcion: string;
-  subtotalCliente: number;
-};
-
 export function CotizacionDoc({
   codigo,
   fecha,
@@ -70,7 +65,6 @@ export function CotizacionDoc({
   descripcionCliente,
   formaPago,
   condicionesCliente,
-  items,
   clientSubtotal,
   aplicaIva,
   clientIva,
@@ -88,7 +82,6 @@ export function CotizacionDoc({
   descripcionCliente: string | null;
   formaPago: string | null;
   condicionesCliente: string | null;
-  items: CotizacionPdfItem[];
   clientSubtotal: number;
   aplicaIva: boolean;
   clientIva: number;
@@ -131,41 +124,20 @@ export function CotizacionDoc({
           </View>
         </View>
 
-        {descripcionCliente && (
-          <>
-            <Text style={styles.section}>Descripción de la cotización</Text>
-            <Text style={styles.parrafo}>{descripcionCliente}</Text>
-          </>
-        )}
+        <Text style={styles.section}>Descripción de la cotización</Text>
+        <Text style={styles.parrafo}>{descripcionCliente || "—"}</Text>
 
-        <Text style={styles.section}>Detalle</Text>
-        <View>
-          <View style={styles.tableRowHeader} fixed>
-            <Text style={[styles.th, { flex: 4 }]}>Descripción</Text>
-            <Text style={[styles.th, { flex: 1.4, textAlign: "right" }]}>Valor</Text>
-          </View>
-          {items.length === 0 && <Text style={{ padding: 12, fontSize: 9, color: "#999" }}>Sin ítems.</Text>}
-          {items.map((it, i) => (
-            <View key={i} style={i % 2 === 0 ? styles.tableRow : styles.tableRowAlt} wrap={false}>
-              <Text style={[styles.td, { flex: 4 }]}>{it.descripcion}</Text>
-              <Text style={[styles.td, { flex: 1.4, textAlign: "right" }]}>{money.format(it.subtotalCliente)}</Text>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.totales}>
+        <View style={[styles.totales, { marginTop: 4 }]}>
           <View style={styles.totalLinea}>
-            <Text style={styles.totalLabel}>Subtotal</Text>
+            <Text style={styles.totalLabel}>Valor antes de IVA</Text>
             <Text style={styles.totalValor}>{money.format(clientSubtotal)}</Text>
           </View>
-          {aplicaIva && (
-            <View style={styles.totalLinea}>
-              <Text style={styles.totalLabel}>IVA (19%)</Text>
-              <Text style={styles.totalValor}>{money.format(clientIva)}</Text>
-            </View>
-          )}
+          <View style={styles.totalLinea}>
+            <Text style={styles.totalLabel}>IVA (19%)</Text>
+            <Text style={styles.totalValor}>{aplicaIva ? money.format(clientIva) : "No aplica"}</Text>
+          </View>
           <View style={styles.totalFinalLinea}>
-            <Text style={styles.totalFinalLabel}>Total</Text>
+            <Text style={styles.totalFinalLabel}>Valor total cotizado</Text>
             <Text style={styles.totalFinalValor}>{money.format(clientTotal)}</Text>
           </View>
         </View>

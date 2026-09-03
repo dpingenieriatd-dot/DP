@@ -23,11 +23,6 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     { admin_pct: cotizacion.admin_pct ?? 15, margen_pct: cotizacion.margen_pct ?? 30, resp_iva: cotizacion.resp_iva ?? true, iva_pct: 19 }
   );
 
-  const itemsPdf = (items ?? []).map((i, idx) => ({
-    descripcion: i.descripcion,
-    subtotalCliente: calc.itemsCalculados[idx].subtotalCliente,
-  }));
-
   const buffer = await renderToBuffer(
     <CotizacionDoc
       codigo={cotizacion.codigo || "—"}
@@ -42,7 +37,6 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       descripcionCliente={cotizacion.descripcion_cliente}
       formaPago={cotizacion.forma_pago}
       condicionesCliente={cotizacion.condiciones_cliente}
-      items={itemsPdf}
       clientSubtotal={calc.clientSubtotal}
       aplicaIva={calc.aplicaIva}
       clientIva={calc.clientIva}

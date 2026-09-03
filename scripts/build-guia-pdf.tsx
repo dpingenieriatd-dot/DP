@@ -734,9 +734,10 @@ function Doc() {
         <H3>Descargar la cotización en PDF</H3>
         <P>
           Desde la lista o desde la ficha, el botón PDF genera la cotización con la marca de D&P, lista para enviar al
-          cliente. El PDF es minimalista: cliente, la descripción de la cotización, y cada renglón solo con su
-          descripción y su valor, más el subtotal, IVA y total. No muestra cantidades, valores unitarios, costos
-          internos, administración ni utilidad. Si ya está aprobada, muestra la fecha de aprobación.
+          cliente. El PDF es minimalista: cliente, la descripción de la cotización y tres cifras — valor antes de IVA,
+          IVA y valor total cotizado. No lista los ítems ni muestra cantidades, valores unitarios, costos internos,
+          administración ni utilidad. Todo el detalle de lo que se ofrece va en el campo "Descripción de la cotización".
+          Si ya está aprobada, muestra la fecha de aprobación.
         </P>
       </ContentPage>
 
