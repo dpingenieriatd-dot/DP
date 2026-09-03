@@ -3,10 +3,10 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FileText, ListChecks, SlidersHorizontal, FileSignature, Link2, Plus, Trash2 } from "lucide-react";
+import { FileText, ListChecks, SlidersHorizontal, FileSignature, Link2, Plus, Trash2, Landmark } from "lucide-react";
 import { crearCotizacion, actualizarCotizacion, type CotizacionPayload, type ItemPayload } from "./actions";
 import { agregarEnlace, eliminarEnlace } from "./enlaces-actions";
-import { calcularCotizacionItems, money } from "@/lib/finance";
+import { calcularCotizacionItems, calcularEfectivoEsperado, money } from "@/lib/finance";
 
 type Cotizacion = {
   id: string;
@@ -29,6 +29,7 @@ type Cotizacion = {
   descripcion_cliente: string | null;
   forma_pago: string | null;
   condiciones_cliente: string | null;
+  otras_retenciones: number | null;
 };
 
 type Enlace = { id: string; cotizacion_id: string; titulo: string | null; url: string };
@@ -59,7 +60,7 @@ export function CotizacionForm({
   itemsIniciales,
 }: {
   editing: Cotizacion | null;
-  clientes: { id: string; nombre: string }[];
+  clientes: { id: string; nombre: string; retencion_fuente_pct?: number | null; ica_por_mil?: number | null }[];
   empresas: { id: string; nombre: string; cliente_id: string | null }[];
   profiles: { id: string; full_name: string | null; email: string | null }[];
   enlaces: Enlace[];
@@ -92,6 +93,7 @@ export function CotizacionForm({
   const [condicionesCliente, setCondicionesCliente] = useState(editing?.condiciones_cliente ?? "");
   const [adminPct, setAdminPct] = useState(editing?.admin_pct ?? 15);
   const [margenPct, setMargenPct] = useState(editing?.margen_pct ?? 30);
+  const [otrasRetenciones, setOtrasRetenciones] = useState(editing?.otras_retenciones ?? 0);
 
   const [items, setItems] = useState<ItemLocal[]>(
     itemsIniciales.map((i) => ({ key: nuevoKey(), tipo: i.tipo, descripcion: i.descripcion, unidad: i.unidad, cantidad: i.cantidad, costo_unitario: i.costo_unitario, precio_cliente_override: i.precio_cliente_override, lleva_iva: i.lleva_iva ?? true }))
@@ -105,6 +107,14 @@ export function CotizacionForm({
 
   const empresasDelCliente = empresas.filter((e) => !clienteId || e.cliente_id === clienteId || e.cliente_id === null);
   const clienteActual = clientes.find((c) => c.id === clienteId);
+
+  const efectivo = calcularEfectivoEsperado({
+    valorConIva: calc.clientTotal,
+    iva: calc.clientIva,
+    retencionFuentePct: Number(clienteActual?.retencion_fuente_pct ?? 0),
+    icaPorMil: Number(clienteActual?.ica_por_mil ?? 0),
+    otrasRetenciones: Number(otrasRetenciones) || 0,
+  });
 
   function payload(): CotizacionPayload {
     return {
@@ -127,6 +137,7 @@ export function CotizacionForm({
       descripcion_cliente: descripcionCliente,
       forma_pago: formaPago,
       condiciones_cliente: condicionesCliente,
+      otras_retenciones: Number(otrasRetenciones) || 0,
       items: items.map(({ tipo, descripcion, unidad, cantidad, costo_unitario, precio_cliente_override, lleva_iva }) => ({
         tipo,
         descripcion,
@@ -485,6 +496,44 @@ export function CotizacionForm({
             real sale de los precios que quedaron en la tabla, no del margen objetivo — puede ser menor al objetivo o
             negativa si se descontó por debajo del costo. El PDF del cliente nunca muestra costos internos, administración ni utilidad.
           </p>
+        </div>
+
+        <div className="rounded-lg border border-neutral-200 bg-white p-6">
+          <h2 className="mb-1 flex items-center gap-1.5 text-sm font-semibold text-emerald-900">
+            <Landmark size={15} /> Efectivo neto esperado
+          </h2>
+          <p className="mb-3 text-xs text-neutral-500">
+            Lo que realmente le llega a caja a D&amp;P después de lo que el cliente retiene y paga a la DIAN/municipio. La
+            retención en la fuente y la tarifa de ICA salen de la ficha del cliente
+            {clienteActual ? "" : " (selecciona un cliente para verlas)"}.
+          </p>
+          <div className="mb-3 max-w-xs">
+            <label className="block text-sm">
+              <span className="mb-1 block text-neutral-600">Otras retenciones ($, valor fijo de esta cotización)</span>
+              <input
+                type="number"
+                min={0}
+                step={1000}
+                value={otrasRetenciones}
+                onChange={(e) => setOtrasRetenciones(Number(e.target.value) || 0)}
+                className="in"
+              />
+            </label>
+          </div>
+          <div className="space-y-1.5 border-t border-neutral-100 pt-3 text-sm">
+            <Linea label="Valor cotizado (con IVA)" valor={efectivo.valorConIva} />
+            <Linea label="− IVA (no es ingreso de D&P)" valor={-efectivo.iva} />
+            <Linea
+              label={`− Retención en la fuente (${Number(clienteActual?.retencion_fuente_pct ?? 0)}%)`}
+              valor={-efectivo.retencion}
+            />
+            <Linea label={`− ICA (${Number(clienteActual?.ica_por_mil ?? 0)} × 1.000)`} valor={-efectivo.ica} />
+            <Linea label="− Otras retenciones" valor={-efectivo.otrasRetenciones} />
+            <div className="flex items-center justify-between border-t border-emerald-200 pt-2 text-base font-bold text-emerald-900">
+              <span>Efectivo neto esperado</span>
+              <span>{money.format(efectivo.efectivoNetoEsperado)}</span>
+            </div>
+          </div>
         </div>
 
         {editing && (

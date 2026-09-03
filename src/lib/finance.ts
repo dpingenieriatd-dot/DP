@@ -126,46 +126,37 @@ export function calcularCotizacionItems(
   return { direct, admin, utilidad, utilidadReal, margenReal, base, iva, sugerido, itemsCalculados, clientSubtotal, baseGravada, clientIva, clientTotal, factor, aplicaIva };
 }
 
-export type ContratoInputs = {
-  contrato_valor: number;
-  contrato_incluye_iva: boolean;
-  iva_aplica: boolean;
-  iva_pct: number;
-  retencion_pct: number; // porcentaje (ej. 11)
-  ica_pct: number; // tarifa POR MIL (ej. 9,66), no porcentaje
-  otras_retenciones: number;
+export type EfectivoInputs = {
+  /** Valor cotizado al cliente, IVA incluido (cotizaciones.valor_cotizado). */
+  valorConIva: number;
+  /** IVA efectivo embebido en el valor cotizado (cotizaciones.iva_monto). */
+  iva: number;
+  /** Perfil tributario del cliente. */
+  retencionFuentePct: number; // porcentaje (ej. 11)
+  icaPorMil: number; // tarifa POR MIL (ej. 9,66), no porcentaje
+  /** Retenciones fijas adicionales de esta cotización, en $. */
+  otrasRetenciones: number;
 };
 
 /**
- * Efectivo neto esperado a nivel de contrato de un proyecto (distinto del
- * motor de rentabilidad de Cotizaciones/Presupuestos, que compara costo vs.
- * precio). Aquí se parte del valor pactado con el cliente y se calcula
- * cuánto llega realmente a D&P después de IVA, retención en la fuente e
- * ICA — que el cliente retiene y paga directamente a la DIAN/municipio,
- * no a D&P.
+ * Efectivo neto esperado: cuánto le llega realmente a D&P después de lo que el
+ * cliente retiene y paga directamente a la DIAN/municipio (retención en la
+ * fuente, ICA, otras). Es distinto del motor de rentabilidad, que compara
+ * costo vs. precio — aquí se parte del valor cotizado.
  *
- * Retención en la fuente e ICA se calculan sobre la base SIN IVA (estándar
- * en Colombia: esos impuestos no se calculan sobre el IVA mismo).
- *
- * OJO con las unidades: la retención en la fuente se digita como PORCENTAJE
- * (11 % honorarios → /100), pero el ICA se digita como TARIFA POR MIL
- * (Bogotá servicios 9,66 x 1.000 → /1000), que es como lo cobran los
- * municipios y como lo entrega la contadora. `ica_pct` conserva ese nombre
- * histórico de columna pero su valor es la tarifa por mil.
+ * Retención en la fuente e ICA se calculan sobre la base SIN IVA (estándar en
+ * Colombia). La retención en la fuente es un PORCENTAJE (11 % honorarios →
+ * /100); el ICA es una TARIFA POR MIL (Bogotá servicios 9,66 x 1.000 → /1000),
+ * como lo cobran los municipios. Ambas tarifas vienen del perfil del cliente.
  */
-export function calcularEfectivoEsperado(p: ContratoInputs) {
-  const contratoValor = Number(p.contrato_valor || 0);
-  const ivaPct = Number(p.iva_pct ?? 19);
-  const retencionPct = Number(p.retencion_pct || 0);
-  const icaPct = Number(p.ica_pct || 0);
-  const otrasRetenciones = Number(p.otras_retenciones || 0);
+export function calcularEfectivoEsperado(p: EfectivoInputs) {
+  const valorConIva = Number(p.valorConIva || 0);
+  const iva = Number(p.iva || 0);
+  const otrasRetenciones = Number(p.otrasRetenciones || 0);
 
-  const valorSinIva = p.iva_aplica && p.contrato_incluye_iva ? contratoValor / (1 + ivaPct / 100) : contratoValor;
-  const iva = p.iva_aplica ? valorSinIva * (ivaPct / 100) : 0;
-  const valorConIva = valorSinIva + iva;
-
-  const retencion = valorSinIva * (retencionPct / 100);
-  const ica = valorSinIva * (icaPct / 1000); // tarifa por mil, no porcentaje
+  const valorSinIva = valorConIva - iva;
+  const retencion = valorSinIva * (Number(p.retencionFuentePct || 0) / 100);
+  const ica = valorSinIva * (Number(p.icaPorMil || 0) / 1000);
 
   const efectivoNetoEsperado = valorConIva - retencion - ica - otrasRetenciones;
 

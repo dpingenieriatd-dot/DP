@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { actualizarProyecto, actualizarContrato } from "./actions";
-import { money, calcularEfectivoEsperado, type calcularPresupuesto, type calcularControlCostos } from "@/lib/finance";
+import { actualizarProyecto } from "./actions";
+import { money, type calcularPresupuesto, type calcularControlCostos } from "@/lib/finance";
 import { useGuardado } from "@/lib/use-guardado";
 
 type Proyecto = {
@@ -17,13 +17,6 @@ type Proyecto = {
   fecha_inicio: string | null;
   fecha_fin: string | null;
   notas: string | null;
-  contrato_valor: number;
-  contrato_incluye_iva: boolean;
-  iva_aplica: boolean;
-  iva_pct: number;
-  retencion_pct: number;
-  ica_pct: number;
-  otras_retenciones: number;
 };
 type PresupuestoCalc = { pre: { id: string; codigo: string | null; nombre: string }; f: ReturnType<typeof calcularPresupuesto>; control: ReturnType<typeof calcularControlCostos> };
 
@@ -142,7 +135,11 @@ export function ProyectoDetalle({
           </div>
         </form>
 
-        <ContratoCard proyecto={proyecto} />
+        <p className="text-xs text-neutral-400">
+          El valor del contrato, el IVA y las retenciones (efectivo neto esperado) se ven y se ajustan en la{" "}
+          <Link href="/gestion/cotizaciones" className="font-semibold text-emerald-700 hover:underline">cotización</Link>{" "}
+          de la que nació este proyecto.
+        </p>
         </div>
 
         <div className="space-y-4">
@@ -204,88 +201,3 @@ function Campo({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function ContratoCard({ proyecto }: { proyecto: Proyecto }) {
-  const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-  const { guardado, marcarGuardado } = useGuardado();
-
-  function guardar(formData: FormData) {
-    startTransition(async () => {
-      const r = await actualizarContrato(proyecto.id, formData);
-      setError(r?.error ?? null);
-      if (!r?.error) marcarGuardado();
-    });
-  }
-
-  const calc = calcularEfectivoEsperado(proyecto);
-
-  return (
-    <form action={guardar} className="space-y-3 rounded-lg border border-neutral-200 bg-white p-5">
-      <div>
-        <h2 className="font-semibold text-emerald-900">Contrato y retenciones</h2>
-        <p className="mt-0.5 text-xs text-neutral-500">Para calcular el efectivo neto esperado (lo que D&P realmente recibe, después de lo que el cliente retiene y paga directamente a la DIAN/municipio).</p>
-      </div>
-
-      <Campo label="Valor del contrato">
-        <input type="number" step="any" min="0" name="contrato_valor" defaultValue={proyecto.contrato_valor ?? 0} className="in" />
-      </Campo>
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label className="flex items-center gap-2 text-sm text-neutral-700">
-          <input type="checkbox" name="contrato_incluye_iva" defaultChecked={proyecto.contrato_incluye_iva ?? true} className="h-4 w-4 rounded" />
-          El valor incluye IVA
-        </label>
-        <label className="flex items-center gap-2 text-sm text-neutral-700">
-          <input type="checkbox" name="iva_aplica" defaultChecked={proyecto.iva_aplica ?? false} className="h-4 w-4 rounded" />
-          Aplica IVA
-        </label>
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Campo label="% IVA">
-          <input type="number" step="any" min="0" name="iva_pct" defaultValue={proyecto.iva_pct ?? 19} className="in" />
-        </Campo>
-        <Campo label="% Retención en la fuente">
-          <input type="number" step="any" min="0" name="retencion_pct" defaultValue={proyecto.retencion_pct ?? 0} className="in" />
-        </Campo>
-        <Campo label="Tarifa ICA (por mil)">
-          <input type="number" step="any" min="0" name="ica_pct" defaultValue={proyecto.ica_pct ?? 0} className="in" placeholder="Ej. 9,66" />
-        </Campo>
-      </div>
-
-      <Campo label="Otras retenciones ($, valor fijo)">
-        <input type="number" step="any" min="0" name="otras_retenciones" defaultValue={proyecto.otras_retenciones ?? 0} className="in" />
-      </Campo>
-
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <div className="flex items-center gap-3">
-        <button type="submit" disabled={pending} className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60">
-          Guardar y recalcular
-        </button>
-        {guardado && <span className="text-sm font-medium text-emerald-700">✓ Cambios guardados</span>}
-      </div>
-
-      <div className="mt-4 space-y-1 rounded-md bg-neutral-50 p-3 text-sm">
-        <FilaCalc label="Valor sin IVA" valor={calc.valorSinIva} />
-        <FilaCalc label="IVA" valor={calc.iva} />
-        <FilaCalc label="Valor con IVA" valor={calc.valorConIva} />
-        <FilaCalc label="− Retención en la fuente" valor={-calc.retencion} />
-        <FilaCalc label="− ICA" valor={-calc.ica} />
-        <FilaCalc label="− Otras retenciones" valor={-calc.otrasRetenciones} />
-        <div className="mt-2 flex items-center justify-between border-t border-neutral-200 pt-2 font-semibold text-emerald-900">
-          <span>Efectivo neto esperado</span>
-          <span>{money.format(calc.efectivoNetoEsperado)}</span>
-        </div>
-      </div>
-    </form>
-  );
-}
-
-function FilaCalc({ label, valor }: { label: string; valor: number }) {
-  return (
-    <div className="flex items-center justify-between text-neutral-600">
-      <span>{label}</span>
-      <span>{money.format(valor)}</span>
-    </div>
-  );
-}

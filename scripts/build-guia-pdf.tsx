@@ -746,7 +746,7 @@ function Doc() {
           items={[
             "Datos del proyecto: nombre, cliente, empresa atendida, responsable, estado, fechas de inicio y cierre, observaciones. Muestra también de qué cotización nació y cuándo la aprobó el cliente.",
             "Estados: Planeado, En ejecución, Suspendido, Finalizado, Cancelado (y Rechazado, para los que salen de una cotización rechazada).",
-            "Contrato y retenciones: se ingresa el valor del contrato, si aplica IVA, el porcentaje de retención en la fuente, la tarifa de ICA (por mil, ej. 9,66) y otras retenciones. La plataforma calcula el efectivo neto esperado, es decir, cuánto le llega realmente a D&P después de lo que el cliente retiene y paga a la DIAN.",
+            "Efectivo neto esperado: se calcula en la cotización, no en el proyecto. Sale del valor cotizado menos el IVA, la retención en la fuente y el ICA (tarifas que vienen de la ficha del cliente) y unas otras retenciones fijas. Es cuánto le llega realmente a D&P después de lo que el cliente retiene y paga a la DIAN.",
             "Presupuestos del proyecto: se listan en la ficha, con su estado de viabilidad. Las compras se gestionan en el módulo Compras y su costo real se refleja en el control de cada presupuesto.",
             "Archivar: saca el proyecto de la lista principal (se puede volver a mostrar con la casilla Mostrar archivados y rechazados).",
           ]}
@@ -803,7 +803,7 @@ function Doc() {
         <Tabla
           header={["Catálogo", "Qué guarda"]}
           rows={[
-            ["Clientes", "Empresas o personas que contratan a D&P: NIT, tipo, sector, contacto, asesor, dirección."],
+            ["Clientes", "Empresas o personas que contratan a D&P: NIT, tipo, sector, contacto, asesor, dirección. Incluye el perfil tributario (retención en la fuente % y tarifa de ICA por mil) que se aplica a las cotizaciones de ese cliente para el efectivo neto esperado."],
             ["Empresas atendidas", "Sedes o dependencias dentro de un cliente. Cada una queda ligada a su cliente."],
             ["Proveedores", "A quienes D&P les compra: NIT, contacto, forma de pago."],
             ["Banco de insumos", "Insumos y servicios con su costo unitario o valor hora. Se usan al armar cotizaciones, presupuestos y compras."],

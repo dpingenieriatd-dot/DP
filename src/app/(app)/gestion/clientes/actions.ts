@@ -20,6 +20,8 @@ function fromForm(formData: FormData) {
     direccion: formData.get("direccion") || null,
     ciudad: formData.get("ciudad") || null,
     estado: formData.get("estado") || null,
+    retencion_fuente_pct: Number(formData.get("retencion_fuente_pct") || 0),
+    ica_por_mil: Number(formData.get("ica_por_mil") || 0),
     notas: formData.get("notas") || null,
   };
 }

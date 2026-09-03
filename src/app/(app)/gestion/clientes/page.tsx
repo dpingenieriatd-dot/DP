@@ -15,6 +15,8 @@ const fields: Field[] = [
   { key: "telefono", label: "Teléfono" },
   { key: "ciudad", label: "Ciudad" },
   { key: "estado", label: "Estado", type: "select", options: ["Activo", "Inactivo"] },
+  { key: "retencion_fuente_pct", label: "Retención en la fuente (%)", type: "number" },
+  { key: "ica_por_mil", label: "Tarifa de ICA (por mil)", type: "number" },
   { key: "nombre_asesor", label: "Nombre del asesor" },
   { key: "direccion", label: "Dirección" },
   { key: "notas", label: "Observaciones", type: "textarea" },
