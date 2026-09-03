@@ -1,3 +1,8 @@
+// Guía de Usuario (PDF) — fuente de verdad del contenido de la guía.
+// Tras editar y regenerar, correr también `python scripts/build-guia-docx.py`
+// para actualizar el .docx editable (se construye a partir de este PDF).
+// Evitar glifos que Helvetica no tiene (→, − U+2212): usar palabras, "-", "x".
+
 import fs from "fs";
 import path from "path";
 import { Document, Page, View, Text, Image, StyleSheet, renderToFile } from "@react-pdf/renderer";
@@ -688,7 +693,7 @@ function Doc() {
             "Costo directo interno: lo que le cuesta a D&P.",
             "Costos administrativos: un porcentaje sobre el costo directo.",
             "Precio a cliente antes de IVA: la suma de los precios de los ítems.",
-            "Utilidad real de la oferta: precio a cliente − costo directo − administración (con su margen real). Puede ser menor al objetivo o negativa si se descontó por debajo del costo.",
+            "Utilidad real de la oferta: precio a cliente - costo directo - administración (con su margen real). Puede ser menor al objetivo o negativa si se descontó por debajo del costo.",
             "IVA (solo sobre los ítems marcados como gravados) y Total cotizado al cliente.",
             "Cada ítem muestra si su precio está en Auto (costo × factor) o Manual; administración y margen mueven el total a través de las filas en Auto.",
           ]}
