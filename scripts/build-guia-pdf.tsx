@@ -682,14 +682,15 @@ function Doc() {
         />
 
         <H3>El cálculo de rentabilidad</H3>
-        <P>Mientras armas los ítems, la plataforma muestra en tiempo real:</P>
+        <P>Mientras armas los ítems, la plataforma muestra en tiempo real, siempre sobre los precios reales de la tabla:</P>
         <Bullets
           items={[
-            "Costos directos (interno): lo que le cuesta a D&P.",
+            "Costo directo interno: lo que le cuesta a D&P.",
             "Costos administrativos: un porcentaje sobre el costo directo.",
-            "Utilidad esperada: según el margen objetivo.",
-            "Valor comercial antes de IVA, IVA y valor sugerido al cliente.",
-            "Si el valor cotizado cubre todo, la cotización es viable; si no, no viable.",
+            "Precio a cliente antes de IVA: la suma de los precios de los ítems.",
+            "Utilidad real de la oferta: precio a cliente − costo directo − administración (con su margen real). Puede ser menor al objetivo o negativa si se descontó por debajo del costo.",
+            "IVA (solo sobre los ítems marcados como gravados) y Total cotizado al cliente.",
+            "Cada ítem muestra si su precio está en Auto (costo × factor) o Manual; administración y margen mueven el total a través de las filas en Auto.",
           ]}
         />
 
@@ -772,7 +773,7 @@ function Doc() {
         <P>El recuadro de resumen tiene dos bloques:</P>
         <Bullets
           items={[
-            "Referencia · cotización aprobada: costo directo, administración, utilidad esperada, IVA y valor sugerido. Cifras fijas de la oferta; no cambian.",
+            "Referencia · cotización aprobada: costo directo, administración, utilidad esperada e IVA. Cifras fijas de la oferta; no cambian.",
             "Control del proyecto · líneas vigentes: presupuesto vigente, costo real ejecutado, disponible, ganancia estimada (vs. plan) y ganancia según costos reales. Estas sí se mueven con las compras.",
           ]}
         />
@@ -946,7 +947,7 @@ function Doc() {
             ["Cargo", "El puesto de la persona (texto libre). Se usa para filtrar Actividades y para mostrarlo en su perfil."],
             ["Cotización", "La oferta económica que se le hace a un cliente."],
             ["Ítem", "Cada línea de una cotización o de un presupuesto (un insumo, un servicio, un material) con su cantidad y valor."],
-            ["Viable / No viable", "Una cotización es viable si el valor que se le cobra al cliente cubre los costos, la administración, la utilidad y el IVA."],
+            ["Viable / No viable", "Un presupuesto es viable si el valor cotizado al cliente cubre el costo directo, la administración y el IVA — es decir, el proyecto no da pérdida."],
             ["Proyecto", "El trabajo que se ejecuta después de que el cliente aprueba una cotización."],
             ["Presupuesto", "El plan de costos de un proyecto y su control frente a lo realmente gastado."],
             ["Plan / Presupuesto vigente", "La suma de los ítems presupuestados de un proyecto."],

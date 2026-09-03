@@ -17,7 +17,6 @@ type Cotizacion = {
   nombre: string;
   fecha: string | null;
   valor_cotizado: number;
-  valor_sugerido: number | null;
   estado: string;
 };
 
@@ -176,7 +175,6 @@ export function CotizacionesList({
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Fecha</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Estado / vínculo</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Valor cotizado</th>
-              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Valor sugerido</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Enlaces</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Acciones</th>
             </tr>
@@ -208,7 +206,6 @@ export function CotizacionesList({
                     )}
                   </td>
                   <td className="px-3 py-2 text-right">{money.format(c.valor_cotizado)}</td>
-                  <td className="px-3 py-2 text-right">{c.valor_sugerido != null ? money.format(c.valor_sugerido) : "—"}</td>
                   <td className="px-3 py-2">
                     {nEnlaces ? (
                       <Link href={`/gestion/cotizaciones/${c.id}`} className="flex w-fit items-center gap-1 rounded-md border border-neutral-300 px-2 py-1 text-xs font-semibold text-neutral-600 hover:bg-neutral-100">

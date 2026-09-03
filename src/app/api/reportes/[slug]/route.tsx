@@ -155,7 +155,6 @@ async function reportePresupuestos(supabase: SupabaseClient, filters?: ReportFil
       admin: fmtMoney(f.admin),
       utilidad: fmtMoney(f.utilidadEsperada),
       iva: fmtMoney(f.iva),
-      sugerido: fmtMoney(f.valorSugerido),
       cotizado: fmtMoney(f.valorCotizado),
       viable: f.viable ? "Viable" : "No viable",
     };
@@ -185,7 +184,6 @@ async function reportePresupuestos(supabase: SupabaseClient, filters?: ReportFil
       { key: "admin", label: "Admin.", width: 1 },
       { key: "utilidad", label: "Utilidad esp.", width: 1 },
       { key: "iva", label: "IVA", width: 1 },
-      { key: "sugerido", label: "Valor sugerido", width: 1.1 },
       { key: "cotizado", label: "Valor cotizado", width: 1.1 },
       { key: "viable", label: "Viabilidad", width: 0.9 },
     ],

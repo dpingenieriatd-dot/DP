@@ -162,7 +162,6 @@ export async function crearCotizacion(payload: CotizacionPayload) {
       admin_pct: payload.admin_pct,
       costos_estimados: calc.direct,
       valor_cotizado: calc.clientTotal,
-      valor_sugerido: calc.sugerido,
       iva_monto: calc.clientIva,
       creado_por: user?.id ?? null,
     })
@@ -222,7 +221,6 @@ export async function actualizarCotizacion(id: string, payload: CotizacionPayloa
       admin_pct: payload.admin_pct,
       costos_estimados: calc.direct,
       valor_cotizado: calc.clientTotal,
-      valor_sugerido: calc.sugerido,
       iva_monto: calc.clientIva,
     })
     .eq("id", id);

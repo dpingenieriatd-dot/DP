@@ -35,13 +35,16 @@ export function calcularPresupuesto(p: PresupuestoBase) {
   // IVA: el efectivo de la cotización (IVA por ítem) si se propagó; si no,
   // estimación clásica de iva_pct% sobre todo el valor cuando responde IVA.
   const iva = p.iva_monto != null ? Number(p.iva_monto) : p.resp_iva ? valor * (ivaPct / 100) : 0;
-  const valorSugerido = valor + iva;
 
   const valorCotizado = Number(p.valor_cotizado || 0);
-  const margenNeg = valorCotizado - valorSugerido;
+  // "Viable" = lo que se cotizó cubre el costo directo + la administración
+  // (+ el IVA, que no es ingreso de D&P): es decir, el proyecto no da pérdida.
+  // Antes se comparaba contra un "valor sugerido" a tarifa; ahora se mide
+  // contra lo que realmente se cotizó.
+  const margenNeg = valorCotizado - costos - admin - iva;
   const viable = margenNeg >= 0;
 
-  return { costos, admin, utilidadEsperada, valor, iva, valorSugerido, valorCotizado, margenNeg, viable };
+  return { costos, admin, utilidadEsperada, valor, iva, valorCotizado, margenNeg, viable };
 }
 
 export type CostoItem = { presupuestado: number; real: number };
@@ -74,8 +77,8 @@ export function calcularControlCostos(items: CostoItem[], valorCotizado: number,
  * de la tabla, NO del factor. Por eso admin%/margen% solo mueven el total a
  * través de los ítems en Auto; los ítems en Manual quedan como los fijó el
  * usuario. `utilidadReal`/`margenReal` reflejan la oferta tal cual quedó
- * (pueden ser < objetivo o negativas); `base`/`utilidad`/`sugerido` son las
- * cifras "a tarifa" derivadas solo del factor.
+ * (pueden ser < objetivo o negativas); `base`/`utilidad` son las cifras
+ * "a tarifa" derivadas solo del factor.
  */
 export type ItemCotizacion = {
   cantidad: number;
@@ -100,8 +103,6 @@ export function calcularCotizacionItems(
   const base = direct * factor;
   const utilidad = Math.max(0, base - direct - admin);
   const aplicaIva = !!opts.resp_iva;
-  const iva = aplicaIva ? base * ivaFrac : 0;
-  const sugerido = base + iva;
 
   const itemsCalculados = items.map((i) => {
     const cantidad = Number(i.cantidad || 0);
@@ -123,7 +124,7 @@ export function calcularCotizacionItems(
   const utilidadReal = clientSubtotal - direct - admin;
   const margenReal = clientSubtotal > 0 ? utilidadReal / clientSubtotal : 0;
 
-  return { direct, admin, utilidad, utilidadReal, margenReal, base, iva, sugerido, itemsCalculados, clientSubtotal, baseGravada, clientIva, clientTotal, factor, aplicaIva };
+  return { direct, admin, utilidad, utilidadReal, margenReal, base, itemsCalculados, clientSubtotal, baseGravada, clientIva, clientTotal, factor, aplicaIva };
 }
 
 export type EfectivoInputs = {

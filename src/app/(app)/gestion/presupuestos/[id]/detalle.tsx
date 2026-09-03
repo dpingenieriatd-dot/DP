@@ -273,7 +273,6 @@ export function PresupuestoDetalle({
           <Fila label={`Utilidad esperada (${presupuesto.margen_pct}%)`} valor={money.format(f.utilidadEsperada)} />
           <Fila label="Valor" valor={money.format(f.valor)} bold />
           <Fila label={`IVA (${presupuesto.iva_pct}%)`} valor={money.format(f.iva)} />
-          <Fila label="Valor sugerido al cliente" valor={money.format(f.valorSugerido)} bold />
 
           <div className="my-3 border-t border-neutral-100" />
           <p className="text-xs font-semibold uppercase text-neutral-400">Control del proyecto · líneas vigentes</p>
