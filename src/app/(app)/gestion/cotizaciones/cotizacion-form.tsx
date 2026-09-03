@@ -3,9 +3,9 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FileText, ListChecks, SlidersHorizontal, FileSignature, Paperclip, Plus, Trash2 } from "lucide-react";
+import { FileText, ListChecks, SlidersHorizontal, FileSignature, Link2, Plus, Trash2 } from "lucide-react";
 import { crearCotizacion, actualizarCotizacion, type CotizacionPayload, type ItemPayload } from "./actions";
-import { subirSoporte, eliminarSoporte } from "./soportes-actions";
+import { agregarEnlace, eliminarEnlace } from "./enlaces-actions";
 import { calcularCotizacionItems, money } from "@/lib/finance";
 
 type Cotizacion = {
@@ -31,7 +31,7 @@ type Cotizacion = {
   condiciones_cliente: string | null;
 };
 
-type Soporte = { id: string; cotizacion_id: string; nombre_archivo: string; storage_path: string; url: string | null };
+type Enlace = { id: string; cotizacion_id: string; titulo: string | null; url: string };
 
 type ItemExistente = { id: string; tipo: "insumo" | "profesional" | "material"; descripcion: string; unidad: string; cantidad: number; costo_unitario: number; precio_cliente_override: number | null };
 
@@ -52,7 +52,7 @@ export function CotizacionForm({
   clientes,
   empresas,
   profiles,
-  soportes,
+  enlaces,
   insumos,
   profesionales,
   materiales,
@@ -62,7 +62,7 @@ export function CotizacionForm({
   clientes: { id: string; nombre: string }[];
   empresas: { id: string; nombre: string; cliente_id: string | null }[];
   profiles: { id: string; full_name: string | null; email: string | null }[];
-  soportes: Soporte[];
+  enlaces: Enlace[];
   insumos: Insumo[];
   profesionales: Profesional[];
   materiales: Material[];
@@ -70,7 +70,7 @@ export function CotizacionForm({
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [errorSoporte, setErrorSoporte] = useState<string | null>(null);
+  const [errorEnlace, setErrorEnlace] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const [codigo, setCodigo] = useState(editing?.codigo ?? "");
@@ -462,47 +462,47 @@ export function CotizacionForm({
         {editing && (
           <div className="rounded-lg border border-neutral-200 bg-white p-6">
             <h2 className="mb-1 flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-neutral-500">
-              <Paperclip size={15} /> Soportes que acompañan la cotización
+              <Link2 size={15} /> Enlaces de la cotización
             </h2>
-            <p className="mb-3 text-xs text-neutral-500">Carga aquí los documentos que deben enviarse al cliente junto con la propuesta comercial.</p>
+            <p className="mb-3 text-xs text-neutral-500">
+              Pega aquí los enlaces a SharePoint (u otros) con los documentos que acompañan la propuesta. Hasta 10 por cotización.
+            </p>
             <ul className="mb-3 space-y-1 text-sm">
-              {soportes.map((s) => (
-                <li key={s.id} className="flex items-center justify-between rounded-md border border-neutral-200 px-3 py-1.5">
-                  {s.url ? (
-                    <a href={s.url} target="_blank" rel="noreferrer" className="text-emerald-700 hover:underline">
-                      {s.nombre_archivo}
-                    </a>
-                  ) : (
-                    <span>{s.nombre_archivo}</span>
-                  )}
+              {enlaces.map((e) => (
+                <li key={e.id} className="flex items-center justify-between gap-3 rounded-md border border-neutral-200 px-3 py-1.5">
+                  <a href={e.url} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate text-emerald-700 hover:underline">
+                    {e.titulo || e.url}
+                  </a>
                   <button
-                    onClick={() => startTransition(async () => { await eliminarSoporte(s.id, s.storage_path); })}
-                    className="text-xs font-medium text-red-600 hover:underline"
+                    type="button"
+                    onClick={() => startTransition(async () => { await eliminarEnlace(e.id); })}
+                    className="shrink-0 text-xs font-medium text-red-600 hover:underline"
                   >
                     Eliminar
                   </button>
                 </li>
               ))}
-              {soportes.length === 0 && <li className="text-neutral-400">No hay soportes cargados para esta cotización.</li>}
+              {enlaces.length === 0 && <li className="text-neutral-400">No hay enlaces en esta cotización.</li>}
             </ul>
-            <form
-              action={(fd) => {
-                const cotId = editing.id;
-                startTransition(async () => {
-                  const r = await subirSoporte(cotId, fd);
-                  if (r?.error) setErrorSoporte(r.error);
-                  else setErrorSoporte(null);
-                });
-              }}
-              className="flex items-center gap-2"
-            >
-              <input type="file" name="archivo" required className="text-sm" />
-              <button type="submit" disabled={pending} className="rounded-md bg-neutral-100 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-200 disabled:opacity-60">
-                Seleccionar uno o varios soportes
-              </button>
-            </form>
-            <p className="mt-2 text-xs text-neutral-400">Puedes cargar PDF, Word, Excel, PowerPoint, imágenes o ZIP. Los archivos quedan asociados únicamente a esta cotización.</p>
-            {errorSoporte && <p className="mt-2 text-sm text-red-600">{errorSoporte}</p>}
+            {enlaces.length < 10 && (
+              <form
+                action={(fd) => {
+                  const cotId = editing.id;
+                  startTransition(async () => {
+                    const r = await agregarEnlace(cotId, fd);
+                    setErrorEnlace(r?.error ?? null);
+                  });
+                }}
+                className="flex flex-wrap items-center gap-2"
+              >
+                <input name="titulo" placeholder="Título (opcional)" className="w-44 rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
+                <input name="url" required placeholder="https://…" className="min-w-[220px] flex-1 rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
+                <button type="submit" disabled={pending} className="rounded-md bg-neutral-100 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-200 disabled:opacity-60">
+                  Agregar enlace
+                </button>
+              </form>
+            )}
+            {errorEnlace && <p className="mt-2 text-sm text-red-600">{errorEnlace}</p>}
           </div>
         )}
 

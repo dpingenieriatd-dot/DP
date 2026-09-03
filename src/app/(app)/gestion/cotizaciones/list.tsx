@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { Paperclip, FilterX } from "lucide-react";
+import { Link2, FilterX } from "lucide-react";
 import { eliminarCotizacion, aprobarYCrearProyecto, rechazarCotizacion } from "./actions";
 import { money } from "@/lib/finance";
 
@@ -47,7 +47,7 @@ export function CotizacionesList({
   profiles,
   proyectos,
   presupuestos,
-  soportes,
+  enlaces,
 }: {
   cotizaciones: Cotizacion[];
   clientes: { id: string; nombre: string }[];
@@ -55,7 +55,7 @@ export function CotizacionesList({
   profiles: { id: string; full_name: string | null; email: string | null }[];
   proyectos: { codigo: string | null; cotizacion_id: string }[];
   presupuestos: { codigo: string | null; cotizacion_id: string }[];
-  soportes: { cotizacion_id: string }[];
+  enlaces: { cotizacion_id: string }[];
 }) {
   const [pending, startTransition] = useTransition();
   const [aprobando, setAprobando] = useState<Cotizacion | null>(null);
@@ -74,7 +74,7 @@ export function CotizacionesList({
   };
   const proyectoDe = (id: string) => proyectos.find((p) => p.cotizacion_id === id)?.codigo ?? null;
   const presupuestoDe = (id: string) => presupuestos.find((p) => p.cotizacion_id === id)?.codigo ?? null;
-  const soportesDe = (id: string) => soportes.filter((s) => s.cotizacion_id === id).length;
+  const enlacesDe = (id: string) => enlaces.filter((e) => e.cotizacion_id === id).length;
 
   const valorColumna = (c: Cotizacion, key: string) => {
     if (key === "codigo") return c.codigo ?? "";
@@ -177,7 +177,7 @@ export function CotizacionesList({
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Estado / vínculo</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Valor cotizado</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2 text-right">Valor sugerido</th>
-              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Soportes</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Enlaces</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Acciones</th>
             </tr>
           </thead>
@@ -185,7 +185,7 @@ export function CotizacionesList({
             {visibles.map((c) => {
               const proyecto = proyectoDe(c.id);
               const presupuesto = presupuestoDe(c.id);
-              const nSoportes = soportesDe(c.id);
+              const nEnlaces = enlacesDe(c.id);
               return (
                 <tr key={c.id} className="border-t border-neutral-100 hover:bg-neutral-50">
                   <td className="px-3 py-2">
@@ -210,12 +210,12 @@ export function CotizacionesList({
                   <td className="px-3 py-2 text-right">{money.format(c.valor_cotizado)}</td>
                   <td className="px-3 py-2 text-right">{c.valor_sugerido != null ? money.format(c.valor_sugerido) : "—"}</td>
                   <td className="px-3 py-2">
-                    {nSoportes ? (
+                    {nEnlaces ? (
                       <Link href={`/gestion/cotizaciones/${c.id}`} className="flex w-fit items-center gap-1 rounded-md border border-neutral-300 px-2 py-1 text-xs font-semibold text-neutral-600 hover:bg-neutral-100">
-                        <Paperclip size={12} /> {nSoportes} soporte{nSoportes === 1 ? "" : "s"}
+                        <Link2 size={12} /> {nEnlaces} enlace{nEnlaces === 1 ? "" : "s"}
                       </Link>
                     ) : (
-                      <span className="text-xs text-neutral-400">Sin soportes</span>
+                      <span className="text-xs text-neutral-400">Sin enlaces</span>
                     )}
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-right">

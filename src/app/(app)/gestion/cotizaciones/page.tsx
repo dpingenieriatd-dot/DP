@@ -3,7 +3,7 @@ import { CotizacionesList } from "./list";
 
 export default async function Page() {
   const supabase = await createClient();
-  const [{ data: cotizaciones }, { data: clientes }, { data: empresas }, { data: profiles }, { data: proyectos }, { data: presupuestos }, { data: soportes }] =
+  const [{ data: cotizaciones }, { data: clientes }, { data: empresas }, { data: profiles }, { data: proyectos }, { data: presupuestos }, { data: enlaces }] =
     await Promise.all([
       supabase.from("cotizaciones").select("*").order("codigo", { ascending: true, nullsFirst: false }),
       supabase.from("clientes").select("id, nombre").order("nombre"),
@@ -11,7 +11,7 @@ export default async function Page() {
       supabase.from("profiles").select("id, full_name, email"),
       supabase.from("proyectos").select("codigo, cotizacion_id").not("cotizacion_id", "is", null),
       supabase.from("presupuestos").select("codigo, cotizacion_id").not("cotizacion_id", "is", null),
-      supabase.from("cotizacion_soportes").select("cotizacion_id"),
+      supabase.from("cotizacion_enlaces").select("cotizacion_id"),
     ]);
 
   return (
@@ -22,7 +22,7 @@ export default async function Page() {
       profiles={profiles ?? []}
       proyectos={proyectos ?? []}
       presupuestos={presupuestos ?? []}
-      soportes={soportes ?? []}
+      enlaces={enlaces ?? []}
     />
   );
 }

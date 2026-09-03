@@ -704,10 +704,11 @@ function Doc() {
           ]}
         />
 
-        <H3>Soportes</H3>
+        <H3>Enlaces</H3>
         <P>
-          A una cotización se le pueden adjuntar archivos de soporte (la propuesta firmada, correos, etc.) desde su ficha.
-          Aparecen con un clip en la columna Soportes de la lista.
+          A una cotización se le pueden agregar hasta 10 enlaces (a SharePoint u otros) con los documentos que la
+          acompañan —la propuesta firmada, correos, etc.— desde su ficha. Aparecen en la columna Enlaces de la lista y
+          son clickeables. Se usan enlaces en vez de subir archivos para no llenar el almacenamiento.
         </P>
 
         <H3>Aprobar una cotización</H3>
@@ -952,7 +953,7 @@ function Doc() {
             ["Semáforo de plata", "En presupuesto (verde) / En atención (amarillo) / Sobre presupuesto o en pérdida (rojo)."],
             ["Semáforo de tiempo", "A tiempo / Por vencer / Atrasado / Sin fecha, según la fecha de entrega del proyecto."],
             ["Efectividad provisional", "El resultado de una persona o tarea mientras no se haya calificado su calidad."],
-            ["Soporte", "Un archivo adjunto a una cotización (propuesta firmada, correos, etc.)."],
+            ["Enlace", "Un vínculo (a SharePoint u otro) agregado a una cotización con documentos que la acompañan."],
             ["Archivar", "Sacar un registro de la lista principal sin borrarlo; queda en el histórico."],
           ]}
         />

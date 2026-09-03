@@ -18,7 +18,7 @@ export default async function Page() {
       clientes={clientes ?? []}
       empresas={empresas ?? []}
       profiles={profiles ?? []}
-      soportes={[]}
+      enlaces={[]}
       insumos={insumos ?? []}
       profesionales={profesionales ?? []}
       materiales={materiales ?? []}
