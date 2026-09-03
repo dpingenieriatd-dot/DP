@@ -264,6 +264,15 @@ export function CotizacionForm({
             <div className="flex items-end pb-1">
               <p className="text-xs text-neutral-400">El margen de utilidad se define directamente en el bloque de cálculo de la cotización.</p>
             </div>
+
+            <Campo label="Descripción de la cotización" full2>
+              <textarea
+                value={descripcionCliente}
+                onChange={(e) => setDescripcionCliente(e.target.value)}
+                placeholder="Qué se le ofrece al cliente. Este texto es lo que aparece en el PDF de la propuesta."
+                className="in min-h-[70px]"
+              />
+            </Campo>
           </div>
 
           <h3 className="mb-3 mt-5 text-sm font-semibold text-neutral-700">Contacto para seguimiento de la propuesta</h3>
@@ -527,12 +536,9 @@ export function CotizacionForm({
 
         <div className="rounded-lg border border-neutral-200 bg-white p-6">
           <h2 className="mb-4 flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-neutral-500">
-            <FileSignature size={15} /> Información que aparecerá en la propuesta para el cliente
+            <FileSignature size={15} /> Condiciones comerciales de la propuesta
           </h2>
           <div className="grid grid-cols-1 gap-3">
-            <Campo label="Descripción / introducción comercial">
-              <textarea value={descripcionCliente} onChange={(e) => setDescripcionCliente(e.target.value)} className="in min-h-[70px]" />
-            </Campo>
             <Campo label="Forma de pago">
               <input value={formaPago} onChange={(e) => setFormaPago(e.target.value)} className="in" />
             </Campo>

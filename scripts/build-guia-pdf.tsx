@@ -675,7 +675,8 @@ function Doc() {
             ["¿Responde por IVA?", "Interruptor maestro: si D&P responde por IVA. En cada ítem hay además una casilla IVA para marcar cuáles renglones son gravados (hay ítems que llevan y otros que no). El IVA del 19% se calcula solo sobre los ítems gravados."],
             ["Margen de utilidad (%)", "El margen objetivo de esta cotización (se puede ajustar por cotización)."],
             ["Ítems", "Cada línea de la oferta: se elige del Banco de insumos / Profesionales / Materiales, con cantidad. El precio al cliente se calcula solo, o se puede fijar a mano."],
-            ["Descripción, forma de pago, condiciones", "Textos que salen en el PDF de la cotización."],
+            ["Descripción de la cotización", "Texto que describe qué se le ofrece al cliente; sale en el PDF, arriba del detalle."],
+            ["Forma de pago, condiciones comerciales", "Textos que salen en el PDF de la cotización."],
             ["Seguimiento interno", "Nota interna sobre qué pasó con la propuesta (no sale en el PDF)."],
           ]}
         />
@@ -730,7 +731,12 @@ function Doc() {
         <P>Deja la cotización como Rechazada y crea un proyecto en estado Rechazado (sin presupuesto), para que Proyectos muestre en un solo lugar el resultado de cada cotización.</P>
 
         <H3>Descargar la cotización en PDF</H3>
-        <P>Desde la lista o desde la ficha, el botón PDF genera la cotización con la marca de D&P, lista para enviar al cliente. Si ya está aprobada, el PDF muestra la fecha de aprobación.</P>
+        <P>
+          Desde la lista o desde la ficha, el botón PDF genera la cotización con la marca de D&P, lista para enviar al
+          cliente. El PDF es minimalista: cliente, la descripción de la cotización, y cada renglón solo con su
+          descripción y su valor, más el subtotal, IVA y total. No muestra cantidades, valores unitarios, costos
+          internos, administración ni utilidad. Si ya está aprobada, muestra la fecha de aprobación.
+        </P>
       </ContentPage>
 
       <ContentPage section="6. Módulo Gestión">

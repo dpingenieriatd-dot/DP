@@ -54,9 +54,6 @@ const fmtDate = (v: string | null | undefined) => (v ? new Date(v + "T00:00:00")
 
 export type CotizacionPdfItem = {
   descripcion: string;
-  unidad: string;
-  cantidad: number;
-  unitClient: number;
   subtotalCliente: number;
 };
 
@@ -70,9 +67,6 @@ export function CotizacionDoc({
   clienteNombre,
   clienteNit,
   empresaNombre,
-  contacto,
-  correoContacto,
-  telefonoContacto,
   descripcionCliente,
   formaPago,
   condicionesCliente,
@@ -91,9 +85,6 @@ export function CotizacionDoc({
   clienteNombre: string;
   clienteNit: string | null;
   empresaNombre: string;
-  contacto: string | null;
-  correoContacto: string | null;
-  telefonoContacto: string | null;
   descripcionCliente: string | null;
   formaPago: string | null;
   condicionesCliente: string | null;
@@ -138,40 +129,26 @@ export function CotizacionDoc({
             <Text style={styles.infoLabel}>Empresa atendida</Text>
             <Text style={styles.infoValue}>{empresaNombre}</Text>
           </View>
-          <View style={styles.infoBox}>
-            <Text style={styles.infoLabel}>Contacto</Text>
-            <Text style={styles.infoValue}>{contacto || "—"}</Text>
-            <Text style={styles.infoLabel}>Correo</Text>
-            <Text style={styles.infoValue}>{correoContacto || "—"}</Text>
-            <Text style={styles.infoLabel}>Teléfono</Text>
-            <Text style={styles.infoValue}>{telefonoContacto || "—"}</Text>
-          </View>
         </View>
 
         {descripcionCliente && (
           <>
-            <Text style={styles.section}>Descripción de la propuesta</Text>
+            <Text style={styles.section}>Descripción de la cotización</Text>
             <Text style={styles.parrafo}>{descripcionCliente}</Text>
           </>
         )}
 
-        <Text style={styles.section}>Ítems cotizados</Text>
+        <Text style={styles.section}>Detalle</Text>
         <View>
           <View style={styles.tableRowHeader} fixed>
-            <Text style={[styles.th, { flex: 3 }]}>Descripción</Text>
-            <Text style={[styles.th, { flex: 1, textAlign: "right" }]}>Cantidad</Text>
-            <Text style={[styles.th, { flex: 1 }]}>Unidad</Text>
-            <Text style={[styles.th, { flex: 1.3, textAlign: "right" }]}>Valor unitario</Text>
-            <Text style={[styles.th, { flex: 1.3, textAlign: "right" }]}>Subtotal</Text>
+            <Text style={[styles.th, { flex: 4 }]}>Descripción</Text>
+            <Text style={[styles.th, { flex: 1.4, textAlign: "right" }]}>Valor</Text>
           </View>
           {items.length === 0 && <Text style={{ padding: 12, fontSize: 9, color: "#999" }}>Sin ítems.</Text>}
           {items.map((it, i) => (
             <View key={i} style={i % 2 === 0 ? styles.tableRow : styles.tableRowAlt} wrap={false}>
-              <Text style={[styles.td, { flex: 3 }]}>{it.descripcion}</Text>
-              <Text style={[styles.td, { flex: 1, textAlign: "right" }]}>{it.cantidad}</Text>
-              <Text style={[styles.td, { flex: 1 }]}>{it.unidad}</Text>
-              <Text style={[styles.td, { flex: 1.3, textAlign: "right" }]}>{money.format(it.unitClient)}</Text>
-              <Text style={[styles.td, { flex: 1.3, textAlign: "right" }]}>{money.format(it.subtotalCliente)}</Text>
+              <Text style={[styles.td, { flex: 4 }]}>{it.descripcion}</Text>
+              <Text style={[styles.td, { flex: 1.4, textAlign: "right" }]}>{money.format(it.subtotalCliente)}</Text>
             </View>
           ))}
         </View>

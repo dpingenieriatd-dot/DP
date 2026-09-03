@@ -25,9 +25,6 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
   const itemsPdf = (items ?? []).map((i, idx) => ({
     descripcion: i.descripcion,
-    unidad: i.unidad,
-    cantidad: Number(i.cantidad || 0),
-    unitClient: calc.itemsCalculados[idx].unitClient,
     subtotalCliente: calc.itemsCalculados[idx].subtotalCliente,
   }));
 
@@ -42,9 +39,6 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       clienteNombre={cotizacion.clientes?.nombre ?? "—"}
       clienteNit={cotizacion.clientes?.nit ?? null}
       empresaNombre={cotizacion.empresas_atendidas?.nombre ?? "—"}
-      contacto={cotizacion.contacto}
-      correoContacto={cotizacion.correo_contacto}
-      telefonoContacto={cotizacion.telefono_contacto}
       descripcionCliente={cotizacion.descripcion_cliente}
       formaPago={cotizacion.forma_pago}
       condicionesCliente={cotizacion.condiciones_cliente}
