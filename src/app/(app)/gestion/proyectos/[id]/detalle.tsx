@@ -25,7 +25,6 @@ type Proyecto = {
   ica_pct: number;
   otras_retenciones: number;
 };
-type Compra = { id: string; fecha: string; cantidad: number; valor_unitario: number; estado_pago: string; categoria: string | null; proveedores: { nombre: string } | null };
 type PresupuestoCalc = { pre: { id: string; codigo: string | null; nombre: string }; f: ReturnType<typeof calcularPresupuesto>; control: ReturnType<typeof calcularControlCostos> };
 
 export function ProyectoDetalle({
@@ -35,7 +34,6 @@ export function ProyectoDetalle({
   empresas,
   profiles,
   presupuestos,
-  compras,
 }: {
   proyecto: Proyecto;
   cotizacion: { codigo: string | null; fecha_aprobacion: string | null; medio_aprobacion: string | null } | null;
@@ -43,7 +41,6 @@ export function ProyectoDetalle({
   empresas: { id: string; nombre: string }[];
   profiles: { id: string; full_name: string | null; email: string | null }[];
   presupuestos: PresupuestoCalc[];
-  compras: Compra[];
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -181,38 +178,12 @@ export function ProyectoDetalle({
                 </Link>
               ))}
               {presupuestos.length === 0 && <p className="text-sm text-neutral-400">Este proyecto todavía no tiene presupuestos.</p>}
+              <p className="mt-2 text-xs text-neutral-400">
+                Las compras del proyecto y el costo real ejecutado se gestionan desde{" "}
+                <Link href="/gestion/compras" className="font-semibold text-emerald-700 hover:underline">Compras</Link> y se
+                reflejan en el control de cada presupuesto.
+              </p>
             </div>
-          </div>
-
-          <div className="rounded-lg border border-neutral-200 bg-white p-5">
-            <h2 className="mb-2 font-semibold text-emerald-900">Compras registradas ({compras.length})</h2>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs uppercase text-neutral-500">
-                  <th className="py-1">Fecha</th>
-                  <th className="py-1">Proveedor</th>
-                  <th className="py-1 text-right">Total</th>
-                  <th className="py-1">Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {compras.map((c) => (
-                  <tr key={c.id} className="border-t border-neutral-100">
-                    <td className="py-1.5">{c.fecha}</td>
-                    <td className="py-1.5">{c.proveedores?.nombre || "—"}</td>
-                    <td className="py-1.5 text-right">{money.format(c.cantidad * c.valor_unitario)}</td>
-                    <td className="py-1.5">{c.estado_pago}</td>
-                  </tr>
-                ))}
-                {compras.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="py-4 text-center text-neutral-400">
-                      Sin compras registradas todavía.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
           </div>
         </div>
       </div>

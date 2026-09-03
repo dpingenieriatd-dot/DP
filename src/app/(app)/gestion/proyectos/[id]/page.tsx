@@ -14,7 +14,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       supabase.from("empresas_atendidas").select("id, nombre").order("nombre"),
       supabase.from("profiles").select("id, full_name, email").order("full_name"),
       supabase.from("presupuestos").select("*").eq("proyecto_id", id).order("created_at"),
-      supabase.from("compras").select("*, proveedores(nombre)").eq("proyecto_id", id).order("fecha", { ascending: false }),
+      supabase.from("compras").select("cantidad, valor_unitario, archivado").eq("proyecto_id", id),
       supabase.from("presupuesto_costos").select("presupuesto_id, presupuestado, real"),
     ]);
 
@@ -48,7 +48,6 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       empresas={empresas ?? []}
       profiles={profiles ?? []}
       presupuestos={presupuestosConCalc}
-      compras={compras ?? []}
     />
   );
 }
