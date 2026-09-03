@@ -15,6 +15,9 @@ export type PresupuestoBase = {
   resp_iva: boolean;
   iva_pct: number;
   valor_cotizado: number;
+  /** IVA efectivo de la cotización aprobada (con IVA por ítem). Si viene, se
+   *  usa tal cual en vez de estimar iva_pct% sobre todo el valor. */
+  iva_monto?: number | null;
 };
 
 export function calcularPresupuesto(p: PresupuestoBase) {
@@ -29,7 +32,9 @@ export function calcularPresupuesto(p: PresupuestoBase) {
   const factor = u >= 0.999 ? 1 + a : (1 + a) / (1 - u);
   const valor = costos * factor; // valor comercial antes de IVA
   const utilidadEsperada = Math.max(0, valor - costos - admin);
-  const iva = p.resp_iva ? valor * (ivaPct / 100) : 0;
+  // IVA: el efectivo de la cotización (IVA por ítem) si se propagó; si no,
+  // estimación clásica de iva_pct% sobre todo el valor cuando responde IVA.
+  const iva = p.iva_monto != null ? Number(p.iva_monto) : p.resp_iva ? valor * (ivaPct / 100) : 0;
   const valorSugerido = valor + iva;
 
   const valorCotizado = Number(p.valor_cotizado || 0);
@@ -76,6 +81,9 @@ export type ItemCotizacion = {
   cantidad: number;
   costo_unitario: number;
   precio_cliente_override: number | null;
+  /** Si el ítem es gravado con IVA. Default true (ausente = true) para
+   *  compatibilidad con ítems viejos. Solo cuenta si la cotización responde IVA. */
+  lleva_iva?: boolean;
 };
 
 export function calcularCotizacionItems(
@@ -100,10 +108,13 @@ export function calcularCotizacionItems(
     const autoUnitClient = Number(i.costo_unitario || 0) * factor;
     const override = i.precio_cliente_override;
     const unitClient = override != null && override > 0 ? Number(override) : autoUnitClient;
-    return { ...i, autoUnitClient, unitClient, subtotalCliente: unitClient * cantidad };
+    const llevaIva = i.lleva_iva !== false; // ausente = true
+    return { ...i, autoUnitClient, unitClient, llevaIva, subtotalCliente: unitClient * cantidad };
   });
   const clientSubtotal = itemsCalculados.reduce((s, i) => s + i.subtotalCliente, 0);
-  const clientIva = aplicaIva ? clientSubtotal * ivaFrac : 0;
+  // IVA solo sobre los ítems gravados, y solo si la cotización responde IVA.
+  const baseGravada = aplicaIva ? itemsCalculados.filter((i) => i.llevaIva).reduce((s, i) => s + i.subtotalCliente, 0) : 0;
+  const clientIva = baseGravada * ivaFrac;
   const clientTotal = clientSubtotal + clientIva;
 
   // Utilidad/margen REALES de la oferta: sobre el precio que efectivamente se
@@ -112,7 +123,7 @@ export function calcularCotizacionItems(
   const utilidadReal = clientSubtotal - direct - admin;
   const margenReal = clientSubtotal > 0 ? utilidadReal / clientSubtotal : 0;
 
-  return { direct, admin, utilidad, utilidadReal, margenReal, base, iva, sugerido, itemsCalculados, clientSubtotal, clientIva, clientTotal, factor, aplicaIva };
+  return { direct, admin, utilidad, utilidadReal, margenReal, base, iva, sugerido, itemsCalculados, clientSubtotal, baseGravada, clientIva, clientTotal, factor, aplicaIva };
 }
 
 export type ContratoInputs = {

@@ -38,7 +38,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       .eq("cotizacion_id", presupuesto.cotizaciones.id)
       .order("orden");
     const calc = calcularCotizacionItems(
-      (items ?? []).map((i) => ({ cantidad: i.cantidad, costo_unitario: i.costo_unitario, precio_cliente_override: i.precio_cliente_override })),
+      (items ?? []).map((i) => ({ cantidad: i.cantidad, costo_unitario: i.costo_unitario, precio_cliente_override: i.precio_cliente_override, lleva_iva: i.lleva_iva })),
       {
         admin_pct: presupuesto.cotizaciones.admin_pct ?? 15,
         margen_pct: presupuesto.cotizaciones.margen_pct ?? 30,

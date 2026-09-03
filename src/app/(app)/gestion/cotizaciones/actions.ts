@@ -17,6 +17,7 @@ export type ItemPayload = {
   cantidad: number;
   costo_unitario: number;
   precio_cliente_override: number | null;
+  lleva_iva: boolean;
 };
 
 export type CotizacionPayload = {
@@ -90,6 +91,7 @@ function itemsParaCalculo(items: ItemPayload[]): ItemCotizacion[] {
     cantidad: Number(i.cantidad || 0),
     costo_unitario: Number(i.costo_unitario || 0),
     precio_cliente_override: i.precio_cliente_override,
+    lleva_iva: i.lleva_iva,
   }));
 }
 
@@ -106,6 +108,7 @@ async function reemplazarItems(supabase: SupabaseServer, cotizacionId: string, i
       cantidad: i.cantidad,
       costo_unitario: i.costo_unitario,
       precio_cliente_override: i.precio_cliente_override,
+      lleva_iva: i.lleva_iva,
       orden: idx,
     }))
   );
@@ -158,6 +161,7 @@ export async function crearCotizacion(payload: CotizacionPayload) {
       costos_estimados: calc.direct,
       valor_cotizado: calc.clientTotal,
       valor_sugerido: calc.sugerido,
+      iva_monto: calc.clientIva,
       creado_por: user?.id ?? null,
     })
     .select("id")
@@ -216,6 +220,7 @@ export async function actualizarCotizacion(id: string, payload: CotizacionPayloa
       costos_estimados: calc.direct,
       valor_cotizado: calc.clientTotal,
       valor_sugerido: calc.sugerido,
+      iva_monto: calc.clientIva,
     })
     .eq("id", id);
   if (error) return { error: codigoDuplicado(error) };
@@ -394,6 +399,7 @@ export async function aprobarYCrearProyecto(cotizacionId: string, aprobacion: Ap
       costos: costosSemilla,
       resp_iva: cot.resp_iva ?? true,
       valor_cotizado: cot.valor_cotizado,
+      iva_monto: cot.iva_monto ?? null,
     })
     .select("id")
     .single();

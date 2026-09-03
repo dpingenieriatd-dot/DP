@@ -33,7 +33,7 @@ type Cotizacion = {
 
 type Enlace = { id: string; cotizacion_id: string; titulo: string | null; url: string };
 
-type ItemExistente = { id: string; tipo: "insumo" | "profesional" | "material"; descripcion: string; unidad: string; cantidad: number; costo_unitario: number; precio_cliente_override: number | null };
+type ItemExistente = { id: string; tipo: "insumo" | "profesional" | "material"; descripcion: string; unidad: string; cantidad: number; costo_unitario: number; precio_cliente_override: number | null; lleva_iva: boolean | null };
 
 export type Insumo = { id: string; codigo: string | null; descripcion: string; unidad: string | null; costo: number };
 export type Profesional = { id: string; nombre: string; perfil: string | null; tarifa_hora: number | null };
@@ -94,7 +94,7 @@ export function CotizacionForm({
   const [margenPct, setMargenPct] = useState(editing?.margen_pct ?? 30);
 
   const [items, setItems] = useState<ItemLocal[]>(
-    itemsIniciales.map((i) => ({ key: nuevoKey(), tipo: i.tipo, descripcion: i.descripcion, unidad: i.unidad, cantidad: i.cantidad, costo_unitario: i.costo_unitario, precio_cliente_override: i.precio_cliente_override }))
+    itemsIniciales.map((i) => ({ key: nuevoKey(), tipo: i.tipo, descripcion: i.descripcion, unidad: i.unidad, cantidad: i.cantidad, costo_unitario: i.costo_unitario, precio_cliente_override: i.precio_cliente_override, lleva_iva: i.lleva_iva ?? true }))
   );
   const [modalTipo, setModalTipo] = useState<"insumo" | "profesional" | "material" | null>(null);
 
@@ -127,13 +127,14 @@ export function CotizacionForm({
       descripcion_cliente: descripcionCliente,
       forma_pago: formaPago,
       condiciones_cliente: condicionesCliente,
-      items: items.map(({ tipo, descripcion, unidad, cantidad, costo_unitario, precio_cliente_override }) => ({
+      items: items.map(({ tipo, descripcion, unidad, cantidad, costo_unitario, precio_cliente_override, lleva_iva }) => ({
         tipo,
         descripcion,
         unidad,
         cantidad,
         costo_unitario,
         precio_cliente_override,
+        lleva_iva,
       })),
     };
   }
@@ -298,7 +299,7 @@ export function CotizacionForm({
           </div>
 
           <div className="overflow-auto rounded-md border border-neutral-200">
-            <table className="w-full min-w-[720px] text-xs">
+            <table className="w-full min-w-[780px] text-xs">
               <thead>
                 <tr className="bg-neutral-50 text-left text-[11px] uppercase text-neutral-500">
                   <th className="px-3 py-2">Origen</th>
@@ -306,6 +307,7 @@ export function CotizacionForm({
                   <th className="px-3 py-2 text-right">Cant.</th>
                   <th className="px-3 py-2 text-right">Costo unit. interno</th>
                   <th className="px-3 py-2 text-right">Precio cliente unit.</th>
+                  <th className="px-3 py-2 text-center">IVA</th>
                   <th className="px-3 py-2 text-right">Subtotal cliente</th>
                   <th className="px-3 py-2" />
                 </tr>
@@ -367,6 +369,16 @@ export function CotizacionForm({
                           )}
                         </div>
                       </td>
+                      <td className="px-3 py-2 text-center">
+                        <input
+                          type="checkbox"
+                          checked={local.lleva_iva}
+                          disabled={!respIva}
+                          title={respIva ? "¿Este ítem lleva IVA?" : "La cotización no responde por IVA"}
+                          onChange={(e) => actualizarItem(local.key, { lleva_iva: e.target.checked })}
+                          className="h-4 w-4 rounded disabled:opacity-40"
+                        />
+                      </td>
                       <td className="px-3 py-2 text-right font-semibold">{money.format(i.subtotalCliente)}</td>
                       <td className="px-3 py-2 text-center">
                         <button type="button" onClick={() => quitarItem(local.key)} title="Quitar" className="text-neutral-400 hover:text-red-600">
@@ -378,7 +390,7 @@ export function CotizacionForm({
                 })}
                 {items.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-3 py-8 text-center text-neutral-400">
+                    <td colSpan={8} className="px-3 py-8 text-center text-neutral-400">
                       Aún no hay ítems. Agrega insumos, profesionales o materiales.
                     </td>
                   </tr>
@@ -446,7 +458,14 @@ export function CotizacionForm({
               <span>Precio a cliente antes de IVA</span>
               <span>{money.format(calc.clientSubtotal)}</span>
             </div>
-            <Linea label="IVA (19%)" valor={calc.clientIva} />
+            <Linea
+              label={
+                calc.aplicaIva && calc.baseGravada < calc.clientSubtotal
+                  ? `IVA (19% sobre ${money.format(calc.baseGravada)} gravado)`
+                  : "IVA (19%)"
+              }
+              valor={calc.clientIva}
+            />
             <div className="flex items-center justify-between border-t border-emerald-200 pt-2 text-base font-bold text-emerald-900">
               <span>Total cotizado al cliente</span>
               <span>{money.format(calc.clientTotal)}</span>
@@ -638,7 +657,7 @@ function AgregarItemModal({
       const vida = Number(x.vida_util_jornadas) || 1;
       costo = vida > 0 ? Number(x.valor_reposicion || 0) / vida : 0;
     }
-    onConfirm({ tipo, descripcion, unidad, cantidad: Math.max(0.01, cantidad), costo_unitario: costo, precio_cliente_override: null });
+    onConfirm({ tipo, descripcion, unidad, cantidad: Math.max(0.01, cantidad), costo_unitario: costo, precio_cliente_override: null, lleva_iva: true });
   }
 
   return (

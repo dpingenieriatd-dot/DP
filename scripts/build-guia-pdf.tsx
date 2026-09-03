@@ -672,7 +672,7 @@ function Doc() {
             ["Cliente · Empresa atendida", "A quién se le cotiza. Empresa atendida puede ser el mismo cliente."],
             ["Nombre de la cotización · Responsable comercial", "Título del trabajo y quién lo lleva."],
             ["Contacto, correo, teléfono", "Datos de la persona del cliente."],
-            ["¿Responde por IVA?", "Si aplica IVA del 19% al cálculo."],
+            ["¿Responde por IVA?", "Interruptor maestro: si D&P responde por IVA. En cada ítem hay además una casilla IVA para marcar cuáles renglones son gravados (hay ítems que llevan y otros que no). El IVA del 19% se calcula solo sobre los ítems gravados."],
             ["Margen de utilidad (%)", "El margen objetivo de esta cotización (se puede ajustar por cotización)."],
             ["Ítems", "Cada línea de la oferta: se elige del Banco de insumos / Profesionales / Materiales, con cantidad. El precio al cliente se calcula solo, o se puede fijar a mano."],
             ["Descripción, forma de pago, condiciones", "Textos que salen en el PDF de la cotización."],
