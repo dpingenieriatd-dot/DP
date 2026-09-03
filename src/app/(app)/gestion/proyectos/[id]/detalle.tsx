@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { actualizarProyecto, actualizarContrato } from "./actions";
 import { money, calcularEfectivoEsperado, type calcularPresupuesto, type calcularControlCostos } from "@/lib/finance";
+import { useGuardado } from "@/lib/use-guardado";
 
 type Proyecto = {
   id: string;
@@ -46,11 +47,16 @@ export function ProyectoDetalle({
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const { guardado, marcarGuardado } = useGuardado();
 
   function guardar(formData: FormData) {
     startTransition(async () => {
       const r = await actualizarProyecto(proyecto.id, formData);
       if (r?.error) setError(r.error);
+      else {
+        setError(null);
+        marcarGuardado();
+      }
     });
   }
 
@@ -131,9 +137,12 @@ export function ProyectoDetalle({
             <textarea name="notas" defaultValue={proyecto.notas ?? ""} className="in" />
           </Campo>
           {error && <p className="text-sm text-red-600">{error}</p>}
-          <button type="submit" disabled={pending} className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60">
-            Guardar cambios
-          </button>
+          <div className="flex items-center gap-3">
+            <button type="submit" disabled={pending} className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60">
+              Guardar cambios
+            </button>
+            {guardado && <span className="text-sm font-medium text-emerald-700">✓ Cambios guardados</span>}
+          </div>
         </form>
 
         <ContratoCard proyecto={proyecto} />
@@ -227,11 +236,13 @@ function Campo({ label, children }: { label: string; children: React.ReactNode }
 function ContratoCard({ proyecto }: { proyecto: Proyecto }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const { guardado, marcarGuardado } = useGuardado();
 
   function guardar(formData: FormData) {
     startTransition(async () => {
       const r = await actualizarContrato(proyecto.id, formData);
       setError(r?.error ?? null);
+      if (!r?.error) marcarGuardado();
     });
   }
 
@@ -276,9 +287,12 @@ function ContratoCard({ proyecto }: { proyecto: Proyecto }) {
       </Campo>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
-      <button type="submit" disabled={pending} className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60">
-        Guardar y recalcular
-      </button>
+      <div className="flex items-center gap-3">
+        <button type="submit" disabled={pending} className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60">
+          Guardar y recalcular
+        </button>
+        {guardado && <span className="text-sm font-medium text-emerald-700">✓ Cambios guardados</span>}
+      </div>
 
       <div className="mt-4 space-y-1 rounded-md bg-neutral-50 p-3 text-sm">
         <FilaCalc label="Valor sin IVA" valor={calc.valorSinIva} />

@@ -24,6 +24,7 @@ export async function actualizarPresupuesto(id: string, formData: FormData) {
   if (error) return { error: error.message };
   revalidatePath(ruta(id));
   revalidatePath("/gestion/presupuestos");
+  return { ok: true };
 }
 
 export async function agregarCosto(presupuestoId: string, formData: FormData) {

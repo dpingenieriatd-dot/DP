@@ -25,6 +25,7 @@ export async function actualizarProyecto(id: string, formData: FormData) {
   if (error) return { error: error.message };
   revalidatePath(ruta(id));
   revalidatePath("/gestion/proyectos");
+  return { ok: true };
 }
 
 /** Datos del contrato usados solo para el cálculo de efectivo neto esperado (IVA/retención/ICA) — ver calcularEfectivoEsperado en lib/finance.ts. */
@@ -44,4 +45,5 @@ export async function actualizarContrato(id: string, formData: FormData) {
     .eq("id", id);
   if (error) return { error: error.message };
   revalidatePath(ruta(id));
+  return { ok: true };
 }

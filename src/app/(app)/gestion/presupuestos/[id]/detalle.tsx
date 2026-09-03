@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { Link2, FileCheck, ChartBar, ListChecks } from "lucide-react";
 import { actualizarPresupuesto, agregarCosto, actualizarCosto, eliminarCosto, importarDesdeCompras, restaurarBase } from "./actions";
 import { money, type calcularPresupuesto, type calcularControlCostos } from "@/lib/finance";
+import { useGuardado } from "@/lib/use-guardado";
 
 type Presupuesto = {
   id: string;
@@ -63,11 +64,16 @@ export function PresupuestoDetalle({
   const [error, setError] = useState<string | null>(null);
   const [itemOpen, setItemOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Costo | null>(null);
+  const { guardado, marcarGuardado } = useGuardado();
 
   function guardarBase(formData: FormData) {
     startTransition(async () => {
       const r = await actualizarPresupuesto(presupuesto.id, formData);
       if (r?.error) setError(r.error);
+      else {
+        setError(null);
+        marcarGuardado();
+      }
     });
   }
 
@@ -247,9 +253,12 @@ export function PresupuestoDetalle({
             <input type="number" step="0.01" name="valor_cotizado" defaultValue={presupuesto.valor_cotizado} className="in" />
           </Campo>
           {error && <p className="text-sm text-red-600">{error}</p>}
-          <button type="submit" disabled={pending} className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60">
-            Guardar cambios
-          </button>
+          <div className="flex items-center gap-3">
+            <button type="submit" disabled={pending} className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60">
+              Guardar cambios
+            </button>
+            {guardado && <span className="text-sm font-medium text-emerald-700">✓ Cambios guardados</span>}
+          </div>
         </form>
 
         <div className="rounded-lg border border-neutral-200 bg-white p-5 text-sm">
