@@ -362,7 +362,7 @@ function Doc() {
         <H2>3.2 Filtro por persona (parte superior)</H2>
         <P>
           En varias pantallas de Seguimiento, arriba a la derecha, hay un selector de persona. Sirve para ver el tablero
-          "como si fueras" esa persona: sus tareas, su agenda, su carga. Si eres miembro normal, normalmente ves solo lo
+          como si fueras esa persona: sus tareas, su agenda, su carga. Si eres miembro normal, normalmente ves solo lo
           tuyo; la Directora puede ver el de cualquiera.
         </P>
 
@@ -741,7 +741,7 @@ function Doc() {
           Desde la lista o desde la ficha, el botón PDF genera la cotización con la marca de D&P, lista para enviar al
           cliente. El PDF es minimalista: cliente, la descripción de la cotización y tres cifras — valor antes de IVA,
           IVA y valor total cotizado. No lista los ítems ni muestra cantidades, valores unitarios, costos internos,
-          administración ni utilidad. Todo el detalle de lo que se ofrece va en el campo "Descripción de la cotización".
+          administración ni utilidad. Todo el detalle de lo que se ofrece va en el campo de descripción de la cotización.
           Si ya está aprobada, muestra la fecha de aprobación.
         </P>
       </ContentPage>
@@ -759,9 +759,9 @@ function Doc() {
           ]}
         />
         <Nota>
-          El efectivo neto esperado (retenciones) es distinto de la ganancia del proyecto. La ganancia responde a "¿este
-          proyecto deja utilidad?"; el efectivo neto responde a "¿cuánto dinero entra a caja?". Son dos preguntas
-          distintas y la plataforma las mantiene separadas.
+          El efectivo neto esperado (retenciones) es distinto de la ganancia del proyecto. La ganancia responde a si el
+          proyecto deja utilidad; el efectivo neto responde a cuánto dinero entra a caja. Son dos preguntas distintas y
+          la plataforma las mantiene separadas.
         </Nota>
 
         <H2>6.5 Presupuestos</H2>
