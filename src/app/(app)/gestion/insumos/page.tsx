@@ -5,7 +5,7 @@ import { createInsumo, updateInsumo, deleteInsumo } from "./actions";
 export default async function Page() {
   const supabase = await createClient();
   const [{ data: rows }, { data: proveedores }] = await Promise.all([
-    supabase.from("insumos").select("*").order("descripcion"),
+    supabase.from("insumos").select("*").order("codigo"),
     supabase.from("proveedores").select("id, nombre").order("nombre"),
   ]);
 
@@ -30,7 +30,7 @@ export default async function Page() {
   return (
     <CrudTable
       title="Banco de insumos"
-      subtitle="Catálogos · Ítems en orden alfabético"
+      subtitle="Catálogos · Ítems en orden por código (clic en un encabezado para ordenar por esa columna)"
       newLabel="Nuevo ítem"
       createTitle="Nuevo ítem"
       editTitle="Editar ítem"

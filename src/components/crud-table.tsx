@@ -79,6 +79,8 @@ export function CrudTable({
   const [busqueda, setBusqueda] = useState("");
   const [columnaFiltro, setColumnaFiltro] = useState(initialFiltro?.columna ?? "");
   const [valorFiltro, setValorFiltro] = useState(initialFiltro?.valor ?? "");
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   const columnas = fields.filter((f) => !f.formOnly);
 
@@ -94,6 +96,34 @@ export function CrudTable({
     }
     return true;
   });
+
+  // Clic en un encabezado: 1er clic ascendente, 2do descendente, 3ro vuelve
+  // al orden original (el que trae la consulta del servidor).
+  function toggleSort(key: string) {
+    if (sortKey !== key) {
+      setSortKey(key);
+      setSortDir("asc");
+    } else if (sortDir === "asc") {
+      setSortDir("desc");
+    } else {
+      setSortKey(null);
+      setSortDir("asc");
+    }
+  }
+
+  const sortField = sortKey ? columnas.find((f) => f.key === sortKey) : undefined;
+  const visiblesOrdenadas = sortField
+    ? [...visibles].sort((a, b) => {
+        const cmp =
+          sortField.type === "number"
+            ? (Number(a[sortField.key]) || 0) - (Number(b[sortField.key]) || 0)
+            : displayValue(sortField, a[sortField.key]).localeCompare(displayValue(sortField, b[sortField.key]), "es", {
+                numeric: true,
+                sensitivity: "base",
+              });
+        return sortDir === "asc" ? cmp : -cmp;
+      })
+    : visibles;
 
   function openCreate() {
     setEditing(null);
@@ -202,22 +232,32 @@ export function CrudTable({
           <thead>
             <tr className="text-left text-[11px] uppercase tracking-wide text-neutral-500">
               {columnas.map((f) => (
-                <th key={f.key} className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">
-                  {f.label}
+                <th
+                  key={f.key}
+                  onClick={() => toggleSort(f.key)}
+                  title="Ordenar por esta columna"
+                  className="sticky top-0 z-10 cursor-pointer select-none bg-neutral-50 px-3 py-2 hover:bg-neutral-100"
+                >
+                  <span className="inline-flex items-center gap-1">
+                    {f.label}
+                    <span className={`text-[10px] ${sortKey === f.key ? "text-emerald-700" : "text-neutral-300"}`}>
+                      {sortKey === f.key ? (sortDir === "asc" ? "▲" : "▼") : "↕"}
+                    </span>
+                  </span>
                 </th>
               ))}
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2" />
             </tr>
           </thead>
           <tbody>
-            {visibles.length === 0 && (
+            {visiblesOrdenadas.length === 0 && (
               <tr>
                 <td colSpan={columnas.length + 1} className="px-3 py-8 text-center text-neutral-400">
                   {emptyLabel}
                 </td>
               </tr>
             )}
-            {visibles.map((row) => (
+            {visiblesOrdenadas.map((row) => (
               <tr key={String(row[idKey])} className="border-t border-neutral-100 hover:bg-neutral-50">
                 {columnas.map((f) => {
                   const href = f.linkKey ? (row[f.linkKey] as string | null | undefined) : null;
