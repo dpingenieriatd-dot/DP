@@ -158,7 +158,6 @@ export function ActividadesList({
           empresas={empresas}
           profiles={profiles}
           profesionales={profesionales}
-          actividadesCatalogo={actividadesCatalogo}
           procesos={procesos}
           modoManual
           currentUserId={currentUserId}

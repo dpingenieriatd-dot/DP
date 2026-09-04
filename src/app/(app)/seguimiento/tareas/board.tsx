@@ -14,7 +14,6 @@ import {
   iniciarTiempo,
   calificarCalidad,
 } from "./actions";
-import { AgregarActividadCatalogo } from "@/components/agregar-actividad-catalogo";
 import { reprogramarBloque } from "../agendas/actions";
 import { KpiCard } from "@/components/kpi-card";
 import { Topbar } from "@/components/topbar";
@@ -387,7 +386,6 @@ export function TaskBoard({
           empresas={empresas}
           profiles={profiles}
           profesionales={profesionales}
-          actividadesCatalogo={actividadesCatalogo}
           procesos={procesos}
           onClose={() => setCreateOpen(false)}
           onSubmit={(fd) =>
@@ -556,7 +554,6 @@ export function CreateModal({
   empresas,
   profiles,
   profesionales,
-  actividadesCatalogo,
   procesos,
   onClose,
   onSubmit,
@@ -570,7 +567,6 @@ export function CreateModal({
   empresas: Empresa[];
   profiles: Profile[];
   profesionales: Profesional[];
-  actividadesCatalogo: ActividadCatalogo[];
   procesos: Proceso[];
   onClose: () => void;
   onSubmit: (fd: FormData) => void;
@@ -580,10 +576,6 @@ export function CreateModal({
   currentUserId?: string | null;
   isAdmin?: boolean;
 }) {
-  const [catalogoLocal, setCatalogoLocal] = useState(actividadesCatalogo);
-  // "" = sin elegir (placeholder) · "custom" = "Otra actividad temporal / no guardar en
-  // catálogo" · cualquier otro valor = id real del catálogo. Igual que #f-task-catalog en el HTML.
-  const [catalogoId, setCatalogoId] = useState("");
   const [titulo, setTitulo] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [procesoCodigo, setProcesoCodigo] = useState("");
@@ -595,19 +587,6 @@ export function CreateModal({
   const [estado, setEstado] = useState("Disponible");
   const hoy = new Date().toISOString().slice(0, 10);
   const puedeElegirResponsable = !modoManual || isAdmin;
-  const actividad = catalogoLocal.find((a) => a.id === catalogoId);
-
-  function elegirActividad(id: string) {
-    setCatalogoId(id);
-    const a = catalogoLocal.find((x) => x.id === id);
-    if (a) {
-      setTitulo(`${a.codigo}_${a.subproceso}`);
-      setProcesoCodigo(a.codigo);
-      if (!descripcion.trim() && a.descripcion) setDescripcion(a.descripcion);
-    } else {
-      setTitulo("");
-    }
-  }
 
   const responsableInternoId = responsableValue.startsWith("INT|") ? responsableValue.slice(4) : "";
   const responsableExternoId = responsableValue.startsWith("EXT|") ? responsableValue.slice(4) : "";
@@ -628,47 +607,14 @@ export function CreateModal({
         </div>
         <div className="space-y-3">
           <label className="block text-sm">
-            <span className="mb-1 block text-neutral-600">Actividad del mapa de procesos *</span>
-            <select
-              name="catalogo_actividad_id"
-              value={catalogoId}
-              onChange={(e) => elegirActividad(e.target.value)}
+            <span className="mb-1 block text-neutral-600">Nombre de la actividad *</span>
+            <input
+              name="titulo"
+              required
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value)}
+              placeholder="Escribe el nombre de la actividad"
               className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
-            >
-              <option value="">Seleccionar actividad...</option>
-              {catalogoLocal.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.codigo} · {a.subproceso}
-                </option>
-              ))}
-              <option value="custom">Otra actividad temporal / no guardar en catálogo</option>
-            </select>
-            {catalogoId === "custom" && (
-              <input
-                name="titulo"
-                required
-                value={titulo}
-                onChange={(e) => setTitulo(e.target.value)}
-                placeholder="Escribe la actividad no catalogada"
-                className="mt-2 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
-              />
-            )}
-            {catalogoId !== "custom" && <input type="hidden" name="titulo" value={titulo} />}
-            <span className="mt-1 block text-xs text-neutral-500">
-              Selecciona una actividad de la lista. El proceso y la descripción se completan automáticamente.
-            </span>
-            {actividad && (
-              <span className="mt-1 block text-xs text-neutral-500">
-                {actividad.codigo} · {actividad.subproceso}
-                {actividad.responsable_sugerido ? ` · Responsable sugerido: ${actividad.responsable_sugerido}` : ""}
-              </span>
-            )}
-            <AgregarActividadCatalogo
-              procesos={procesos}
-              onAdded={(nueva) => {
-                setCatalogoLocal((prev) => [...prev, nueva]);
-                elegirActividad(nueva.id);
-              }}
             />
           </label>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
