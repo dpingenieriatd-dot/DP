@@ -5,6 +5,14 @@ import Link from "next/link";
 import { AlertTriangle, CalendarClock, Download, TrendingUp } from "lucide-react";
 import { money, type EstadoPlata, type EstadoTiempo } from "@/lib/finance";
 import { etiquetaPlata, etiquetaTiempo, resumenControl, type FilaControl } from "@/lib/control-proyectos";
+import { PieCard, useThemeColors } from "@/components/charts";
+
+// Colores de ESTADO (no identidad libre): verde/ámbar siguen el tema activo
+// (igual que las demás gráficas), rojo y gris quedan fijos — mismo criterio
+// que las badges de abajo (bg-red-100/text-red-700, bg-neutral-100/…), que ya
+// son theme-agnostic en toda la app.
+const ROJO_CRITICO = "#dc2626";
+const GRIS_SIN_DATO = "#a3a3a3";
 
 export type { FilaControl };
 
@@ -34,6 +42,27 @@ export function ControlProyectos({ rows }: { rows: FilaControl[] }) {
   const visibles = clienteFiltro ? rows.filter((r) => r.clienteId === clienteFiltro) : rows;
   const t = useMemo(() => resumenControl(visibles), [visibles]);
   const pdfHref = `/api/gestion/control-proyectos/pdf${clienteFiltro ? `?cliente=${clienteFiltro}` : ""}`;
+
+  const tema = useThemeColors(); // [emerald-900, emerald-800, amber-600, emerald-400, amber-800, emerald-200]
+  const verde = tema[1];
+  const ambar = tema[2];
+  const plataData = useMemo(
+    () => [
+      { name: "Sano", value: visibles.filter((r) => r.semaforoPlata === "sano").length },
+      { name: "En atención", value: visibles.filter((r) => r.semaforoPlata === "riesgo").length },
+      { name: "Sobre presupuesto", value: visibles.filter((r) => r.semaforoPlata === "critico").length },
+    ],
+    [visibles],
+  );
+  const tiempoData = useMemo(
+    () => [
+      { name: "A tiempo", value: visibles.filter((r) => r.tiempo === "a_tiempo").length },
+      { name: "Por vencer", value: visibles.filter((r) => r.tiempo === "por_vencer").length },
+      { name: "Atrasado", value: visibles.filter((r) => r.tiempo === "atrasado").length },
+      { name: "Sin fecha", value: visibles.filter((r) => r.tiempo === "sin_fecha").length },
+    ],
+    [visibles],
+  );
 
   return (
     <section className="rounded-lg border border-neutral-200 bg-white p-5">
@@ -94,6 +123,25 @@ export function ControlProyectos({ rows }: { rows: FilaControl[] }) {
           alerta={t.proyectosConCompras > 0 && t.gananciaReal < 0}
         />
       </div>
+
+      {visibles.length > 0 && (
+        <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <PieCard
+            title="Plata"
+            subtitle="Sano / en atención / sobre presupuesto — hoy"
+            centerLabel="proyectos"
+            data={plataData}
+            colors={[verde, ambar, ROJO_CRITICO]}
+          />
+          <PieCard
+            title="Tiempo"
+            subtitle="Según fecha de entrega — hoy"
+            centerLabel="proyectos"
+            data={tiempoData}
+            colors={[verde, ambar, ROJO_CRITICO, GRIS_SIN_DATO]}
+          />
+        </div>
+      )}
 
       <div className="overflow-auto rounded-md border border-neutral-200">
         <table className="w-full min-w-[880px] text-xs">

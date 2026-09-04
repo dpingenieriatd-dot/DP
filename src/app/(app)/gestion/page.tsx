@@ -5,6 +5,7 @@ import { CrecimientoFiltro, LimpiarFiltrosBoton } from "./crecimiento-filtro";
 import { ControlProyectos } from "./control-proyectos";
 import { MESES } from "@/lib/meses";
 import { KpiCard } from "@/components/kpi-card";
+import { BarCard } from "@/components/charts";
 import { Filter, TrendingUp, CalendarRange, ClipboardList } from "lucide-react";
 
 /** Cascada de fecha del proyecto, igual intención que el HTML V24: fecha_inicio del proyecto, si no fecha de creación. */
@@ -165,6 +166,17 @@ export default async function GestionInicioPage({
         <KpiCard label="Clientes atendidos" value={clientesAtendidos} subtitle={`Base general: ${clientes?.length ?? 0}`} />
         <KpiCard label="Empresas atendidas" value={empresasAtendidas} subtitle={`Base general: ${empresas?.length ?? 0}`} />
       </div>
+
+      {evolucion.length > 0 && (
+        <div className="mt-6">
+          <BarCard
+            title={`Utilidad proyectada por mes · ${anioActual}`}
+            data={evolucion.map((m) => ({ name: m.mes, value: m.utilidad }))}
+            valueLabel="Utilidad proyectada"
+            format="money"
+          />
+        </div>
+      )}
 
       <div className="mt-6 rounded-lg border border-neutral-200 bg-white p-4">
         <div className="mb-1 flex items-center gap-1.5 font-semibold text-emerald-900">

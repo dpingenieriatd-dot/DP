@@ -33,7 +33,7 @@ function getSnapshot() {
   return cachedColors;
 }
 
-function useThemeColors() {
+export function useThemeColors() {
   return useSyncExternalStore(noopSubscribe, getSnapshot, () => FALLBACK_COLORS);
 }
 
@@ -50,14 +50,21 @@ export function PieCard({
   subtitle,
   centerLabel,
   data,
+  colors: colorsProp,
 }: {
   title: string;
   subtitle?: string;
   centerLabel?: string;
   data: { name: string; value: number }[];
+  /** Colores explícitos por segmento (mismo orden que `data`), para series de
+   *  ESTADO (sano/riesgo/crítico, a_tiempo/atrasado…) donde el color no es
+   *  identidad libre sino una convención fija. Si no se pasa, usa la paleta
+   *  categórica del tema activo (igual que antes). */
+  colors?: string[];
 }) {
   const total = data.reduce((sum, d) => sum + d.value, 0);
-  const colors = useThemeColors();
+  const themeColors = useThemeColors();
+  const colors = colorsProp ?? themeColors;
   const chartData = total === 0 ? [{ name: "_empty", value: 1 }] : data;
   const chartColors = total === 0 ? ["#e5e5e5"] : colors;
 
