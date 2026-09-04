@@ -61,7 +61,7 @@ export function CotizacionForm({
 }: {
   editing: Cotizacion | null;
   clientes: { id: string; nombre: string; retencion_fuente_pct?: number | null; ica_por_mil?: number | null }[];
-  empresas: { id: string; nombre: string; cliente_id: string | null }[];
+  empresas: { id: string; nombre: string; cliente_id: string | null; contacto?: string | null; correo?: string | null; telefono?: string | null }[];
   profiles: { id: string; full_name: string | null; email: string | null }[];
   enlaces: Enlace[];
   insumos: Insumo[];
@@ -107,6 +107,19 @@ export function CotizacionForm({
 
   const empresasDelCliente = empresas.filter((e) => !clienteId || e.cliente_id === clienteId || e.cliente_id === null);
   const clienteActual = clientes.find((c) => c.id === clienteId);
+
+  // Al elegir la empresa atendida, autocompleta el contacto de seguimiento
+  // con el contacto guardado en su ficha (Empresas atendidas) — se puede
+  // editar después para esta cotización puntual sin tocar el catálogo.
+  function seleccionarEmpresa(valor: string) {
+    setEmpresaId(valor);
+    const empresa = empresas.find((e) => e.id === valor);
+    if (empresa) {
+      setContacto(empresa.contacto ?? "");
+      setCorreo(empresa.correo ?? "");
+      setTelefono(empresa.telefono ?? "");
+    }
+  }
 
   const efectivo = calcularEfectivoEsperado({
     valorConIva: calc.clientTotal,
@@ -230,7 +243,7 @@ export function CotizacionForm({
               </select>
             </Campo>
             <Campo label="Empresa atendida" required>
-              <select value={empresaId} onChange={(e) => setEmpresaId(e.target.value)} className="in">
+              <select value={empresaId} onChange={(e) => seleccionarEmpresa(e.target.value)} className="in">
                 <option value="">Seleccione…</option>
                 {clienteActual && <option value={`cliente:${clienteActual.id}`}>Mismo cliente — {clienteActual.nombre}</option>}
                 {empresasDelCliente.map((e) => (
@@ -286,7 +299,10 @@ export function CotizacionForm({
             </Campo>
           </div>
 
-          <h3 className="mb-3 mt-5 text-sm font-semibold text-neutral-700">Contacto para seguimiento de la propuesta</h3>
+          <h3 className="mb-1 mt-5 text-sm font-semibold text-neutral-700">Contacto para seguimiento de la propuesta</h3>
+          <p className="mb-3 text-xs text-neutral-400">
+            Se autocompleta con el contacto guardado en «Empresa atendida» al elegirla arriba; podés editarlo solo para esta cotización.
+          </p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Campo label="Nombre del contacto">
               <input value={contacto} onChange={(e) => setContacto(e.target.value)} className="in" />

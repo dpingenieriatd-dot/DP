@@ -10,7 +10,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     await Promise.all([
       supabase.from("cotizaciones").select("*").eq("id", id).single(),
       supabase.from("clientes").select("id, nombre, retencion_fuente_pct, ica_por_mil").order("nombre"),
-      supabase.from("empresas_atendidas").select("id, nombre, cliente_id").order("nombre"),
+      supabase.from("empresas_atendidas").select("id, nombre, cliente_id, contacto, correo, telefono").order("nombre"),
       supabase.from("profiles").select("id, full_name, email").order("full_name"),
       supabase.from("cotizacion_enlaces").select("id, cotizacion_id, titulo, url").eq("cotizacion_id", id).order("orden"),
       supabase.from("insumos").select("id, codigo, descripcion, unidad, costo").eq("estado", "Activo").order("descripcion"),
