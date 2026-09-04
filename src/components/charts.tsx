@@ -162,7 +162,7 @@ export function BarCard({
               />
               <YAxis tick={{ fontSize: 12 }} tickFormatter={fmtAxis} width={70} />
               <Tooltip formatter={(v) => fmt(Number(v))} labelFormatter={(name) => name} />
-              <Bar dataKey="value" name={valueLabel ?? "Valor"} fill={colors[0]} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="value" name={valueLabel ?? "Valor"} fill={colors[0]} radius={[4, 4, 0, 0]} maxBarSize={64} />
             </BarChart>
           </ResponsiveContainer>
         </div>

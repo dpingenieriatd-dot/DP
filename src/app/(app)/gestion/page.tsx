@@ -113,7 +113,7 @@ export default async function GestionInicioPage({
     if (empresaFiltro && p.empresa_id !== empresaFiltro) return false;
     return true;
   });
-  const evolucion = MESES.map((nombreMes, i) => {
+  const evolucionCompleta = MESES.map((nombreMes, i) => {
     const mesNum = i + 1;
     const deEsteMes = delAnio.filter((p) => Number(p._fecha.slice(5, 7)) === mesNum);
     const deMesAnterior = mesNum > 1 ? delAnio.filter((p) => Number(p._fecha.slice(5, 7)) === mesNum - 1) : [];
@@ -126,7 +126,15 @@ export default async function GestionInicioPage({
       empresas: new Set(deEsteMes.map((p) => p.empresa_id).filter(Boolean)).size,
       variacion: pctTexto(sum(deEsteMes, "utilidad"), sum(deMesAnterior, "utilidad")),
     };
-  }).filter((m) => m.proyectos > 0);
+  });
+  const evolucion = evolucionCompleta.filter((m) => m.proyectos > 0);
+  // Para el gráfico: además de los meses con actividad, se completan los
+  // meses que quedan del año (en 0) para que una sola barra no ocupe casi
+  // todo el ancho — sin inventar actividad, son ceros reales.
+  const primerMesConDatos = evolucionCompleta.findIndex((m) => m.proyectos > 0);
+  const datosGraficoUtilidad = (primerMesConDatos === -1 ? evolucionCompleta : evolucionCompleta.slice(primerMesConDatos)).map(
+    (m) => ({ name: m.mes, value: m.utilidad }),
+  );
 
   return (
     <div className="p-8">
@@ -171,7 +179,7 @@ export default async function GestionInicioPage({
         <div className="mt-6">
           <BarCard
             title={`Utilidad proyectada por mes · ${anioActual}`}
-            data={evolucion.map((m) => ({ name: m.mes, value: m.utilidad }))}
+            data={datosGraficoUtilidad}
             valueLabel="Utilidad proyectada"
             format="money"
           />
