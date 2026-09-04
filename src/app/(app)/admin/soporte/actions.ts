@@ -5,10 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 
 async function notificarPorCorreo(ticket: { titulo: string; descripcion: string; urgencia: string; pagina: string | null }, reportadoPor: string) {
   const resendKey = process.env.RESEND_API_KEY;
-  const destino = process.env.SOPORTE_EMAIL;
-  // Si falta cualquiera de las dos, el ticket igual queda guardado — el
-  // correo es un aviso adicional, no la fuente de verdad (esa es la tabla).
-  if (!resendKey || !destino) return;
+  const destino = process.env.SOPORTE_EMAIL || "soporte_tecnico@brinversiones.co";
+  // Si falta la API key, el ticket igual queda guardado — el correo es un
+  // aviso adicional, no la fuente de verdad (esa es la tabla).
+  if (!resendKey) return;
 
   const remitente = process.env.RESUMEN_REMITENTE || "D&P Ingeniería Integral <notificaciones@dpingenieriaintegral.com>";
   const html = `
