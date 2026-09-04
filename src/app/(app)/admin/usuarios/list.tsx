@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { actualizarPerfil, invitarUsuario } from "./actions";
+import { actualizarPerfil, invitarUsuario, desactivarUsuario, reactivarUsuario } from "./actions";
 import { createClient } from "@/lib/supabase/client";
 
 type Perfil = {
@@ -13,6 +13,7 @@ type Perfil = {
   modules: string[];
   capacidad_semanal_horas: number;
   last_seen_at?: string | null;
+  activo: boolean;
 };
 
 const MODULOS = [
@@ -63,6 +64,9 @@ export function UsuariosList({ perfiles, currentUserId }: { perfiles: Perfil[]; 
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteOk, setInviteOk] = useState<string | null>(null);
   const [invitePending, startInviteTransition] = useTransition();
+  const [porDesactivar, setPorDesactivar] = useState<Perfil | null>(null);
+  const [desactivarError, setDesactivarError] = useState<string | null>(null);
+  const [desactivarPending, startDesactivarTransition] = useTransition();
 
   function guardar(id: string, formData: FormData) {
     startTransition(async () => {
@@ -72,6 +76,24 @@ export function UsuariosList({ perfiles, currentUserId }: { perfiles: Perfil[]; 
         setError(null);
         setEditingId(null);
       }
+    });
+  }
+
+  function confirmarDesactivar() {
+    const p = porDesactivar;
+    if (!p) return;
+    setDesactivarError(null);
+    startDesactivarTransition(async () => {
+      const r = await desactivarUsuario(p.id);
+      if (r?.error) setDesactivarError(r.error);
+      else setPorDesactivar(null);
+    });
+  }
+
+  function reactivar(id: string) {
+    startDesactivarTransition(async () => {
+      const r = await reactivarUsuario(id);
+      if (r?.error) setError(r.error);
     });
   }
 
@@ -108,6 +130,7 @@ export function UsuariosList({ perfiles, currentUserId }: { perfiles: Perfil[]; 
         módulos que le asignes acá. Aquí también se edita el rol y los módulos de quienes ya tienen cuenta.
       </p>
       {inviteOk && <p className="mt-2 text-sm text-emerald-700">{inviteOk}</p>}
+      {desactivarError && !porDesactivar && <p className="mt-2 text-sm text-red-600">{desactivarError}</p>}
 
       <div className="mt-4 space-y-3">
         {perfiles.map((p) => (
@@ -154,7 +177,7 @@ export function UsuariosList({ perfiles, currentUserId }: { perfiles: Perfil[]; 
                 </div>
               </form>
             ) : (
-              <div className="flex items-center justify-between">
+              <div className={`flex items-center justify-between ${!p.activo ? "opacity-60" : ""}`}>
                 <div>
                   <div className="flex items-center gap-2">
                     <span
@@ -164,6 +187,7 @@ export function UsuariosList({ perfiles, currentUserId }: { perfiles: Perfil[]; 
                     <div className="font-medium text-neutral-800">
                       {p.full_name || p.email} {p.id === currentUserId && <span className="text-xs text-neutral-400">(tú)</span>}
                     </div>
+                    {!p.activo && <span className="rounded-full bg-neutral-200 px-2 py-0.5 text-xs font-semibold text-neutral-600">Inactivo</span>}
                   </div>
                   <div className="ml-4 text-xs text-neutral-500">{p.cargo || "Sin cargo asignado"}</div>
                   <div className="ml-4 text-[11px] text-neutral-400">
@@ -184,9 +208,32 @@ export function UsuariosList({ perfiles, currentUserId }: { perfiles: Perfil[]; 
                     )}
                   </div>
                 </div>
-                <button onClick={() => setEditingId(p.id)} className="text-sm font-medium text-emerald-700 hover:underline">
-                  Editar
-                </button>
+                <div className="flex items-center gap-3">
+                  <button onClick={() => setEditingId(p.id)} className="text-sm font-medium text-emerald-700 hover:underline">
+                    Editar
+                  </button>
+                  {p.id !== currentUserId &&
+                    (p.activo ? (
+                      <button
+                        onClick={() => {
+                          setDesactivarError(null);
+                          setPorDesactivar(p);
+                        }}
+                        disabled={desactivarPending}
+                        className="text-sm font-medium text-red-600 hover:underline disabled:opacity-60"
+                      >
+                        Desactivar
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => reactivar(p.id)}
+                        disabled={desactivarPending}
+                        className="text-sm font-medium text-emerald-700 hover:underline disabled:opacity-60"
+                      >
+                        Reactivar
+                      </button>
+                    ))}
+                </div>
               </div>
             )}
           </div>
@@ -240,6 +287,35 @@ export function UsuariosList({ perfiles, currentUserId }: { perfiles: Perfil[]; 
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {porDesactivar && (
+        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4" onClick={() => !desactivarPending && setPorDesactivar(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
+            <h2 className="text-lg font-semibold text-red-700">Desactivar usuario</h2>
+            <p className="mt-2 text-sm text-neutral-600">
+              <strong>{porDesactivar.full_name || porDesactivar.email}</strong> ya no podrá iniciar sesión. Su nombre se conserva en tareas,
+              cotizaciones y demás historial — se puede reactivar en cualquier momento desde esta misma lista.
+            </p>
+            {desactivarError && <p className="mt-3 text-sm text-red-600">{desactivarError}</p>}
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => setPorDesactivar(null)}
+                disabled={desactivarPending}
+                className="rounded-md px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-100 disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarDesactivar}
+                disabled={desactivarPending}
+                className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+              >
+                {desactivarPending ? "Desactivando…" : "Desactivar"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

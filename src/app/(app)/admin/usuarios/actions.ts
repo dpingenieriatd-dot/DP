@@ -36,6 +36,52 @@ export async function invitarUsuario(formData: FormData) {
   revalidatePath("/admin/usuarios");
 }
 
+export async function desactivarUsuario(id: string) {
+  if (!(await requiereAdmin())) return { error: "Solo un administrador puede desactivar usuarios." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user?.id === id) return { error: "No puedes desactivar tu propia cuenta." };
+
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "No se pudo preparar la desactivación." };
+  }
+
+  // Revoca el acceso (no puede volver a iniciar sesión ni refrescar su sesión
+  // actual) sin borrar la cuenta ni su historial -- "ban" en vez de "delete".
+  const { error: banError } = await admin.auth.admin.updateUserById(id, { ban_duration: "87600h" });
+  if (banError) return { error: banError.message };
+
+  const { error } = await admin.from("profiles").update({ activo: false }).eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/usuarios");
+}
+
+export async function reactivarUsuario(id: string) {
+  if (!(await requiereAdmin())) return { error: "Solo un administrador puede reactivar usuarios." };
+
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "No se pudo preparar la reactivación." };
+  }
+
+  const { error: banError } = await admin.auth.admin.updateUserById(id, { ban_duration: "none" });
+  if (banError) return { error: banError.message };
+
+  const { error } = await admin.from("profiles").update({ activo: true }).eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/usuarios");
+}
+
 export async function actualizarPerfil(id: string, formData: FormData) {
   const supabase = await createClient();
   const modules = formData.getAll("modules") as string[];

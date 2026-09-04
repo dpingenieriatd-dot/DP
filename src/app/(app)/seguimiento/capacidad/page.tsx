@@ -22,7 +22,9 @@ export default async function Page() {
   const hasta = toISODate(semana[6]);
 
   const [{ data: profiles }, { data: bloques }, { data: tareas }, userLabel, filtro, isAdmin] = await Promise.all([
-    supabase.from("profiles").select("id, full_name, email, cargo, capacidad_semanal_horas").order("full_name"),
+    // Solo activos: alguien desactivado (ver Administración > Usuarios) ya no
+    // debe aparecer con carga/pendientes en el tablero de Equipo.
+    supabase.from("profiles").select("id, full_name, email, cargo, capacidad_semanal_horas").eq("activo", true).order("full_name"),
     supabase.from("agenda_bloques").select("usuario_id, horas").gte("dia", desde).lte("dia", hasta),
     supabase.from("tareas").select("responsable, estado, archivado, fecha_limite"),
     getCurrentProfileLabel(),
