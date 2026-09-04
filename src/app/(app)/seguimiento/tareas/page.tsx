@@ -29,7 +29,10 @@ export default async function Page() {
     supabase.from("tareas").select("*, clientes(nombre), proyectos(nombre)").order("created_at", { ascending: false }),
     supabase.from("profiles").select("id, full_name, email"),
     supabase.from("clientes").select("id, nombre").order("nombre"),
-    supabase.from("proyectos").select("id, codigo, nombre").order("nombre"),
+    // Mismo criterio que la lista de Gestión > Proyectos por defecto (list.tsx
+    // esInactivo): oculta archivados y rechazados -- no tiene sentido publicar
+    // tareas contra un proyecto cerrado o que nunca se ejecutó.
+    supabase.from("proyectos").select("id, codigo, nombre").eq("archivado", false).neq("estado", "Rechazado").order("nombre"),
     supabase.from("empresas_atendidas").select("id, nombre, cliente_id").order("nombre"),
     supabase.from("catalogo_actividades").select("id, codigo, subproceso, descripcion, responsable_sugerido").order("codigo"),
     supabase.from("procesos").select("codigo, nombre").order("codigo"),
