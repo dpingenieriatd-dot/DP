@@ -13,7 +13,10 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       .select("*, proyectos(id, codigo, nombre), cotizaciones(id, codigo, estado, fecha, resp_iva, admin_pct, margen_pct, valor_cotizado, cliente_id, clientes(nombre, nit))")
       .eq("id", id)
       .single(),
-    supabase.from("presupuesto_costos").select("*").eq("presupuesto_id", id).order("created_at"),
+    // orden primero: created_at no sirve de criterio único porque los ítems
+    // sembrados al aprobar la cotización se insertan todos de una vez y quedan
+    // con el mismo created_at (ver migration_47).
+    supabase.from("presupuesto_costos").select("*").eq("presupuesto_id", id).order("orden").order("created_at"),
   ]);
 
   if (!presupuesto) notFound();

@@ -7,6 +7,18 @@ function ruta(id: string) {
   return `/gestion/presupuestos/${id}`;
 }
 
+/** Siguiente número de orden para agregar un ítem al final del plan de costos, sin pisar el de los que ya existen. */
+async function siguienteOrden(supabase: Awaited<ReturnType<typeof createClient>>, presupuestoId: string) {
+  const { data } = await supabase
+    .from("presupuesto_costos")
+    .select("orden")
+    .eq("presupuesto_id", presupuestoId)
+    .order("orden", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return (data?.orden ?? -1) + 1;
+}
+
 export async function actualizarPresupuesto(id: string, formData: FormData) {
   const supabase = await createClient();
   const { error } = await supabase
@@ -38,6 +50,7 @@ export async function agregarCosto(presupuestoId: string, formData: FormData) {
     real: formData.get("real") || 0,
     estado: formData.get("estado") || "Planeado",
     origen: "Manual",
+    orden: await siguienteOrden(supabase, presupuestoId),
   });
   if (error) return { error: error.message };
   revalidatePath(ruta(presupuestoId));
@@ -95,14 +108,16 @@ export async function restaurarBase(presupuestoId: string) {
   const { error: delError } = await supabase.from("presupuesto_costos").delete().eq("presupuesto_id", presupuestoId).eq("origen", "Presupuesto");
   if (delError) return { error: delError.message };
 
+  const ordenBase = await siguienteOrden(supabase, presupuestoId);
   const filas = items
     .filter((i) => Number(i.cantidad) * Number(i.costo_unitario) > 0)
-    .map((i) => ({
+    .map((i, idx) => ({
       presupuesto_id: presupuestoId,
       categoria: CATEGORIA_POR_TIPO[i.tipo] ?? "Otros costos",
       descripcion: `${i.descripcion} (de la cotización)`,
       presupuestado: Number(i.cantidad) * Number(i.costo_unitario),
       origen: "Presupuesto",
+      orden: ordenBase + idx,
     }));
 
   if (filas.length === 0) return { error: "La cotización base no tiene costos internos para restaurar." };
@@ -131,7 +146,8 @@ export async function importarDesdeCompras(presupuestoId: string, proyectoId: st
   const nuevas = compras.filter((c) => !idsImportados.has(c.id));
   if (nuevas.length === 0) return { error: "Ya se importaron todas las compras de este proyecto — no hay ninguna nueva." };
 
-  const filas = nuevas.map((c) => ({
+  const ordenBase = await siguienteOrden(supabase, presupuestoId);
+  const filas = nuevas.map((c, idx) => ({
     presupuesto_id: presupuestoId,
     compra_id: c.id,
     categoria: c.categoria === "Servicios profesionales" ? "Servicios / profesionales" : "Compras / insumos",
@@ -141,6 +157,7 @@ export async function importarDesdeCompras(presupuestoId: string, proyectoId: st
     real: c.estado_pago === "Pagado" ? Number(c.cantidad) * Number(c.valor_unitario) : 0,
     estado: c.estado_pago === "Pagado" ? "Pagado" : c.estado_pago === "Aprobado" ? "Aprobado" : "Cotizado",
     origen: "Compra",
+    orden: ordenBase + idx,
   }));
 
   const { error } = await supabase.from("presupuesto_costos").insert(filas);

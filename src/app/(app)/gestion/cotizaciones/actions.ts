@@ -420,12 +420,16 @@ export async function aprobarYCrearProyecto(cotizacionId: string, aprobacion: Ap
   // cualquier otro costo del presupuesto.
   const itemsSemilla = (items ?? [])
     .filter((i) => Number(i.cantidad) * Number(i.costo_unitario) > 0)
-    .map((i) => ({
+    .map((i, idx) => ({
       presupuesto_id: nuevoPresupuesto.id,
       categoria: CATEGORIA_POR_TIPO[i.tipo] ?? "Otros costos",
       descripcion: `${i.descripcion} (de la cotización)`,
       presupuestado: Number(i.cantidad) * Number(i.costo_unitario),
       origen: "Presupuesto",
+      // Orden explícito: todos estos se insertan en UNA sola sentencia (ver
+      // migration_47) y quedarían con el mismo created_at -- sin esto, editar
+      // cualquier ítem después lo hacía "saltar" de posición.
+      orden: idx,
     }));
   if (itemsSemilla.length) {
     const { error: semillaError } = await supabase.from("presupuesto_costos").insert(itemsSemilla);
