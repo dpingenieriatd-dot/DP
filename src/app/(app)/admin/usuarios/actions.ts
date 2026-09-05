@@ -18,7 +18,14 @@ export async function invitarUsuario(formData: FormData) {
     return { error: e instanceof Error ? e.message : "No se pudo preparar la invitación." };
   }
 
-  const { data: invitado, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email);
+  // Sin redirectTo, Supabase manda el enlace al "Site URL" genérico del
+  // proyecto en vez de /auth/callback -- la sesión (tokens) queda tirada ahí
+  // sin procesar y la persona termina en el login en vez de en cambio de
+  // contraseña. Mismo patrón que ya usa recuperar-password/page.tsx.
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://app.dpingenieriaintegral.com";
+  const { data: invitado, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
+    redirectTo: `${siteUrl}/auth/callback?next=/cuenta/password`,
+  });
   if (inviteError) return { error: inviteError.message };
 
   const modules = formData.getAll("modules") as string[];

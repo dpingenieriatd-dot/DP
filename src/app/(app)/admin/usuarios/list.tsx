@@ -106,6 +106,7 @@ export function UsuariosList({ perfiles, currentUserId }: { perfiles: Perfil[]; 
       } else {
         setInviteError(null);
         setInviteOk(`Invitación enviada a ${formData.get("email")}.`);
+        setInviteOpen(false);
       }
     });
   }
