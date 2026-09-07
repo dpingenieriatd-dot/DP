@@ -1,9 +1,15 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 
 const NOMBRES_TABLA: Record<string, string> = {
   proyectos: "Proyectos",
   compras: "Compras",
   settings: "Parámetros financieros",
+  cotizaciones: "Cotizaciones",
+  presupuestos: "Presupuestos",
+  presupuesto_costos: "Plan de costos",
+  clientes: "Clientes",
+  empresas_atendidas: "Empresas atendidas",
 };
 
 const CAMPOS_IGNORADOS = new Set(["updated_at", "created_at"]);
@@ -40,7 +46,8 @@ type Registro = {
   profiles: { full_name: string | null; email: string | null } | null;
 };
 
-export default async function Page() {
+export default async function Page({ searchParams }: { searchParams: Promise<{ tabla?: string }> }) {
+  const { tabla } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -57,12 +64,16 @@ export default async function Page() {
     );
   }
 
-  const { data: registros } = await supabase
+  const tablaValida = tabla && tabla in NOMBRES_TABLA ? tabla : null;
+
+  let q = supabase
     .from("auditoria")
     .select("id, tabla, registro_id, accion, valores_anteriores, valores_nuevos, creado_en, profiles(full_name, email)")
     .order("creado_en", { ascending: false })
-    .limit(200);
+    .limit(300);
+  if (tablaValida) q = q.eq("tabla", tablaValida);
 
+  const { data: registros } = await q;
   const filas = (registros ?? []) as unknown as Registro[];
 
   return (
@@ -70,8 +81,16 @@ export default async function Page() {
       <div className="mb-4">
         <h1 className="text-2xl font-semibold text-emerald-900">Auditoría</h1>
         <p className="text-sm text-neutral-500">
-          Historial de cambios en Proyectos, Compras y Parámetros financieros — quién, cuándo y qué cambió. Últimos 200 registros.
+          Historial de cambios (quién, cuándo y qué cambió) en Proyectos, Compras, Parámetros, Cotizaciones, Presupuestos,
+          Plan de costos, Clientes y Empresas atendidas. Últimos 300 registros{tablaValida ? ` de ${NOMBRES_TABLA[tablaValida]}` : ""}.
         </p>
+      </div>
+
+      <div className="mb-3 flex flex-wrap gap-1.5 text-xs">
+        <FiltroLink label="Todo" activo={!tablaValida} href="/admin/auditoria" />
+        {Object.entries(NOMBRES_TABLA).map(([key, nombre]) => (
+          <FiltroLink key={key} label={nombre} activo={tablaValida === key} href={`/admin/auditoria?tabla=${key}`} />
+        ))}
       </div>
 
       <div className="min-h-[360px] overflow-auto rounded-lg border border-neutral-200 bg-white lg:min-h-0 lg:flex-1">
@@ -133,5 +152,18 @@ export default async function Page() {
         </table>
       </div>
     </div>
+  );
+}
+
+function FiltroLink({ label, href, activo }: { label: string; href: string; activo: boolean }) {
+  return (
+    <Link
+      href={href}
+      className={`rounded-full border px-2.5 py-1 font-semibold ${
+        activo ? "border-emerald-700 bg-emerald-700 text-white" : "border-neutral-300 text-neutral-600 hover:bg-neutral-50"
+      }`}
+    >
+      {label}
+    </Link>
   );
 }
