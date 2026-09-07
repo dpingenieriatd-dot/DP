@@ -14,7 +14,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       supabase.from("empresas_atendidas").select("id, nombre").order("nombre"),
       supabase.from("profiles").select("id, full_name, email").order("full_name"),
       supabase.from("presupuestos").select("*").eq("proyecto_id", id).order("created_at"),
-      supabase.from("compras").select("cantidad, valor_unitario, archivado").eq("proyecto_id", id),
+      supabase.from("compras").select("cantidad, valor_unitario, archivado, presupuesto_id").eq("proyecto_id", id),
       supabase.from("presupuesto_costos").select("presupuesto_id, presupuestado, real"),
     ]);
 
@@ -28,15 +28,19 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         .single()
     : { data: null };
 
-  // El costo real del proyecto sale de sus compras registradas, no de un campo manual.
-  const realCompras = (compras ?? [])
-    .filter((c) => !c.archivado)
-    .reduce((s, c) => s + Number(c.cantidad || 0) * Number(c.valor_unitario || 0), 0);
+  // Lo comprometido de cada presupuesto sale de SUS compras (migration_51). Las
+  // compras sin asignar solo cuentan si el proyecto tiene un único presupuesto.
+  const esUnico = (presupuestos ?? []).length <= 1;
+  const comprasActivas = (compras ?? []).filter((c) => !c.archivado);
+  const comprometidoDe = (preId: string) =>
+    comprasActivas
+      .filter((c) => c.presupuesto_id === preId || (c.presupuesto_id == null && esUnico))
+      .reduce((s, c) => s + Number(c.cantidad || 0) * Number(c.valor_unitario || 0), 0);
 
   const presupuestosConCalc = (presupuestos ?? []).map((pre) => {
     const items = (costos ?? []).filter((c) => c.presupuesto_id === pre.id);
     const f = calcularPresupuesto({ ...pre, costos: costoBasePresupuesto(pre, items) });
-    const control = calcularControlCostos(items, f.valorCotizado, f.admin, f.iva, realCompras);
+    const control = calcularControlCostos(items, f.valorCotizado, f.admin, f.iva, comprometidoDe(pre.id));
     return { pre, f, control };
   });
 

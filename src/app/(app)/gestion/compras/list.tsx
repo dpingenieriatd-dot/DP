@@ -10,6 +10,7 @@ type Compra = {
   id: string;
   codigo: string | null;
   proyecto_id: string | null;
+  presupuesto_id: string | null;
   proveedor_id: string | null;
   insumo_id: string | null;
   fecha: string;
@@ -33,12 +34,14 @@ export function ComprasList({
   proveedores,
   insumos,
   clientes,
+  presupuestos,
 }: {
   compras: Compra[];
   proyectos: { id: string; codigo: string | null; nombre: string; cliente_id: string | null }[];
   proveedores: { id: string; nombre: string }[];
   insumos: { id: string; descripcion: string; unidad: string | null; costo: number }[];
   clientes: { id: string; nombre: string }[];
+  presupuestos: { id: string; codigo: string | null; nombre: string; proyecto_id: string | null }[];
 }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Compra | null>(null);
@@ -67,6 +70,8 @@ export function ComprasList({
   };
   const proveedorNombre = (id: string | null) => proveedores.find((p) => p.id === id)?.nombre ?? "—";
   const proyectoInfo = proyectoDe(proyectoSeleccionado);
+  const presupuestosDelProyecto = presupuestos.filter((b) => b.proyecto_id === proyectoSeleccionado);
+  const etiquetaPresupuesto = (b: { codigo: string | null; nombre: string }) => `${b.codigo ? b.codigo + " · " : ""}${b.nombre}`;
   const descripcionCompra = (c: Compra) => {
     const insumo = c.insumo_id ? insumos.find((i) => i.id === c.insumo_id)?.descripcion : null;
     return c.descripcion || insumo || c.categoria || c.notas || "—";
@@ -338,6 +343,26 @@ export function ComprasList({
                 <div>Selecciona un proyecto. La compra quedará asociada a ese código como centro de costos.</div>
               )}
             </div>
+
+            {proyectoSeleccionado && presupuestosDelProyecto.length > 1 && (
+              <div className="mt-3">
+                <Campo label="Presupuesto" required>
+                  <select name="presupuesto_id" defaultValue={editing?.presupuesto_id ?? ""} required className="in">
+                    <option value="">— Este proyecto tiene varios presupuestos, elige uno —</option>
+                    {presupuestosDelProyecto.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {etiquetaPresupuesto(b)}
+                      </option>
+                    ))}
+                  </select>
+                </Campo>
+              </div>
+            )}
+            {proyectoSeleccionado && presupuestosDelProyecto.length === 1 && (
+              <p className="mt-2 text-xs text-neutral-500">
+                Presupuesto: <span className="font-medium text-neutral-700">{etiquetaPresupuesto(presupuestosDelProyecto[0])}</span> (único del proyecto, se asigna solo).
+              </p>
+            )}
 
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Campo label="Código de insumo">

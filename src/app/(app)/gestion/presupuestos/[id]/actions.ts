@@ -129,14 +129,15 @@ export async function restaurarBase(presupuestoId: string) {
 }
 
 /**
- * Trae las compras del proyecto como líneas de costo. Solo importa las que
- * todavía no se habían traído (compra_id no repetido) — se puede volver a
- * usar después de registrar compras nuevas sin duplicar las que ya estaban.
+ * Trae las compras del proyecto como líneas de REFERENCIA en el plan de costos
+ * (presupuestado = 0, para no inflar el plan; el costo real ya sale solo de las
+ * compras). Solo importa las que todavía no se habían traído (compra_id no
+ * repetido) — se puede volver a usar tras registrar compras nuevas sin duplicar.
  */
 export async function importarDesdeCompras(presupuestoId: string, proyectoId: string) {
   const supabase = await createClient();
   const [{ data: compras }, { data: yaImportadas }] = await Promise.all([
-    supabase.from("compras").select("*, proveedores(nombre), insumos(descripcion)").eq("proyecto_id", proyectoId),
+    supabase.from("compras").select("*, proveedores(nombre), insumos(descripcion)").eq("proyecto_id", proyectoId).eq("archivado", false),
     supabase.from("presupuesto_costos").select("compra_id").eq("presupuesto_id", presupuestoId).not("compra_id", "is", null),
   ]);
 
@@ -151,10 +152,11 @@ export async function importarDesdeCompras(presupuestoId: string, proyectoId: st
     presupuesto_id: presupuestoId,
     compra_id: c.id,
     categoria: c.categoria === "Servicios profesionales" ? "Servicios / profesionales" : "Compras / insumos",
-    descripcion: c.insumos?.descripcion || c.categoria || "Costo del proyecto",
+    descripcion: `(compra) ${c.insumos?.descripcion || c.descripcion || c.categoria || "Costo del proyecto"}`,
     proveedor: c.proveedores?.nombre || null,
-    presupuestado: Number(c.cantidad) * Number(c.valor_unitario),
-    real: c.estado_pago === "Pagado" ? Number(c.cantidad) * Number(c.valor_unitario) : 0,
+    // presupuestado = 0: es una compra, no un ítem planeado -> no mueve el plan.
+    presupuestado: 0,
+    real: Number(c.cantidad) * Number(c.valor_unitario),
     estado: c.estado_pago === "Pagado" ? "Pagado" : c.estado_pago === "Aprobado" ? "Aprobado" : "Cotizado",
     origen: "Compra",
     orden: ordenBase + idx,

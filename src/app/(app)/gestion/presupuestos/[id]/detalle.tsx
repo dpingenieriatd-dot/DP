@@ -52,6 +52,8 @@ export function PresupuestoDetalle({
   control,
   baseCotizacion,
   hayCompras,
+  comprometidoCompras,
+  pagadoCompras,
 }: {
   presupuesto: Presupuesto;
   costos: Costo[];
@@ -59,6 +61,8 @@ export function PresupuestoDetalle({
   control: ReturnType<typeof calcularControlCostos>;
   baseCotizacion: BaseCotizacion | null;
   hayCompras: boolean;
+  comprometidoCompras: number;
+  pagadoCompras: number;
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -179,7 +183,7 @@ export function PresupuestoDetalle({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
         <Kpi label="Valor aprobado" valor={money.format(f.valorCotizado)} sub="Según cotización base aprobada" />
         <Kpi label="Presupuesto vigente" valor={money.format(control.plan)} sub="Ítems actuales del control" />
-        <Kpi label="Costo real acumulado" valor={money.format(control.real)} sub={`${pct}% ejecutado`} warn={excedido} />
+        <Kpi label="Comprometido en compras" valor={money.format(control.real)} sub={`${pct}% del plan`} warn={excedido} />
         <Kpi label="Ganancia estimada" valor={money.format(control.gananciaEst)} sub="Valor aprobado − costos vigentes" warn={control.gananciaEst < 0} />
       </div>
 
@@ -190,7 +194,7 @@ export function PresupuestoDetalle({
           </h2>
         </div>
         <div className="mb-1 flex items-center justify-between text-sm text-neutral-600">
-          <span>Costo real registrado</span>
+          <span>Comprometido en compras</span>
           <span>
             <strong>{money.format(control.real)}</strong> de {money.format(control.plan)}
           </span>
@@ -211,17 +215,17 @@ export function PresupuestoDetalle({
           }`}
         >
           {alerta === "danger"
-            ? "El costo real supera el presupuesto vigente. La utilidad del proyecto está siendo afectada."
+            ? "Lo comprometido en compras supera el presupuesto vigente. La utilidad del proyecto está siendo afectada."
             : alerta === "warn"
-              ? `El proyecto ya consumió ${pct}% del presupuesto. Revisa los costos pendientes antes de continuar.`
-              : "El costo real se encuentra dentro del presupuesto vigente."}
+              ? `El proyecto ya comprometió ${pct}% del presupuesto. Revisa los costos pendientes antes de continuar.`
+              : "Lo comprometido en compras se encuentra dentro del presupuesto vigente."}
         </div>
         <div className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
           <Mini label="Disponible" valor={money.format(control.disponible)} warn={control.disponible < 0} />
           <Mini
-            label="Ganancia según costos reales"
-            valor={control.real > 0 ? money.format(control.gananciaActual) : "— sin costos reales"}
-            warn={control.real > 0 && control.gananciaActual < 0}
+            label="Ganancia según lo comprometido"
+            valor={hayCompras ? money.format(control.gananciaActual) : "— sin compras"}
+            warn={hayCompras && control.gananciaActual < 0}
           />
           <Mini label="Costos admin. + IVA de los costos del proyecto" valor={money.format(f.admin + f.iva)} />
         </div>
@@ -290,15 +294,22 @@ export function PresupuestoDetalle({
 
           <div className="my-3 border-t border-neutral-100" />
           <p className="text-xs font-semibold uppercase text-neutral-400">Control del proyecto · líneas vigentes</p>
-          <p className="mb-1 text-xs text-neutral-400">Se mueven con lo que registres en el control de costos de abajo.</p>
+          <p className="mb-1 text-xs text-neutral-400">
+            Se mueven con las compras registradas contra este presupuesto. El semáforo y la ganancia real usan lo <strong>comprometido</strong>.
+          </p>
           <Fila label="Presupuesto vigente (plan)" valor={money.format(control.plan)} />
-          <Fila label="Costo real ejecutado" valor={money.format(control.real)} />
-          <Fila label="Disponible (plan − real)" valor={money.format(control.disponible)} />
+          <Fila label="Comprometido en compras" valor={hayCompras ? money.format(comprometidoCompras) : "— sin compras"} />
+          <Fila label="Pagado a proveedores" valor={hayCompras ? money.format(pagadoCompras) : "—"} />
+          {hayCompras && comprometidoCompras - pagadoCompras > 1 && (
+            <Fila label="Por pagar a proveedores" valor={money.format(comprometidoCompras - pagadoCompras)} />
+          )}
+          <Fila label="Disponible (plan − comprometido)" valor={money.format(control.disponible)} warn={control.disponible < 0} />
           <Fila label="Ganancia estimada (vs. plan)" valor={money.format(control.gananciaEst)} bold />
           <Fila
-            label="Ganancia según costos reales"
-            valor={control.real > 0 ? money.format(control.gananciaActual) : "— sin costos reales"}
+            label="Ganancia según lo comprometido"
+            valor={hayCompras ? money.format(control.gananciaActual) : "— sin compras"}
             bold
+            warn={hayCompras && control.gananciaActual < 0}
           />
         </div>
       </div>
@@ -353,7 +364,7 @@ export function PresupuestoDetalle({
         </div>
         {hayCompras && (
           <p className="mb-3 rounded-md border border-emerald-200 bg-emerald-50 p-2.5 text-xs text-emerald-900">
-            El <strong>costo real ejecutado</strong> ({money.format(control.real)}) se toma de las compras registradas contra este proyecto y se actualiza solo. La columna &quot;Real&quot; de abajo es de referencia y no se edita a mano.
+            Lo <strong>comprometido en compras</strong> ({money.format(control.real)}) se toma de las compras registradas contra este presupuesto y se actualiza solo. La columna &quot;Real&quot; de abajo es de referencia y no se edita a mano.
           </p>
         )}
         <table className="w-full text-sm">

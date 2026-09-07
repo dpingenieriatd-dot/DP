@@ -21,6 +21,7 @@ async function generarCodigoCompra(supabase: SupabaseServer): Promise<string> {
 function fromForm(formData: FormData) {
   return {
     proyecto_id: formData.get("proyecto_id") || null,
+    presupuesto_id: formData.get("presupuesto_id") || null,
     proveedor_id: formData.get("proveedor_id") || null,
     insumo_id: formData.get("insumo_id") || null,
     fecha: formData.get("fecha") || new Date().toISOString().slice(0, 10),
@@ -50,12 +51,24 @@ function validarCampos(formData: FormData) {
   return null;
 }
 
+/**
+ * Si el proyecto tiene un solo presupuesto y no se eligió uno, se asigna solo.
+ * Si tiene varios, la compra queda sin asignar (el formulario debería pedirlo).
+ */
+async function resolverPresupuestoId(supabase: SupabaseServer, datos: ReturnType<typeof fromForm>) {
+  if (datos.presupuesto_id || !datos.proyecto_id) return datos.presupuesto_id;
+  const { data } = await supabase.from("presupuestos").select("id").eq("proyecto_id", datos.proyecto_id);
+  return data && data.length === 1 ? data[0].id : null;
+}
+
 export async function crearCompra(formData: FormData) {
   const errorCampos = validarCampos(formData);
   if (errorCampos) return { error: errorCampos };
   const supabase = await createClient();
   const codigo = await generarCodigoCompra(supabase);
-  const { error } = await supabase.from("compras").insert({ ...fromForm(formData), codigo });
+  const datos = fromForm(formData);
+  datos.presupuesto_id = await resolverPresupuestoId(supabase, datos);
+  const { error } = await supabase.from("compras").insert({ ...datos, codigo });
   if (error) return { error: error.message };
   revalidateAll(formData.get("proyecto_id"));
 }
@@ -64,7 +77,9 @@ export async function actualizarCompra(id: string, formData: FormData) {
   const errorCampos = validarCampos(formData);
   if (errorCampos) return { error: errorCampos };
   const supabase = await createClient();
-  const { error } = await supabase.from("compras").update(fromForm(formData)).eq("id", id);
+  const datos = fromForm(formData);
+  datos.presupuesto_id = await resolverPresupuestoId(supabase, datos);
+  const { error } = await supabase.from("compras").update(datos).eq("id", id);
   if (error) return { error: error.message };
   revalidateAll(formData.get("proyecto_id"));
 }

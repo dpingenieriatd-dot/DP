@@ -21,17 +21,34 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
   if (!presupuesto) notFound();
 
-  // El costo real sale de las compras del proyecto, no del campo manual de cada línea.
-  const { data: compras } = presupuesto.proyecto_id
-    ? await supabase.from("compras").select("cantidad, valor_unitario, archivado").eq("proyecto_id", presupuesto.proyecto_id)
-    : { data: [] };
-  const realCompras = (compras ?? [])
-    .filter((c) => !c.archivado)
-    .reduce((s, c) => s + Number(c.cantidad || 0) * Number(c.valor_unitario || 0), 0);
-  const hayCompras = (compras ?? []).some((c) => !c.archivado);
+  // El costo real sale de las compras, no del campo manual de cada línea. Cada
+  // compra pertenece a un presupuesto (migration_51). Las compras sin asignar
+  // solo cuentan si el proyecto tiene un único presupuesto (compatibilidad con
+  // lo anterior y con el auto-asignado del formulario).
+  const [{ data: compras }, { count: totalPresupuestos }] = presupuesto.proyecto_id
+    ? await Promise.all([
+        supabase
+          .from("compras")
+          .select("cantidad, valor_unitario, valor_pagado, estado_pago, archivado, presupuesto_id")
+          .eq("proyecto_id", presupuesto.proyecto_id),
+        supabase.from("presupuestos").select("id", { count: "exact", head: true }).eq("proyecto_id", presupuesto.proyecto_id),
+      ])
+    : [{ data: [] }, { count: 0 }];
+  const esUnico = (totalPresupuestos ?? 0) <= 1;
+  const comprasDeEste = (compras ?? []).filter(
+    (c) => !c.archivado && (c.presupuesto_id === id || (c.presupuesto_id == null && esUnico)),
+  );
+  const valorCompra = (c: { cantidad: number | null; valor_unitario: number | null }) =>
+    Number(c.cantidad || 0) * Number(c.valor_unitario || 0);
+  const comprometidoCompras = comprasDeEste.reduce((s, c) => s + valorCompra(c), 0);
+  const pagadoCompras = comprasDeEste.reduce(
+    (s, c) => s + (c.estado_pago === "Pagado" ? valorCompra(c) : Number(c.valor_pagado || 0)),
+    0,
+  );
+  const hayCompras = comprasDeEste.length > 0;
 
   const f = calcularPresupuesto({ ...presupuesto, costos: costoBasePresupuesto(presupuesto, costos ?? []) });
-  const control = calcularControlCostos(costos ?? [], f.valorCotizado, f.admin, f.iva, hayCompras ? realCompras : undefined);
+  const control = calcularControlCostos(costos ?? [], f.valorCotizado, f.admin, f.iva, hayCompras ? comprometidoCompras : undefined);
 
   let baseCotizacion = null;
   if (presupuesto.cotizaciones) {
@@ -77,6 +94,8 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       control={control}
       baseCotizacion={baseCotizacion}
       hayCompras={hayCompras}
+      comprometidoCompras={comprometidoCompras}
+      pagadoCompras={pagadoCompras}
     />
   );
 }
