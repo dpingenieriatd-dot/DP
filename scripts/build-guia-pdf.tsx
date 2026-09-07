@@ -785,9 +785,10 @@ function Doc() {
           items={[
             "Cotización base aprobada: una tabla congelada con la oferta que aceptó el cliente. Es solo referencia y nunca cambia.",
             "Plan de costos del proyecto: los ítems presupuestados. Empiezan con los de la cotización; aquí sí se pueden ajustar, agregar o quitar. El orden de los ítems es fijo: editar un ítem (por ejemplo, ponerle un proveedor) ya no lo mueve de posición.",
-            "Costo real: cuando el proyecto ya tiene compras registradas, sale solo de esas compras. La columna Real del plan se bloquea y queda como referencia (encabezado Real (ref.)); no se edita a mano.",
-            "Ejecución del presupuesto: una barra que muestra cuánto se ha gastado del plan, con alerta cuando se pasa del 80% (amarillo) o del 100% (rojo). En la lista de Presupuestos esta columna se llama Ejecución (Sin ejecutar / X% ejecutado / Excedido) y hay además una columna Estado del proyecto, de solo lectura: el presupuesto no tiene ciclo de vida propio, hereda el del proyecto.",
-            "Importar desde Compras: trae las compras del proyecto como líneas del plan, sin duplicar las que ya se importaron.",
+            "Comprometido en compras: la suma de las compras registradas contra ESTE presupuesto (pagadas o no). Es lo que usan el semáforo y la ganancia real. La columna Real del plan se bloquea cuando hay compras (encabezado Real (ref.)) y no se edita a mano.",
+            "Pagado a proveedores: de esas mismas compras, lo que ya salió de caja. La diferencia con lo comprometido es lo que aún se le debe a proveedores en este presupuesto.",
+            "Ejecución del presupuesto: una barra que muestra cuánto del plan ya se comprometió, con alerta al pasar del 80% (amarillo) o del 100% (rojo). En la lista de Presupuestos esta columna se llama Ejecución (Sin ejecutar / X% ejecutado / Excedido) y hay además una columna Estado del proyecto, de solo lectura: el presupuesto no tiene ciclo de vida propio, hereda el del proyecto.",
+            "Importar desde Compras: trae las compras como líneas de REFERENCIA en el plan (con presupuestado en cero para no inflar el plan y prefijo (compra)), sin duplicar las que ya se importaron.",
             "Restaurar base: vuelve a traer los ítems originales de la cotización, por si se editaron o borraron por error.",
           ]}
         />
@@ -796,22 +797,23 @@ function Doc() {
         <Bullets
           items={[
             "Referencia · cotización aprobada: costo directo, administración, IVA y utilidad de la oferta (valor cotizado - costo - administración - IVA), con el margen real y el objetivo lado a lado. Cifras fijas de la oferta; no cambian al ajustar el control de costos. En rojo si la utilidad es negativa.",
-            "Control del proyecto · líneas vigentes: presupuesto vigente, costo real ejecutado, disponible, ganancia estimada (vs. plan) y ganancia según costos reales. Estas sí se mueven con las compras.",
+            "Control del proyecto · líneas vigentes: presupuesto vigente (plan), comprometido en compras, pagado a proveedores, por pagar a proveedores, disponible (plan - comprometido), ganancia estimada (vs. plan) y ganancia según lo comprometido. El semáforo y la ganancia real usan lo comprometido, no lo pagado.",
           ]}
         />
 
         <H2>6.6 Compras</H2>
-        <P>Registro de cada compra o gasto de un proyecto.</P>
+        <P>Registro de cada compra o gasto de un proyecto. Cada compra alimenta sola el costo real de su presupuesto.</P>
         <Tabla
           header={["Campo", "Para qué"]}
           w={[1, 1.7]}
           rows={[
             ["Proyecto", "Obligatorio. Es el centro de costos: sin proyecto, la compra no se puede conectar al presupuesto."],
+            ["Presupuesto", "A qué presupuesto del proyecto se carga la compra. Si el proyecto tiene un solo presupuesto se asigna solo (y solo se muestra a modo informativo); si tiene varios, hay que elegir."],
             ["Proveedor · Insumo", "De los catálogos. El insumo trae su costo de referencia."],
             ["Descripción", "Qué se compró (obligatorio)."],
             ["Cantidad · Valor unitario", "El total se calcula solo."],
-            ["Estado de pago", "Cotizado, Aprobado o Pagado."],
-            ["Valor pagado · Referencia · Categoría · Notas", "Datos de soporte del pago."],
+            ["Estado de pago", "Cotizado, Aprobado, Pagado, Pendiente o Rechazado."],
+            ["Valor pagado · Referencia · Categoría · Notas", "Datos de soporte del pago. El valor pagado alimenta el número de Pagado a proveedores del presupuesto."],
           ]}
         />
         <Bullets
@@ -967,8 +969,9 @@ function Doc() {
 
         <H3>El costo real del presupuesto no cuadra</H3>
         <P>
-          El costo real sale de las compras del proyecto. Si falta una compra por registrar, el real se verá más bajo de
-          lo esperado. Revisa Compras filtrando por ese proyecto.
+          El comprometido en compras sale de las compras cargadas contra ESE presupuesto. Si falta una compra por
+          registrar, o quedó cargada a otro presupuesto del mismo proyecto, el número se verá más bajo o más alto de lo
+          esperado. Revisa Compras filtrando por el proyecto y confirma el presupuesto de cada compra.
         </P>
 
         <H3>Cerré sesión sin querer / la sesión se cerró sola</H3>

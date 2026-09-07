@@ -388,24 +388,27 @@ efectivo neto esperado = valor cotizado (con IVA) − retención − ICA − otr
   <div class="note">El error del ICA (dividir por 100 en vez de por 1000) que existía en agosto de 2026 ya está corregido: el ICA de un contrato de $33.600.000 con tarifa 9,66 es 33.600.000 × 9,66 / 1.000 = $324.576, no $3.245.760.</div>
 
   <h3 id="s3-control">3.5 Control de costos del presupuesto</h3>
+  <p>Cada compra pertenece a un presupuesto (no solo a un proyecto). El control de un presupuesto suma <strong>solo sus</strong> compras — en proyectos con varios presupuestos ya no se cuenta el mismo gasto en todos.</p>
   <div class="formula">
     <div class="lbl">Plan de costos</div>
     <div class="eq">plan (presupuesto vigente) = Σ "Presupuestado" de las líneas del plan de costos
-real ejecutado             = Σ (cantidad × valor unitario) de las compras del proyecto no archivadas
-                             (si aún no hay compras, usa el campo "Real" manual de cada línea)
-disponible                 = plan − real
-ganancia estimada (vs. plan) = valor cotizado − plan − administración − IVA
-ganancia según costos reales = valor cotizado − real − administración − IVA</div>
-    <p>La administración y el IVA que se restan aquí son los <strong>valores fijos</strong> calculados en el presupuesto (no se recalculan sobre el gasto real).</p>
+comprometido en compras    = Σ (cantidad × valor unitario) de las compras de ESTE presupuesto, no archivadas
+                             (esté pagada o no la compra)
+pagado a proveedores       = de esas compras: las "Pagado" por su total + el "valor pagado" de las demás
+por pagar a proveedores    = comprometido − pagado
+disponible                 = plan − comprometido
+ganancia estimada (vs. plan)   = valor cotizado − plan − administración − IVA
+ganancia según lo comprometido = valor cotizado − comprometido − administración − IVA</div>
+    <p>El semáforo y la ganancia real usan lo <strong>comprometido</strong>, no lo pagado: sirve para avisar a tiempo, antes de que la factura se pague. La administración y el IVA que se restan son los <strong>valores fijos</strong> del presupuesto (no se recalculan sobre el gasto real).</p>
   </div>
-  <div class="note">Cuando el proyecto ya tiene compras registradas, la columna "Real" de cada línea del plan de costos se bloquea y muestra el encabezado <span class="pill n">Real (ref.)</span> — "referencia". El costo real total ya no se teclea a mano línea por línea: sale automático de Compras. Los valores en gris de esa columna son datos antiguos que ya no se usan.</div>
+  <div class="note">Cuando el presupuesto ya tiene compras, la columna "Real" de cada línea del plan se bloquea y muestra el encabezado <span class="pill n">Real (ref.)</span> — "referencia". El comprometido total sale automático de Compras, no se teclea línea por línea. El vínculo compra ↔ línea del plan viene en una fase siguiente.</div>
 
   <h3 id="s3-semaforo">3.6 Semáforos del proyecto (tablero Control de proyectos)</h3>
   <h4>Semáforo de plata</h4>
   <div class="tbl-wrap"><table>
     <thead><tr><th>Estado</th><th>Cuándo</th></tr></thead>
     <tbody>
-      <tr><td><span class="pill r">Sobre presupuesto</span></td><td>El comprometido en compras supera el plan por más de $1, <strong>o</strong> la ganancia según costos reales es negativa.</td></tr>
+      <tr><td><span class="pill r">Sobre presupuesto</span></td><td>El comprometido en compras supera el plan por más de $1, <strong>o</strong> la ganancia según lo comprometido es negativa.</td></tr>
       <tr><td><span class="pill a">En atención</span></td><td>El comprometido llegó al umbral de ejecución (80% del plan por defecto, configurable) sin excederlo.</td></tr>
       <tr><td><span class="pill v">Sano</span></td><td>Todo lo demás.</td></tr>
     </tbody>
@@ -426,11 +429,12 @@ ganancia según costos reales = valor cotizado − real − administración − 
   <div class="formula">
     <div class="eq">valor aprobado    = Σ valor cotizado de los presupuestos del proyecto
 plan de costos    = Σ "Presupuestado" de todas las líneas
-comprometido      = Σ (cantidad × valor unitario) de TODAS las compras no archivadas
+comprometido      = Σ (cantidad × valor unitario) de TODAS las compras del proyecto, no archivadas
                     (sin importar si están pagadas o no)
-pagado            = Σ igual, pero solo de las compras con estado "Pagado"
+pagado            = de esas compras: las "Pagado" por su total + el "valor pagado" de las demás
 ganancia proyectada = valor aprobado − plan − administración − IVA   (estable aunque no haya compras)
 ganancia real       = valor aprobado − comprometido − administración − IVA</div>
+    <p>El tablero es de nivel proyecto: suma <strong>todas</strong> las compras del proyecto. La ficha de cada presupuesto suma solo las suyas.</p>
   </div>
 </section>
 
@@ -632,10 +636,10 @@ ganancia real       = valor aprobado − comprometido − administración − IV
       <tr><td class="col">Nombre</td><td>Nombre del presupuesto.</td></tr>
       <tr><td class="col">Valor aprobado</td><td>Valor cotizado al cliente (editable en la ficha).</td></tr>
       <tr><td class="col">Presupuesto base</td><td>Plan de costos (Σ presupuestado de las líneas).</td></tr>
-      <tr><td class="col">Costo real</td><td>Gasto real: de las compras si el proyecto ya tiene; si no, del campo "Real" manual de las líneas.</td></tr>
-      <tr><td class="col">Disponible</td><td>Plan − real. En rojo si es negativo.</td></tr>
+      <tr><td class="col">Costo real</td><td>Comprometido en compras de <em>este</em> presupuesto; si no tiene compras, del campo "Real" manual de las líneas.</td></tr>
+      <tr><td class="col">Disponible</td><td>Plan − comprometido. En rojo si es negativo.</td></tr>
       <tr><td class="col">Ganancia estimada</td><td>Valor cotizado − plan − admin − IVA.</td></tr>
-      <tr><td class="col">Utilidad vigente</td><td>Valor cotizado − real − admin − IVA. Muestra "—" mientras no haya costos reales.</td></tr>
+      <tr><td class="col">Utilidad vigente</td><td>Valor cotizado − comprometido − admin − IVA. Muestra "—" mientras no haya compras.</td></tr>
       <tr><td class="col">Ejecución</td><td>El avance de gasto: "Sin ejecutar" / "X% ejecutado" / "Excedido". (Antes se llamaba "Estado" y se confundía con el estado del proyecto.)</td></tr>
       <tr><td class="col">Estado del proyecto</td><td>Solo lectura: el estado real del proyecto. El presupuesto no tiene ciclo de vida propio.</td></tr>
     </tbody>
@@ -667,10 +671,12 @@ ganancia real       = valor aprobado − comprometido − administración − IV
   <h4>Control del proyecto · líneas vigentes</h4>
   <ul>
     <li><strong>Presupuesto vigente (plan)</strong> — Σ presupuestado.</li>
-    <li><strong>Costo real ejecutado</strong> — de las compras.</li>
-    <li><strong>Disponible (plan − real)</strong></li>
+    <li><strong>Comprometido en compras</strong> — Σ de las compras de este presupuesto (pagadas o no).</li>
+    <li><strong>Pagado a proveedores</strong> — lo que ya salió de caja de esas compras.</li>
+    <li><strong>Por pagar a proveedores</strong> — comprometido − pagado.</li>
+    <li><strong>Disponible (plan − comprometido)</strong></li>
     <li><strong>Ganancia estimada (vs. plan)</strong></li>
-    <li><strong>Ganancia según costos reales</strong> — muestra "— sin costos reales" mientras no haya gasto real.</li>
+    <li><strong>Ganancia según lo comprometido</strong> — muestra "— sin compras" mientras no haya ninguna.</li>
   </ul>
 
   <h4>Criterio de "Viable"</h4>
@@ -685,23 +691,23 @@ ganancia real       = valor aprobado − comprometido − administración − IV
   <div class="tbl-wrap"><table>
     <thead><tr><th class="col">Columna</th><th>Qué es</th></tr></thead>
     <tbody>
-      <tr><td class="col">Origen</td><td><code>Presupuesto</code> (sembrado de la cotización), <code>Manual</code> (agregado a mano) o <code>Compra</code> (importado desde Compras).</td></tr>
+      <tr><td class="col">Origen</td><td><code>Presupuesto</code> (sembrado de la cotización), <code>Manual</code> (agregado a mano) o <code>Compra</code> (traído desde Compras como referencia).</td></tr>
       <tr><td class="col">Categoría</td><td>Compras / insumos · Servicios / profesionales · Materiales / desgaste · Transporte / logística · Viáticos · Otros costos · Costos directos.</td></tr>
-      <tr><td class="col">Descripción</td><td>Editable.</td></tr>
+      <tr><td class="col">Descripción</td><td>Editable. Las traídas desde Compras llevan el prefijo "(compra)".</td></tr>
       <tr><td class="col">Proveedor / responsable</td><td>Texto libre. Editable.</td></tr>
-      <tr><td class="col">Presupuestado</td><td>Lo que se planea gastar en esta línea. Editable. Su suma es el "plan".</td></tr>
-      <tr><td class="col">Real (ejecutado / ref.)</td><td>Si el proyecto no tiene compras: se edita a mano. Si tiene compras: se bloquea y queda solo como referencia (el real total sale de Compras).</td></tr>
+      <tr><td class="col">Presupuestado</td><td>Lo que se planea gastar en esta línea. Editable. Su suma es el "plan". Las líneas traídas desde Compras entran en cero para no inflar el plan.</td></tr>
+      <tr><td class="col">Real (ejecutado / ref.)</td><td>Si el presupuesto no tiene compras: se edita a mano. Si tiene compras: se bloquea y queda solo como referencia (el comprometido total sale de Compras).</td></tr>
       <tr><td class="col">Variación</td><td>Presupuestado − real de esa línea. En rojo si se pasó.</td></tr>
       <tr><td class="col">Estado</td><td>Planeado · Cotizado · Aprobado · Pagado.</td></tr>
     </tbody>
   </table></div>
-  <p>Acciones del plan: <strong>Restaurar base</strong> (vuelve a traer los ítems originales de la cotización), <strong>Importar desde Compras</strong> (trae las compras del proyecto como líneas, sin duplicar las ya importadas), <strong>+ Agregar costo</strong>.</p>
+  <p>Acciones del plan: <strong>Restaurar base</strong> (vuelve a traer los ítems originales de la cotización), <strong>Importar desde Compras</strong> (trae las compras como líneas de referencia, con presupuestado en cero, sin duplicar las ya traídas), <strong>+ Agregar costo</strong>.</p>
 </section>
 
 <!-- ================= 8 ================= -->
 <section class="sec" id="s8">
   <h2><span class="num">8</span>Gestión · Compras</h2>
-  <p class="lede">Cada compra registrada contra un proyecto alimenta automáticamente su costo real.</p>
+  <p class="lede">Cada compra pertenece a un <strong>presupuesto</strong> (dentro de un proyecto) y alimenta sola su comprometido y su pagado.</p>
 
   <h3>Lista de compras</h3>
   <div class="tbl-wrap"><table>
@@ -714,7 +720,7 @@ ganancia real       = valor aprobado − comprometido − administración − IV
       <tr><td class="col">Proveedor</td><td>Del catálogo de Proveedores.</td></tr>
       <tr><td class="col">Descripción</td><td>Qué se compró (insumo del catálogo o servicio libre).</td></tr>
       <tr><td class="col">Cant. / V. unit. / Total</td><td>Cantidad, valor unitario, y su producto.</td></tr>
-      <tr><td class="col">Estado</td><td>Estado de pago: <span class="pill n">Pendiente</span> · <span class="pill a">Parcial</span> · <span class="pill v">Pagado</span>.</td></tr>
+      <tr><td class="col">Estado</td><td>Estado de pago (ver abajo).</td></tr>
     </tbody>
   </table></div>
 
@@ -722,19 +728,20 @@ ganancia real       = valor aprobado − comprometido − administración − IV
   <div class="tbl-wrap"><table>
     <thead><tr><th class="col">Campo</th><th>Qué es</th></tr></thead>
     <tbody>
-      <tr><td class="col">Referencia</td><td>Nº de factura / remisión / referencia.</td></tr>
       <tr><td class="col">Proyecto</td><td>Obligatorio. Define a qué proyecto se carga el gasto.</td></tr>
+      <tr><td class="col">Presupuesto</td><td>A qué presupuesto del proyecto se carga. Si el proyecto tiene un solo presupuesto se asigna solo (solo se muestra como nota); si tiene varios, hay que elegir.</td></tr>
       <tr><td class="col">Fecha</td><td>Fecha de la compra.</td></tr>
       <tr><td class="col">Proveedor</td><td>Del catálogo.</td></tr>
-      <tr><td class="col">Categoría</td><td>Tipo de gasto.</td></tr>
+      <tr><td class="col">Categoría</td><td>Tipo de gasto (lista propia de Compras — su unificación con el plan de costos viene en una fase siguiente).</td></tr>
       <tr><td class="col">Insumo</td><td>Opcional, del Banco de insumos (si es un ítem catalogado).</td></tr>
       <tr><td class="col">Servicio</td><td>Descripción libre si no es un insumo catalogado.</td></tr>
-      <tr><td class="col">Cantidad / Valor unitario</td><td>El total de la compra es su producto.</td></tr>
-      <tr><td class="col">Valor pagado</td><td>Cuánto se ha pagado ya (para el estado Parcial / Pagado).</td></tr>
-      <tr><td class="col">Estado de pago</td><td>Pendiente · Parcial · Pagado.</td></tr>
-      <tr><td class="col">Notas</td><td>Observaciones.</td></tr>
+      <tr><td class="col">Cantidad / Valor unitario</td><td>El total de la compra es su producto. Es lo que suma al <em>comprometido</em> del presupuesto.</td></tr>
+      <tr><td class="col">Valor pagado</td><td>Cuánto se ha pagado ya. Suma al <em>pagado a proveedores</em> del presupuesto.</td></tr>
+      <tr><td class="col">Estado de pago</td><td>Cotizado · Aprobado · Pagado · Pendiente · Rechazado. Una compra "Pagado" cuenta como pagada por su total, aunque no se haya llenado "valor pagado".</td></tr>
+      <tr><td class="col">Referencia / Notas</td><td>Nº de factura y observaciones.</td></tr>
     </tbody>
   </table></div>
+  <div class="note">El costo real del presupuesto ya no distingue línea por línea — suma todas las compras del presupuesto. El vínculo de cada compra con un ítem concreto del plan (para ver desviación por línea) es la siguiente fase de esta conexión.</div>
 </section>
 
 <!-- ================= 9 ================= -->
@@ -1074,9 +1081,10 @@ ganancia real       = valor aprobado − comprometido − administración − IV
       <tr><td class="col">Margen mínimo</td><td>Umbral de aviso al guardar.</td></tr>
       <tr><td class="col">Utilidad "a tarifa"</td><td>Utilidad teórica si todo se cotizara con el factor. Referencia interna, no se muestra como resultado.</td></tr>
       <tr><td class="col">Plan de costos</td><td>Lo que se planea gastar por línea, en el presupuesto.</td></tr>
-      <tr><td class="col">Comprometido / gastado</td><td>Suma de todas las compras del proyecto (pagadas o no).</td></tr>
-      <tr><td class="col">Pagado</td><td>Suma de las compras con estado "Pagado".</td></tr>
-      <tr><td class="col">Disponible</td><td>Plan − real. Cuánto queda antes de pasarse del presupuesto.</td></tr>
+      <tr><td class="col">Comprometido en compras</td><td>Suma de las compras de un presupuesto, estén pagadas o no. Es lo que decidiste gastar. El semáforo y la ganancia real usan esto.</td></tr>
+      <tr><td class="col">Pagado a proveedores</td><td>De esas compras, lo que ya salió de caja: las "Pagado" por su total + el "valor pagado" de las demás.</td></tr>
+      <tr><td class="col">Por pagar a proveedores</td><td>Comprometido − pagado. Lo que aún se le debe a proveedores en ese presupuesto.</td></tr>
+      <tr><td class="col">Disponible</td><td>Plan − comprometido. Cuánto queda antes de pasarse del presupuesto.</td></tr>
       <tr><td class="col">Ganancia proyectada</td><td>Valor − plan − admin − IVA. Lo que se espera ganar si todo sale como se planeó.</td></tr>
       <tr><td class="col">Ganancia real</td><td>Valor − comprometido − admin − IVA. Lo que se está ganando de verdad.</td></tr>
       <tr><td class="col">Efectivo neto esperado</td><td>Lo que entra a caja después de retención en la fuente, ICA y otras retenciones.</td></tr>
@@ -1114,6 +1122,7 @@ ganancia real       = valor aprobado − comprometido − administración − IV
     <li><strong>Equipo</strong>: solo lista usuarios activos.</li>
     <li><strong>Soporte técnico</strong>: nueva sección en Administración con aviso por correo.</li>
     <li><strong>Auditoría</strong>: alcance ampliado (cotizaciones, presupuestos, plan de costos, clientes, empresas), filtro por tabla, retención de 12 meses.</li>
+    <li><strong>Compras ↔ Presupuestos (Fase 1)</strong>: cada compra pertenece a un presupuesto (auto si el proyecto tiene uno solo); el control de cada presupuesto suma solo sus compras; la ficha separa "Comprometido" de "Pagado" (el semáforo usa lo comprometido); "Importar desde Compras" ya no infla el plan.</li>
   </ul>
 </section>
 
