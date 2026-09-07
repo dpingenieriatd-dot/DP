@@ -26,7 +26,17 @@ type Compra = {
   notas: string | null;
 };
 
-const CATEGORIAS = ["Servicios profesionales", "Materiales e insumos", "Transporte y logística", "Alimentación", "Publicidad y diseño", "Otros"];
+// Misma lista que el Plan de costos del presupuesto (presupuesto_costos.categoria),
+// para poder comparar planeado vs. comprometido por categoría.
+const CATEGORIAS = [
+  "Compras / insumos",
+  "Servicios / profesionales",
+  "Materiales / desgaste",
+  "Transporte / logistica",
+  "Viáticos",
+  "Otros costos",
+  "Costos directos",
+];
 const COLUMNAS_FILTRO = ["Código", "Proyecto", "Cliente", "Proveedor", "Descripción", "Estado"];
 
 export function ComprasList({

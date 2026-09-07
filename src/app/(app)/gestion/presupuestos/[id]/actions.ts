@@ -147,11 +147,17 @@ export async function importarDesdeCompras(presupuestoId: string, proyectoId: st
   const nuevas = compras.filter((c) => !idsImportados.has(c.id));
   if (nuevas.length === 0) return { error: "Ya se importaron todas las compras de este proyecto — no hay ninguna nueva." };
 
+  const CATS_PLAN = new Set([
+    "Compras / insumos", "Servicios / profesionales", "Materiales / desgaste",
+    "Transporte / logistica", "Viáticos", "Otros costos", "Costos directos",
+  ]);
   const ordenBase = await siguienteOrden(supabase, presupuestoId);
   const filas = nuevas.map((c, idx) => ({
     presupuesto_id: presupuestoId,
     compra_id: c.id,
-    categoria: c.categoria === "Servicios profesionales" ? "Servicios / profesionales" : "Compras / insumos",
+    // Compras y plan usan la misma lista de categorías (migration_53); si por lo
+    // que sea llega una fuera de la lista, cae en "Compras / insumos".
+    categoria: CATS_PLAN.has(c.categoria) ? c.categoria : "Compras / insumos",
     descripcion: `(compra) ${c.insumos?.descripcion || c.descripcion || c.categoria || "Costo del proyecto"}`,
     proveedor: c.proveedores?.nombre || null,
     // presupuestado = 0: es una compra, no un ítem planeado -> no mueve el plan.

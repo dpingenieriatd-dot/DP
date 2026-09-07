@@ -49,6 +49,7 @@ export type CompraVinculada = {
   id: string;
   codigo: string | null;
   descripcion: string | null;
+  categoria: string;
   proveedor: string | null;
   lineaId: string | null;
   valor: number;
@@ -516,14 +517,50 @@ function Conciliacion({
     </div>
   );
 
+  // Roll-up por categoría: planeado (del plan) vs. comprometido (de las compras).
+  const categorias = Array.from(new Set([...costos.map((c) => c.categoria), ...compras.map((c) => c.categoria)])).sort();
+  const porCategoria = categorias.map((cat) => ({
+    cat,
+    plan: costos.filter((c) => c.categoria === cat).reduce((s, c) => s + Number(c.presupuestado || 0), 0),
+    comprometido: compras.filter((c) => c.categoria === cat).reduce((s, c) => s + c.valor, 0),
+  }));
+
   return (
     <div className="mt-6 rounded-lg border border-neutral-200 bg-white p-5">
       <h2 className="flex items-center gap-1.5 font-semibold text-emerald-900">
         <ListChecks size={16} /> Conciliación: plan vs. compras
       </h2>
       <p className="mb-3 text-xs text-neutral-500">
-        Cada línea del plan con las compras que se le asignaron. Comprometido total {money.format(comprometido)} · pagado {money.format(pagado)}.
+        Comprometido total {money.format(comprometido)} · pagado {money.format(pagado)}.
       </p>
+
+      <h3 className="mb-1 text-sm font-semibold text-neutral-700">Por categoría</h3>
+      <div className="mb-4 overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="text-left uppercase text-neutral-400">
+              <th className="py-1">Categoría</th>
+              <th className="py-1 text-right">Planeado</th>
+              <th className="py-1 text-right">Comprometido</th>
+              <th className="py-1 text-right">Variación</th>
+            </tr>
+          </thead>
+          <tbody>
+            {porCategoria.map((r) => (
+              <tr key={r.cat} className="border-t border-neutral-100">
+                <td className="py-1">{r.cat}</td>
+                <td className="py-1 text-right tabular-nums">{money.format(r.plan)}</td>
+                <td className="py-1 text-right tabular-nums">{money.format(r.comprometido)}</td>
+                <td className={`py-1 text-right tabular-nums ${r.comprometido - r.plan > 1 ? "font-semibold text-red-600" : ""}`}>
+                  {money.format(r.plan - r.comprometido)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <h3 className="mb-1 text-sm font-semibold text-neutral-700">Por línea del plan</h3>
       <div className="space-y-2">
         {costos.map((c) => {
           const suyas = comprasDe(c.id);

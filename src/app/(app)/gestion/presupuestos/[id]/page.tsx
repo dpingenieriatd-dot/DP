@@ -7,6 +7,7 @@ type CompraRow = {
   id: string;
   codigo: string | null;
   descripcion: string | null;
+  categoria: string | null;
   cantidad: number | null;
   valor_unitario: number | null;
   valor_pagado: number | null;
@@ -44,7 +45,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     ? await Promise.all([
         supabase
           .from("compras")
-          .select("id, codigo, descripcion, cantidad, valor_unitario, valor_pagado, estado_pago, archivado, presupuesto_id, presupuesto_costo_id, proveedores(nombre), insumos(descripcion)")
+          .select("id, codigo, descripcion, categoria, cantidad, valor_unitario, valor_pagado, estado_pago, archivado, presupuesto_id, presupuesto_costo_id, proveedores(nombre), insumos(descripcion)")
           .eq("proyecto_id", presupuesto.proyecto_id),
         supabase.from("presupuestos").select("id", { count: "exact", head: true }).eq("proyecto_id", presupuesto.proyecto_id),
       ])
@@ -58,6 +59,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       id: c.id,
       codigo: c.codigo,
       descripcion: c.descripcion || c.insumos?.descripcion || null,
+      categoria: c.categoria || "Otros costos",
       proveedor: c.proveedores?.nombre ?? null,
       lineaId: c.presupuesto_costo_id ?? null,
       valor: valorCompra(c),
