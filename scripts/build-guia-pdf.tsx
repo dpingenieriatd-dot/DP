@@ -790,6 +790,7 @@ function Doc() {
             "Ejecución del presupuesto: una barra que muestra cuánto del plan ya se comprometió, con alerta al pasar del 80% (amarillo) o del 100% (rojo). En la lista de Presupuestos esta columna se llama Ejecución (Sin ejecutar / X% ejecutado / Excedido) y hay además una columna Estado del proyecto, de solo lectura: el presupuesto no tiene ciclo de vida propio, hereda el del proyecto.",
             "Importar desde Compras: trae las compras como líneas de REFERENCIA en el plan (con presupuestado en cero para no inflar el plan y prefijo (compra)), sin duplicar las que ya se importaron.",
             "Restaurar base: vuelve a traer los ítems originales de la cotización, por si se editaron o borraron por error.",
+            "Conciliación: plan vs. compras: sección que aparece cuando el presupuesto ya tiene compras. Muestra cada línea del plan con las compras que se le asignaron (desde el formulario de Compras), su planeado vs. comprometido, la variación y un distintivo (sin compras / dentro de lo planeado / excedido). Al final, las compras que todavía no se asignaron a ninguna línea.",
           ]}
         />
         <H3>Resumen financiero</H3>
@@ -809,6 +810,7 @@ function Doc() {
           rows={[
             ["Proyecto", "Obligatorio. Es el centro de costos: sin proyecto, la compra no se puede conectar al presupuesto."],
             ["Presupuesto", "A qué presupuesto del proyecto se carga la compra. Si el proyecto tiene un solo presupuesto se asigna solo (y solo se muestra a modo informativo); si tiene varios, hay que elegir."],
+            ["Ítem del plan de costos que cubre esta compra", "Opcional. La línea del plan a la que corresponde este gasto. Sirve para ver la desviación por línea (planeado vs. comprometido) en la Conciliación de la ficha del presupuesto. Si se deja en blanco, la compra queda como gasto no planeado."],
             ["Proveedor · Insumo", "De los catálogos. El insumo trae su costo de referencia."],
             ["Descripción", "Qué se compró (obligatorio)."],
             ["Cantidad · Valor unitario", "El total se calcula solo."],

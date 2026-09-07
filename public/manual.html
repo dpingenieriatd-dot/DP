@@ -401,7 +401,7 @@ ganancia estimada (vs. plan)   = valor cotizado − plan − administración −
 ganancia según lo comprometido = valor cotizado − comprometido − administración − IVA</div>
     <p>El semáforo y la ganancia real usan lo <strong>comprometido</strong>, no lo pagado: sirve para avisar a tiempo, antes de que la factura se pague. La administración y el IVA que se restan son los <strong>valores fijos</strong> del presupuesto (no se recalculan sobre el gasto real).</p>
   </div>
-  <div class="note">Cuando el presupuesto ya tiene compras, la columna "Real" de cada línea del plan se bloquea y muestra el encabezado <span class="pill n">Real (ref.)</span> — "referencia". El comprometido total sale automático de Compras, no se teclea línea por línea. El vínculo compra ↔ línea del plan viene en una fase siguiente.</div>
+  <div class="note">Cuando el presupuesto ya tiene compras, la columna "Real" de cada línea del plan se bloquea y muestra el encabezado <span class="pill n">Real (ref.)</span> — "referencia". El comprometido total sale automático de Compras. Para ver la desviación <strong>por línea</strong>, cada compra puede indicar (en su formulario) qué ítem del plan cubre; el resultado se ve en la sección "Conciliación: plan vs. compras" de la ficha.</div>
 
   <h3 id="s3-semaforo">3.6 Semáforos del proyecto (tablero Control de proyectos)</h3>
   <h4>Semáforo de plata</h4>
@@ -702,6 +702,14 @@ ganancia real       = valor aprobado − comprometido − administración − IV
     </tbody>
   </table></div>
   <p>Acciones del plan: <strong>Restaurar base</strong> (vuelve a traer los ítems originales de la cotización), <strong>Importar desde Compras</strong> (trae las compras como líneas de referencia, con presupuestado en cero, sin duplicar las ya traídas), <strong>+ Agregar costo</strong>.</p>
+
+  <h3>Conciliación: plan vs. compras</h3>
+  <p>Aparece cuando el presupuesto ya tiene compras. Cada línea del plan con las compras que se le asignaron (desde el formulario de Compras, campo "Ítem del plan de costos que cubre esta compra"):</p>
+  <ul>
+    <li>Por línea: <strong>planeado</strong> vs. <strong>comprometido</strong> (Σ de sus compras) y la <strong>variación</strong>.</li>
+    <li>Distintivo: <span class="pill n">sin compras</span> · <span class="pill v">dentro de lo planeado</span> · <span class="pill r">excedido</span>.</li>
+    <li>Al final, <strong>"Compras sin asignar a ninguna línea"</strong>: gasto no planeado, o compras a las que falta indicarles la línea.</li>
+  </ul>
 </section>
 
 <!-- ================= 8 ================= -->
@@ -730,6 +738,7 @@ ganancia real       = valor aprobado − comprometido − administración − IV
     <tbody>
       <tr><td class="col">Proyecto</td><td>Obligatorio. Define a qué proyecto se carga el gasto.</td></tr>
       <tr><td class="col">Presupuesto</td><td>A qué presupuesto del proyecto se carga. Si el proyecto tiene un solo presupuesto se asigna solo (solo se muestra como nota); si tiene varios, hay que elegir.</td></tr>
+      <tr><td class="col">Ítem del plan de costos que cubre esta compra</td><td>Opcional. La línea del plan a la que corresponde este gasto — habilita la desviación por línea en la Conciliación de la ficha del presupuesto. En blanco = gasto no planeado.</td></tr>
       <tr><td class="col">Fecha</td><td>Fecha de la compra.</td></tr>
       <tr><td class="col">Proveedor</td><td>Del catálogo.</td></tr>
       <tr><td class="col">Categoría</td><td>Tipo de gasto (lista propia de Compras — su unificación con el plan de costos viene en una fase siguiente).</td></tr>
@@ -741,7 +750,7 @@ ganancia real       = valor aprobado − comprometido − administración − IV
       <tr><td class="col">Referencia / Notas</td><td>Nº de factura y observaciones.</td></tr>
     </tbody>
   </table></div>
-  <div class="note">El costo real del presupuesto ya no distingue línea por línea — suma todas las compras del presupuesto. El vínculo de cada compra con un ítem concreto del plan (para ver desviación por línea) es la siguiente fase de esta conexión.</div>
+  <div class="note">El comprometido total del presupuesto suma todas sus compras. Para la desviación <strong>por línea</strong>, cada compra puede indicar el ítem del plan que cubre (campo de arriba) — el resultado se ve en la Conciliación de la ficha.</div>
 </section>
 
 <!-- ================= 9 ================= -->
@@ -1123,6 +1132,7 @@ ganancia real       = valor aprobado − comprometido − administración − IV
     <li><strong>Soporte técnico</strong>: nueva sección en Administración con aviso por correo.</li>
     <li><strong>Auditoría</strong>: alcance ampliado (cotizaciones, presupuestos, plan de costos, clientes, empresas), filtro por tabla, retención de 12 meses.</li>
     <li><strong>Compras ↔ Presupuestos (Fase 1)</strong>: cada compra pertenece a un presupuesto (auto si el proyecto tiene uno solo); el control de cada presupuesto suma solo sus compras; la ficha separa "Comprometido" de "Pagado" (el semáforo usa lo comprometido); "Importar desde Compras" ya no infla el plan.</li>
+    <li><strong>Compras ↔ Presupuestos (Fase 2)</strong>: cada compra puede vincularse a una línea del plan de costos; sección "Conciliación: plan vs. compras" en la ficha con planeado vs. comprometido y la variación por línea, más las compras sin asignar.</li>
   </ul>
 </section>
 
