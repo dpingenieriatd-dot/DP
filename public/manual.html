@@ -751,6 +751,12 @@ ganancia real       = valor aprobado − comprometido − administración − IV
     </tbody>
   </table></div>
   <div class="note">El comprometido total del presupuesto suma todas sus compras. Para la desviación <strong>por línea</strong>, cada compra puede indicar el ítem del plan que cubre (campo de arriba) — el resultado se ve en la Conciliación de la ficha.</div>
+
+  <h3>Contexto y aviso al registrar</h3>
+  <ul>
+    <li>Al elegir proyecto y presupuesto, el formulario muestra <strong>plan · comprometido · disponible</strong> del presupuesto (y % consumido). Si eliges un ítem del plan, muestra lo mismo para esa línea.</li>
+    <li>Al guardar, si la compra deja la línea o el presupuesto <strong>por encima de lo planeado</strong>, aparece un aviso con el detalle y <span class="pill n">Revisar</span> / <span class="pill a">Guardar de todas formas</span>. Recomendación, no bloquea.</li>
+  </ul>
 </section>
 
 <!-- ================= 9 ================= -->
@@ -1133,6 +1139,7 @@ ganancia real       = valor aprobado − comprometido − administración − IV
     <li><strong>Auditoría</strong>: alcance ampliado (cotizaciones, presupuestos, plan de costos, clientes, empresas), filtro por tabla, retención de 12 meses.</li>
     <li><strong>Compras ↔ Presupuestos (Fase 1)</strong>: cada compra pertenece a un presupuesto (auto si el proyecto tiene uno solo); el control de cada presupuesto suma solo sus compras; la ficha separa "Comprometido" de "Pagado" (el semáforo usa lo comprometido); "Importar desde Compras" ya no infla el plan.</li>
     <li><strong>Compras ↔ Presupuestos (Fase 2)</strong>: cada compra puede vincularse a una línea del plan de costos; Compras y el plan usan la misma lista de categorías; sección "Conciliación: plan vs. compras" en la ficha con planeado vs. comprometido por categoría y por línea, más las compras sin asignar.</li>
+    <li><strong>Compras ↔ Presupuestos (Fase 3)</strong>: el formulario de compra muestra plan / comprometido / disponible del presupuesto y de la línea elegida; aviso al guardar si la compra deja algo por encima de lo planeado.</li>
   </ul>
 </section>
 

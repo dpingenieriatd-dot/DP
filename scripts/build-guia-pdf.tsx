@@ -821,6 +821,8 @@ function Doc() {
         />
         <Bullets
           items={[
+            "Al elegir el proyecto y el presupuesto, el formulario muestra un resumen: plan, comprometido y disponible del presupuesto (y % consumido). Si además eliges un ítem del plan, muestra el planeado, comprometido y disponible de esa línea.",
+            "Al guardar, si la compra deja la línea elegida (o el presupuesto completo) por encima de lo planeado, aparece un aviso con el detalle y botones Revisar / Guardar de todas formas. Es una recomendación, no bloquea.",
             "La lista se puede filtrar por proyecto, rango de fechas, estado y búsqueda por columna.",
             "Archivar una compra la saca de la lista sin borrarla (queda en el histórico para auditoría).",
           ]}
