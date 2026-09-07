@@ -241,7 +241,7 @@ function Doc() {
             ["5", "Módulo Seguimiento", "Inicio, Banco de tareas, Actividades, Agenda, Equipo, Efectividad, Procesos, Archivadas"],
             ["6", "Módulo Gestión", "Control de proyectos, Cotizaciones, Proyectos, Presupuestos, Compras, Catálogos"],
             ["7", "Reportes", "Reportes descargables y reportes personalizados"],
-            ["8", "Administración", "Usuarios, Parámetros, Temas, Auditoría, resumen semanal"],
+            ["8", "Administración", "Usuarios, Parámetros, Temas, Auditoría, Soporte técnico, resumen semanal"],
             ["9", "Preguntas frecuentes", "Problemas comunes y cómo resolverlos"],
             ["10", "Glosario", "Definición de los términos que usa la plataforma"],
           ].map(([n, t, d]) => (
@@ -482,12 +482,13 @@ function Doc() {
           header={["Campo", "Para qué"]}
           w={[1, 1.7]}
           rows={[
-            ["Título", "Nombre corto de la tarea (obligatorio)."],
-            ["Cliente / Proyecto / Empresa atendida", "A qué trabajo pertenece (se eligen de los catálogos)."],
+            ["Nombre de la actividad", "Nombre de la tarea (obligatorio). Se escribe a mano."],
+            ["Cliente / Empresa atendida", "A qué trabajo pertenece. Empresa atendida se filtra según el cliente elegido."],
+            ["Proyecto", "Obligatorio. Solo lista los proyectos activos (no aparecen los archivados ni los rechazados)."],
+            ["Proceso", "Clasifica la tarea según el mapa de procesos de D&P. Se elige aparte, no se autocompleta."],
             ["Prioridad", "Alta, Media o Baja."],
             ["Fecha límite", "Cuándo debe estar lista."],
             ["Horas estimadas", "Cuánto se calcula que toma. Alimenta la Agenda y la carga del Equipo."],
-            ["Proceso / Actividad del catálogo", "Clasifica la tarea según el mapa de procesos de D&P."],
             ["Instrucciones y Entregable requerido", "Qué hay que hacer y qué se debe entregar."],
             ["Responsable", "Si se deja en blanco, la tarea nace Disponible para que alguien la tome. Si se elige una persona, nace ya asignada (En proceso) y con su bloque en la Agenda."],
             ["Fecha y hora en agenda", "Cuándo va el bloque en la agenda de esa persona (si se asignó)."],
@@ -580,6 +581,7 @@ function Doc() {
           ]}
         />
         <P>También muestra, por persona: tareas abiertas, vencidas, en proceso y archivadas. La Directora puede abrir el histórico de archivadas de cada quien.</P>
+        <Nota>Solo aparecen los usuarios activos. Una persona desactivada (ver 8.1) deja de figurar aquí con carga y pendientes.</Nota>
 
         <H2>5.6 Efectividad</H2>
         <P>
@@ -662,6 +664,11 @@ function Doc() {
           ]}
         />
         <P>Más abajo en la misma página está el tablero de crecimiento y rentabilidad por período (año, mes, cliente), con la evolución mensual.</P>
+        <P>
+          El Inicio de Gestión incluye gráficos: dos donas de semáforo (Plata: Sano / En atención / Sobre presupuesto;
+          Tiempo: A tiempo / Por vencer / Atrasado / Sin fecha) con los mismos conteos de la tabla, y una gráfica de
+          barras de utilidad proyectada por mes.
+        </P>
 
         <H2>6.3 Cotizaciones</H2>
         <P>Registra la oferta que se le hace a un cliente y calcula su rentabilidad antes de comprometerse.</P>
@@ -674,12 +681,13 @@ function Doc() {
           rows={[
             ["Código / consecutivo", "Identificador único de la cotización. Se escribe a mano y no se puede repetir, ni siquiera si la cotización que lo tenía se borró."],
             ["Fecha de elaboración · Vigencia de la oferta", "Cuándo se hizo y por cuántos días es válida."],
-            ["Cliente · Empresa atendida", "A quién se le cotiza. Empresa atendida puede ser el mismo cliente."],
+            ["Cliente · Empresa atendida", "A quién se le cotiza. Empresa atendida puede ser el mismo cliente. Al elegir la empresa atendida, el contacto, correo y teléfono se autocompletan con los datos guardados en su ficha (editables solo para esta cotización)."],
             ["Nombre de la cotización · Responsable comercial", "Título del trabajo y quién lo lleva."],
-            ["Contacto, correo, teléfono", "Datos de la persona del cliente."],
+            ["Contacto, correo, teléfono", "Datos de la persona del cliente. Se autocompletan al elegir la empresa atendida."],
             ["¿Responde por IVA?", "Interruptor maestro: si D&P responde por IVA. En cada ítem hay además una casilla IVA para marcar cuáles renglones son gravados (hay ítems que llevan y otros que no). El IVA del 19% se calcula solo sobre los ítems gravados."],
-            ["Margen de utilidad (%)", "El margen objetivo de esta cotización (se puede ajustar por cotización)."],
-            ["Ítems", "Cada línea de la oferta: se elige del Banco de insumos / Profesionales / Materiales, con cantidad. El precio al cliente se calcula solo, o se puede fijar a mano."],
+            ["Margen objetivo (%)", "La ganancia que se busca sobre el precio. Solo aplica a los ítems en Auto. Máximo 95%. Se puede ajustar por cotización."],
+            ["Margen mínimo (%)", "Umbral de aviso. Viene precargado de Parámetros y se puede ajustar por cotización. Si el margen real queda por debajo, al guardar aparece una recomendación de revisar los precios (no bloquea)."],
+            ["Ítems", "Cada línea de la oferta: se elige del Banco de insumos / Profesionales / Materiales, con cantidad. El precio al cliente se calcula solo (Auto), o se puede fijar a mano (Manual)."],
             ["Descripción de la cotización", "Texto que describe qué se le ofrece al cliente; sale en el PDF, arriba del detalle."],
             ["Forma de pago, condiciones comerciales", "Textos que salen en el PDF de la cotización."],
             ["Seguimiento interno", "Nota interna sobre qué pasó con la propuesta (no sale en el PDF)."],
@@ -693,11 +701,16 @@ function Doc() {
             "Costo directo interno: lo que le cuesta a D&P.",
             "Costos administrativos: un porcentaje sobre el costo directo.",
             "Precio a cliente antes de IVA: la suma de los precios de los ítems.",
-            "Utilidad real de la oferta: precio a cliente - costo directo - administración (con su margen real). Puede ser menor al objetivo o negativa si se descontó por debajo del costo.",
+            "Utilidad real de la oferta: precio a cliente - costo directo - administración. Se muestra con el margen real y el objetivo lado a lado (margen real X% · objetivo Y%). Si el real quedó bastante por debajo del objetivo, se pinta en ámbar con un recuadro que explica por qué (normalmente, ítems en Manual por debajo de lo que daría el margen).",
             "IVA (solo sobre los ítems marcados como gravados) y Total cotizado al cliente.",
-            "Cada ítem muestra si su precio está en Auto (costo × factor) o Manual; administración y margen mueven el total a través de las filas en Auto.",
+            "Cada ítem muestra si su precio está en Auto (la app lo calcula: costo × factor del margen objetivo) o Manual (se escribió a mano y ese ítem ignora el margen). El botón ↺ auto lo devuelve a Auto.",
           ]}
         />
+        <P>
+          Al guardar la cotización (no al Guardar borrador), si el margen real quedó por debajo del mínimo recomendado,
+          aparece un aviso: si pierde plata, lo dice directamente; si es baja pero positiva, muestra el margen y la
+          ganancia. Con botones Revisar y Guardar de todas formas. No bloquea; si el margen está bien, no pregunta nada.
+        </P>
 
         <Tabla
           title="Estados de la cotización"
@@ -706,8 +719,9 @@ function Doc() {
             ["Borrador", "Todavía se está armando."],
             ["Pendiente por definir", "Enviada internamente, sin decisión."],
             ["Enviada", "Ya se le envió al cliente."],
-            ["Aprobada", "El cliente la aceptó. Genera proyecto y presupuesto."],
+            ["Aprobada", "El cliente la aceptó. Genera proyecto y presupuesto, que heredan el margen, la administración y el IVA de la cotización."],
             ["Rechazada", "El cliente no la aceptó. Genera un proyecto en estado Rechazado, solo para dejar el registro."],
+            ["Cancelada", "Se dio de baja antes de una decisión del cliente."],
           ]}
         />
 
@@ -751,8 +765,9 @@ function Doc() {
         <P>La ficha de cada proyecto. Los proyectos nacen siempre de una cotización aprobada (o rechazada).</P>
         <Bullets
           items={[
-            "Datos del proyecto: nombre, cliente, empresa atendida, responsable, estado, fechas de inicio y cierre, observaciones. Muestra también de qué cotización nació y cuándo la aprobó el cliente.",
+            "Datos del proyecto: nombre, cliente, empresa atendida, responsable, estado, fechas de inicio y cierre, observaciones. Un texto apunta a la cotización de origen, donde se ven el valor del contrato, el IVA y las retenciones (la ficha del proyecto ya no repite esos datos). Al guardar aparece un aviso Cambios guardados.",
             "Estados: Planeado, En ejecución, Suspendido, Finalizado, Cancelado (y Rechazado, para los que salen de una cotización rechazada).",
+            "Cada presupuesto del proyecto muestra un distintivo Viable / No viable: viable significa que el valor cotizado cubre costo, administración e IVA (no da pérdida). No compara contra el margen objetivo.",
             "Efectivo neto esperado: se calcula en la cotización, no en el proyecto. Sale del valor cotizado menos el IVA, la retención en la fuente y el ICA (tarifas que vienen de la ficha del cliente) y unas otras retenciones fijas. Es cuánto le llega realmente a D&P después de lo que el cliente retiene y paga a la DIAN.",
             "Presupuestos del proyecto: se listan en la ficha, con su estado de viabilidad. Las compras se gestionan en el módulo Compras y su costo real se refleja en el control de cada presupuesto.",
             "Archivar: saca el proyecto de la lista principal (se puede volver a mostrar con la casilla Mostrar archivados y rechazados).",
@@ -769,9 +784,10 @@ function Doc() {
         <Bullets
           items={[
             "Cotización base aprobada: una tabla congelada con la oferta que aceptó el cliente. Es solo referencia y nunca cambia.",
-            "Plan de costos del proyecto: los ítems presupuestados. Empiezan con los de la cotización; aquí sí se pueden ajustar, agregar o quitar.",
-            "Costo real: sale solo de las compras registradas contra el proyecto. La columna Real del plan es de referencia y no se edita a mano.",
-            "Ejecución del presupuesto: una barra que muestra cuánto se ha gastado del plan, con alerta cuando se pasa del 80% (amarillo) o del 100% (rojo).",
+            "Plan de costos del proyecto: los ítems presupuestados. Empiezan con los de la cotización; aquí sí se pueden ajustar, agregar o quitar. El orden de los ítems es fijo: editar un ítem (por ejemplo, ponerle un proveedor) ya no lo mueve de posición.",
+            "Costo real: cuando el proyecto ya tiene compras registradas, sale solo de esas compras. La columna Real del plan se bloquea y queda como referencia (encabezado Real (ref.)); no se edita a mano.",
+            "Ejecución del presupuesto: una barra que muestra cuánto se ha gastado del plan, con alerta cuando se pasa del 80% (amarillo) o del 100% (rojo). En la lista de Presupuestos esta columna se llama Ejecución (Sin ejecutar / X% ejecutado / Excedido) y hay además una columna Estado del proyecto, de solo lectura: el presupuesto no tiene ciclo de vida propio, hereda el del proyecto.",
+            "Importar desde Compras: trae las compras del proyecto como líneas del plan, sin duplicar las que ya se importaron.",
             "Restaurar base: vuelve a traer los ítems originales de la cotización, por si se editaron o borraron por error.",
           ]}
         />
@@ -779,7 +795,7 @@ function Doc() {
         <P>El recuadro de resumen tiene dos bloques:</P>
         <Bullets
           items={[
-            "Referencia · cotización aprobada: costo directo, administración, utilidad esperada e IVA. Cifras fijas de la oferta; no cambian.",
+            "Referencia · cotización aprobada: costo directo, administración, IVA y utilidad de la oferta (valor cotizado - costo - administración - IVA), con el margen real y el objetivo lado a lado. Cifras fijas de la oferta; no cambian al ajustar el control de costos. En rojo si la utilidad es negativa.",
             "Control del proyecto · líneas vigentes: presupuesto vigente, costo real ejecutado, disponible, ganancia estimada (vs. plan) y ganancia según costos reales. Estas sí se mueven con las compras.",
           ]}
         />
@@ -818,7 +834,12 @@ function Doc() {
             ["Profesionales", "Personas externas que D&P contrata por proyecto (no tienen acceso a la plataforma)."],
           ]}
         />
-        <P>Todos los catálogos funcionan igual: botón Nuevo para agregar, clic en una fila para editarla, y borrar desde la fila. Se ordenan alfabéticamente.</P>
+        <P>
+          Todos los catálogos funcionan igual: botón Nuevo para agregar, clic en una fila para editarla, y borrar desde
+          la fila. Se puede ordenar por cualquier columna haciendo clic en su encabezado (primer clic ascendente,
+          segundo descendente, tercero vuelve al orden original), además de buscar y filtrar. El Banco de insumos viene
+          ordenado por código.
+        </P>
       </ContentPage>
 
       {/* ========== 7. REPORTES ========== */}
@@ -862,8 +883,9 @@ function Doc() {
         <H2>8.1 Usuarios</H2>
         <Bullets
           items={[
-            "+ Invitar usuario: se ingresa correo, nombre, cargo, rol y módulos. La plataforma envía un correo con el enlace de activación y deja el perfil preconfigurado.",
+            "+ Invitar usuario: se ingresa correo, nombre, cargo, rol y módulos. La plataforma envía un correo con el enlace de activación, que lleva directo a la pantalla de crear contraseña. Al enviar, el formulario se cierra y confirma Invitación enviada.",
             "Editar un usuario: cambiar su cargo, su rol (Miembro / Administrador) y sus módulos (Seguimiento, Gestión).",
+            "Desactivar un usuario: le revoca el acceso (no puede volver a iniciar sesión), pero conserva su nombre en todo el historial (tareas, cotizaciones, auditoría). Pide confirmación. No se puede eliminar de verdad porque rompería ese historial. Un usuario inactivo desaparece de los selectores de responsable y del tablero de Equipo. Se puede Reactivar en cualquier momento. No se puede desactivar la propia cuenta.",
             "Presencia: un punto verde y En línea indican que la persona está activa en la plataforma en ese momento; si no, muestra hace cuánto se le vio por última vez.",
           ]}
         />
@@ -876,6 +898,7 @@ function Doc() {
           rows={[
             ["Costos administrativos (%)", "Porcentaje que se suma al costo directo en cotizaciones y presupuestos."],
             ["Margen de utilidad objetivo (%)", "Margen por defecto de las cotizaciones nuevas."],
+            ["Margen mínimo recomendado (%)", "Umbral por debajo del cual, al guardar una cotización, aparece un aviso recomendando revisar los precios. Cada cotización hereda este valor y lo puede ajustar."],
             ["IVA predeterminado (%)", "Tarifa de IVA."],
             ["Alerta de ejecución del presupuesto (%)", "En el Control de proyectos, a partir de qué % gastado un proyecto pasa a amarillo (por defecto 80%)."],
             ["Aviso previo a la entrega (días)", "Cuántos días antes de la fecha de entrega un proyecto pasa a Por vencer (por defecto 15)."],
@@ -889,11 +912,25 @@ function Doc() {
 
         <H2>8.4 Auditoría</H2>
         <P>
-          Historial de cambios en Proyectos, Compras y Parámetros: quién, cuándo y qué campo cambió (valor anterior a
-          valor nuevo). Se registran también las creaciones y eliminaciones. Muestra los últimos 200 movimientos.
+          Historial de cambios: quién, cuándo y qué campo cambió (valor anterior a valor nuevo). Se registran las
+          creaciones, ediciones y eliminaciones, mediante disparadores de la base de datos (captura todo cambio, no solo
+          los que pasan por la app). Muestra los últimos 300 movimientos y tiene un filtro por tabla en la parte superior.
+        </P>
+        <P>
+          Se auditan: Proyectos, Compras, Parámetros financieros, Cotizaciones, Presupuestos, Plan de costos, Clientes y
+          Empresas atendidas. Los guardados que no cambian nada no generan registro. Se conservan los últimos 12 meses
+          (una limpieza automática nocturna borra lo más viejo).
         </P>
 
-        <H2>8.5 Resumen semanal por correo</H2>
+        <H2>8.5 Soporte técnico</H2>
+        <P>
+          Para reportar problemas o solicitudes de mejora sobre la plataforma. Se llena título, urgencia (Baja / Media /
+          Alta), descripción y opcionalmente la página donde ocurre. Al crear el ticket se envía un correo automático al
+          equipo de soporte. Cada ticket se puede pasar por los estados Abierto / En revisión / Resuelto, con una nota de
+          respuesta.
+        </P>
+
+        <H2>8.6 Resumen semanal por correo</H2>
         <P>
           Cada lunes en la mañana llega automáticamente a la Directora un correo con: tareas cerradas la semana anterior,
           proyectos con margen negativo y compras pendientes de pago. Sirve para tener una vista rápida sin entrar a
@@ -937,8 +974,27 @@ function Doc() {
         <H3>Cerré sesión sin querer / la sesión se cerró sola</H3>
         <P>Es normal tras un tiempo de inactividad. Vuelve a iniciar sesión con tu correo y contraseña.</P>
 
+        <H3>La utilidad de una cotización quedó más baja que el margen que configuré</H3>
+        <P>
+          El margen objetivo solo se aplica a los ítems en Auto. Si varios ítems se pusieron en Manual con un precio por
+          debajo del que daría el margen (por ejemplo, pasando costos al cliente sin recargo), la utilidad real baja. La
+          plataforma lo muestra tal cual (margen real X% · objetivo Y%) y avisa al guardar si quedó por debajo del
+          mínimo. Revisa la columna Precio cliente unit. de los ítems.
+        </P>
+
+        <H3>Puse el margen en 100% y la utilidad dio cero</H3>
+        <P>
+          Un margen de 100% es matemáticamente imposible (sería cobrar de forma que toda la venta sea ganancia y aún así
+          pagar los costos). La plataforma, para no dar error, vende al costo — cero utilidad. Por eso el campo está
+          limitado a 95%.
+        </P>
+
         <H3>Algo no funciona o se ve raro</H3>
-        <P>Avísale a la Directora o al consultor con una captura de pantalla y contando qué estabas haciendo justo antes.</P>
+        <P>
+          Repórtalo en Administración → Soporte técnico (si eres administrador) con el título, la urgencia, la
+          descripción y la página donde ocurre. Si no, avísale a la Directora con una captura de pantalla y contando qué
+          estabas haciendo justo antes.
+        </P>
       </ContentPage>
 
       {/* ========== 10. GLOSARIO ========== */}
