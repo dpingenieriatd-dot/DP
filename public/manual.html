@@ -1,0 +1,1246 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Manual detallado de la plataforma D&P</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --ink: #1b2415;
+    --verde-oscuro: #27500A;
+    --verde: #52881a;
+    --verde-claro: #eef3e4;
+    --ambar: #a9670f;
+    --ambar-bg: #f8f0e2;
+    --rojo: #b3261e;
+    --rojo-bg: #f9e7e5;
+    --ground: #f7f6f1;
+    --surface: #ffffff;
+    --surface-2: #faf9f5;
+    --border: #e3e0d4;
+    --border-strong: #d0ccbc;
+    --muted: #6a6e60;
+    --shadow: 0 1px 2px rgba(30,36,20,.06), 0 8px 24px rgba(30,36,20,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink: #e9e7dc;
+      --verde-oscuro: #9ec97a;
+      --verde: #a9d081;
+      --verde-claro: #23301a;
+      --ambar: #e0a94e;
+      --ambar-bg: #33280f;
+      --rojo: #e58a80;
+      --rojo-bg: #331c1a;
+      --ground: #14170f;
+      --surface: #1c2016;
+      --surface-2: #21261a;
+      --border: #333a29;
+      --border-strong: #454d38;
+      --muted: #9aa088;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #e9e7dc;
+    --verde-oscuro: #9ec97a;
+    --verde: #a9d081;
+    --verde-claro: #23301a;
+    --ambar: #e0a94e;
+    --ambar-bg: #33280f;
+    --rojo: #e58a80;
+    --rojo-bg: #331c1a;
+    --ground: #14170f;
+    --surface: #1c2016;
+    --surface-2: #21261a;
+    --border: #333a29;
+    --border-strong: #454d38;
+    --muted: #9aa088;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Public Sans", ui-sans-serif, system-ui, sans-serif;
+    font-size: 15.5px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+  .layout { display: grid; grid-template-columns: 288px minmax(0, 1fr); gap: 0; max-width: 1240px; margin: 0 auto; }
+
+  /* ---- TOC sidebar ---- */
+  nav.toc {
+    position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto;
+    padding: 30px 20px 60px 28px;
+    border-right: 1px solid var(--border);
+    background: var(--surface-2);
+    font-size: 13.5px;
+  }
+  nav.toc .brand { line-height: 1.25; margin-bottom: 4px; }
+  nav.toc .brand-logo { display: block; width: 132px; height: auto; margin-bottom: 16px; background: #fff; padding: 9px 11px; border-radius: 9px; border: 1px solid var(--border); }
+  nav.toc .brand-name { font-family: "Fraunces", serif; font-weight: 600; font-size: 19px; color: var(--verde-oscuro); letter-spacing: -.01em; }
+  nav.toc .brand span { display:block; font-family:"Public Sans",sans-serif; font-weight:600; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color: var(--muted); margin-top: 6px; }
+  nav.toc ol { list-style: none; margin: 22px 0 0; padding: 0; counter-reset: sec; }
+  nav.toc > ol > li { counter-increment: sec; margin: 1px 0; }
+  nav.toc > ol > li > a { font-weight: 600; }
+  nav.toc a {
+    display: block; padding: 5px 10px; border-radius: 7px; color: var(--ink); text-decoration: none;
+    border: 1px solid transparent;
+  }
+  nav.toc a:hover { background: var(--verde-claro); }
+  nav.toc a.sub { padding-left: 24px; font-size: 12.7px; color: var(--muted); font-weight: 400; }
+  nav.toc a.sub::before { content: "· "; color: var(--border-strong); }
+  nav.toc > ol > li > a:not(.sub)::before { content: counter(sec) ".  "; color: var(--verde); font-variant-numeric: tabular-nums; font-weight: 700; }
+
+  /* ---- content ---- */
+  main { padding: 46px 56px 120px; max-width: 900px; }
+  main > header.doc-head { margin-bottom: 40px; padding-bottom: 26px; border-bottom: 2px solid var(--verde); }
+  h1.doc-title { font-family: "Fraunces", serif; font-weight: 600; font-size: 40px; line-height: 1.1; letter-spacing: -.02em; margin: 0 0 12px; text-wrap: balance; }
+  .doc-head p { color: var(--muted); margin: 6px 0 0; max-width: 62ch; }
+  .doc-head .meta { font-family: "IBM Plex Mono", monospace; font-size: 12px; letter-spacing: .02em; color: var(--muted); margin-top: 16px; }
+
+  section.sec { margin: 0 0 60px; scroll-margin-top: 20px; }
+  h2 {
+    font-family: "Fraunces", serif; font-weight: 600; font-size: 27px; letter-spacing: -.015em;
+    margin: 0 0 6px; padding-top: 14px; line-height: 1.18; text-wrap: balance;
+  }
+  h2 .num { color: var(--verde); font-size: 20px; font-family: "IBM Plex Mono", monospace; margin-right: 12px; font-weight: 500; }
+  h2 + .lede { color: var(--muted); font-size: 15px; margin: 0 0 22px; max-width: 64ch; }
+  h3 { font-family: "Public Sans", sans-serif; font-weight: 700; font-size: 17px; margin: 34px 0 8px; color: var(--verde-oscuro); }
+  h4 { font-weight: 700; font-size: 14.5px; margin: 22px 0 6px; letter-spacing: .01em; }
+  p { margin: 0 0 12px; }
+  main a { color: var(--verde-oscuro); text-underline-offset: 2px; }
+  strong { font-weight: 700; }
+  ul, ol { margin: 0 0 14px; padding-left: 22px; }
+  li { margin: 3px 0; }
+  code {
+    font-family: "IBM Plex Mono", monospace; font-size: .88em;
+    background: var(--surface-2); border: 1px solid var(--border);
+    padding: 1px 5px; border-radius: 5px; color: var(--verde-oscuro);
+  }
+
+  /* tables */
+  .tbl-wrap { overflow-x: auto; margin: 12px 0 20px; border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); }
+  table { border-collapse: collapse; width: 100%; font-size: 13.7px; background: var(--surface); }
+  caption { text-align: left; font-weight: 700; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); padding: 12px 14px 8px; }
+  th, td { text-align: left; padding: 9px 14px; vertical-align: top; border-bottom: 1px solid var(--border); }
+  thead th { background: var(--surface-2); font-weight: 700; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); border-bottom: 1.5px solid var(--border-strong); }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:nth-child(even) td { background: var(--surface-2); }
+  td.k { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; color: var(--verde-oscuro); white-space: nowrap; font-weight: 500; }
+  td.col { font-weight: 600; white-space: nowrap; }
+
+  /* formula box */
+  .formula {
+    margin: 14px 0 20px; padding: 16px 18px; background: var(--surface);
+    border: 1px solid var(--border); border-left: 4px solid var(--verde);
+    border-radius: 8px; box-shadow: var(--shadow);
+  }
+  .formula .lbl { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--verde); margin-bottom: 8px; }
+  .formula code, .formula .eq {
+    display: block; font-family: "IBM Plex Mono", monospace; font-size: 13.5px; line-height: 1.7;
+    background: none; border: none; padding: 0; color: var(--ink); white-space: pre-wrap;
+  }
+  .formula p { margin: 10px 0 0; font-size: 13.5px; color: var(--muted); }
+
+  /* callouts */
+  .note, .warn, .tip {
+    margin: 14px 0 20px; padding: 13px 16px 13px 44px; border-radius: 8px; font-size: 14px; position: relative;
+    border: 1px solid var(--border);
+  }
+  .note { background: var(--surface-2); }
+  .warn { background: var(--ambar-bg); border-color: color-mix(in srgb, var(--ambar) 30%, transparent); }
+  .tip { background: var(--verde-claro); border-color: color-mix(in srgb, var(--verde) 30%, transparent); }
+  .note::before, .warn::before, .tip::before {
+    position: absolute; left: 14px; top: 12px; font-weight: 700; font-size: 13px;
+    font-family: "IBM Plex Mono", monospace;
+  }
+  .note::before { content: "i"; color: var(--muted); }
+  .warn::before { content: "!"; color: var(--ambar); }
+  .tip::before { content: "+"; color: var(--verde); }
+  .callout-strong { display:block; margin-bottom: 3px; }
+
+  /* pill legend */
+  .pill { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: .01em; white-space: nowrap; }
+  .pill.v { background: var(--verde-claro); color: var(--verde-oscuro); }
+  .pill.a { background: var(--ambar-bg); color: var(--ambar); }
+  .pill.r { background: var(--rojo-bg); color: var(--rojo); }
+  .pill.n { background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }
+
+  .divider { height: 1px; background: var(--border); border: none; margin: 40px 0; }
+
+  @media (max-width: 940px) {
+    .layout { grid-template-columns: 1fr; }
+    nav.toc { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+    nav.toc ol { columns: 2; column-gap: 24px; }
+    main { padding: 30px 22px 80px; }
+    h1.doc-title { font-size: 30px; }
+    h2 { font-size: 23px; }
+  }
+
+  /* search */
+  .search { position: relative; margin: 0 0 14px; }
+  .search input {
+    width: 100%; box-sizing: border-box; font: inherit; font-size: 13px;
+    padding: 8px 28px 8px 30px; border-radius: 8px; border: 1px solid var(--border-strong);
+    background: var(--surface); color: var(--ink);
+  }
+  .search input:focus { outline: 2px solid var(--verde); outline-offset: 1px; border-color: var(--verde); }
+  .search input::placeholder { color: var(--muted); }
+  .search .icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); font-family: "IBM Plex Mono", monospace; font-size: 12px; pointer-events: none; }
+  .search .clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: none; background: none; color: var(--muted); cursor: pointer; font-size: 15px; line-height: 1; padding: 4px; display: none; }
+  .search .clear:hover { color: var(--ink); }
+  .search.has-value .clear { display: block; }
+  .search-count { font-size: 11.5px; color: var(--muted); margin: -8px 0 10px; padding-left: 2px; min-height: 14px; }
+  nav.toc li.hidden, nav.toc a.sub.hidden { display: none; }
+  mark.hit { background: color-mix(in srgb, var(--ambar) 30%, transparent); color: inherit; border-radius: 3px; padding: 0 1px; }
+  mark.hit.current { background: color-mix(in srgb, var(--ambar) 62%, transparent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--ambar) 40%, transparent); }
+  @media (max-width: 940px) { nav.toc ol { columns: 1; } }
+</style>
+</head>
+<body>
+<div class="layout">
+<nav class="toc">
+  <div class="brand">
+    <img class="brand-logo" alt="D&P Ingeniería Integral" src="data:image/png;base64,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">
+    <div class="brand-name">Manual Detallado</div>
+    <span>Plataforma interna · D&amp;P Ingeniería Integral</span>
+  </div>
+  <div class="search" id="search">
+    <span class="icon">/</span>
+    <input type="search" id="q" placeholder="Buscar en el manual…" autocomplete="off" spellcheck="false" aria-label="Buscar en el manual">
+    <button class="clear" id="qclear" type="button" aria-label="Limpiar búsqueda">×</button>
+  </div>
+  <div class="search-count" id="qcount" role="status" aria-live="polite"></div>
+  <ol>
+    <li><a href="#s1">Introducción y arquitectura</a></li>
+    <li><a href="#s2">Acceso, roles y permisos</a></li>
+    <li><a href="#s3">Motor financiero — todas las fórmulas</a>
+      <a class="sub" href="#s3-factor">Factor de precio</a>
+      <a class="sub" href="#s3-margenes">Margen objetivo, real y mínimo</a>
+      <a class="sub" href="#s3-iva">IVA por ítem</a>
+      <a class="sub" href="#s3-efectivo">Efectivo neto esperado</a>
+      <a class="sub" href="#s3-control">Control de costos</a>
+      <a class="sub" href="#s3-semaforo">Semáforos del proyecto</a>
+    </li>
+    <li><a href="#s4">Gestión · Inicio</a></li>
+    <li><a href="#s5">Gestión · Cotizaciones</a></li>
+    <li><a href="#s6">Gestión · Proyectos</a></li>
+    <li><a href="#s7">Gestión · Presupuestos</a></li>
+    <li><a href="#s8">Gestión · Compras</a></li>
+    <li><a href="#s9">Gestión · Catálogos</a></li>
+    <li><a href="#s10">Seguimiento · Inicio</a></li>
+    <li><a href="#s11">Seguimiento · Banco de tareas</a></li>
+    <li><a href="#s12">Seguimiento · Actividades</a></li>
+    <li><a href="#s13">Seguimiento · Agenda</a></li>
+    <li><a href="#s14">Seguimiento · Equipo</a></li>
+    <li><a href="#s15">Seguimiento · Efectividad</a></li>
+    <li><a href="#s16">Seguimiento · Procesos</a></li>
+    <li><a href="#s17">Seguimiento · Finalizadas y archivadas</a></li>
+    <li><a href="#s18">Reportes</a></li>
+    <li><a href="#s19">Administración</a></li>
+    <li><a href="#s20">Glosario</a></li>
+    <li><a href="#s21">Cambios recientes</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="doc-head">
+  <h1 class="doc-title">Manual detallado de la plataforma</h1>
+  <p>Referencia completa de la plataforma interna de D&amp;P Ingeniería Integral: qué significa cada campo y cada columna, cómo se calcula cada número, y qué hace cada sección. Complementa la <em>Guía de Usuario</em> (documento 19), que es más corta y orientada a "cómo hago X".</p>
+  <p class="meta">D&amp;P Ingeniería Integral S.A.S. · app.dpingenieriaintegral.com · documento de referencia técnica</p>
+</header>
+
+<!-- ================= 1 ================= -->
+<section class="sec" id="s1">
+  <h2><span class="num">1</span>Introducción y arquitectura</h2>
+  <p class="lede">La plataforma reemplaza el manejo en Excel/HTML del negocio. Todo dato se registra una sola vez y se reutiliza; los números de rentabilidad se calculan solos a partir de esos datos.</p>
+
+  <h3>Los dos módulos</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Módulo</th><th>Para qué sirve</th><th>Secciones</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Gestión</td><td>El ciclo comercial y financiero: cotizar, ganar el trabajo, ejecutarlo, controlar costos y utilidad.</td><td>Inicio, Cotizaciones, Proyectos, Presupuestos, Compras, Catálogos (Clientes, Empresas atendidas, Proveedores, Banco de insumos, Inventario de materiales, Profesionales).</td></tr>
+      <tr><td class="col">Seguimiento</td><td>La operación diaria del equipo: qué tarea hace cada quien, cuánto tiempo toma, si se cumple a tiempo y con calidad.</td><td>Inicio, Banco de tareas, Actividades, Agenda, Equipo, Efectividad, Procesos, Finalizadas y archivadas.</td></tr>
+      <tr><td class="col">Reportes</td><td>Vistas consolidadas y exportables (PDF) de ambos módulos.</td><td>Panel de reportes.</td></tr>
+      <tr><td class="col">Administración</td><td>Configuración del negocio y control. Solo para administradores.</td><td>Usuarios, Parámetros, Temas, Auditoría, Soporte técnico.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>La cadena de datos</h3>
+  <div class="formula">
+    <div class="lbl">Flujo</div>
+    <div class="eq">Cliente + Empresa atendida  →  Cotización  →  (se aprueba)  →  Proyecto + Presupuesto  →  Compras  →  Control de costos y utilidad real</div>
+    <p>Cada eslabón hereda los datos del anterior. Cuando se aprueba una cotización nace automáticamente un proyecto y un presupuesto con los mismos ítems, los mismos porcentajes (administración, margen, IVA) y el mismo valor cotizado. A partir de ahí, cada compra que se registra actualiza solo el gasto real del proyecto.</p>
+  </div>
+
+  <div class="tip"><span class="callout-strong">Regla de oro</span>La información se registra una sola vez. El NIT del cliente se escribe en el catálogo de Clientes, no en cada proyecto. El costo de un insumo se actualiza en el Banco de insumos, no en cada cotización. Si un número aparece repetido en dos pantallas, siempre viene del mismo origen.</div>
+</section>
+
+<!-- ================= 2 ================= -->
+<section class="sec" id="s2">
+  <h2><span class="num">2</span>Acceso, roles y permisos</h2>
+
+  <h3>Ingreso</h3>
+  <ul>
+    <li><strong>Primer ingreso:</strong> un administrador invita al usuario por correo desde Administración → Usuarios. Le llega un enlace para definir su propia contraseña; ese enlace lo lleva directo a la pantalla de cambio de contraseña.</li>
+    <li><strong>Olvidé mi contraseña:</strong> desde la pantalla de ingreso, "Recuperar contraseña" envía un enlace al correo.</li>
+    <li><strong>Cambiar contraseña estando dentro:</strong> menú de la cuenta (abajo a la izquierda) → Cambiar contraseña.</li>
+  </ul>
+
+  <h3>Rol</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Rol</th><th>Qué puede hacer</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Administrador</td><td>Todo lo de Miembro, más: sección Administración completa (usuarios, parámetros, temas, auditoría, soporte), acciones destructivas (eliminar/archivar proyectos, cotizaciones, actividades), calificar la calidad de las tareas, y ver información financiera consolidada.</td></tr>
+      <tr><td class="col">Miembro</td><td>Trabajar en los módulos que tenga asignados (Seguimiento y/o Gestión): crear y editar cotizaciones, presupuestos, compras, tareas; registrar tiempo; consultar sus pendientes.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Módulos</h3>
+  <p>Independiente del rol, cada usuario tiene activados uno o ambos módulos (<code>seguimiento</code>, <code>gestion</code>). Si un módulo no está activado, ni siquiera aparece en el menú.</p>
+
+  <h3>Estado de la cuenta</h3>
+  <p>Un usuario puede estar <span class="pill v">Activo</span> o <span class="pill n">Inactivo</span>. Al desactivarlo (Administración → Usuarios → Desactivar) se le revoca el acceso — no puede volver a iniciar sesión — pero <strong>su nombre se conserva</strong> en todo el historial (tareas, cotizaciones, auditoría). No se puede eliminar de verdad porque rompería ese historial. Se puede reactivar en cualquier momento. Los usuarios inactivos desaparecen de los selectores de "Responsable" y del tablero de Equipo.</p>
+</section>
+
+<!-- ================= 3 ================= -->
+<section class="sec" id="s3">
+  <h2><span class="num">3</span>Motor financiero — todas las fórmulas</h2>
+  <p class="lede">Todo lo que la app calcula sobre plata sale de las fórmulas de esta sección. Están centralizadas en un solo lugar del código (<code>src/lib/finance.ts</code>), alineadas con el HTML de referencia V25 que definió Angélica.</p>
+
+  <h3 id="s3-factor">3.1 Factor de precio (markup sobre precio de venta)</h3>
+  <p>La app no cotiza "costo + un porcentaje encima del costo". Cotiza para que la <strong>utilidad sea un porcentaje del precio final</strong> (margen bruto, la definición contable estándar). Para lograrlo multiplica el costo por un factor:</p>
+  <div class="formula">
+    <div class="lbl">Factor</div>
+    <div class="eq">factor = (1 + administración%) / (1 − margen%)</div>
+    <p>Ejemplo con 15% de administración y 30% de margen: factor = 1.15 / 0.70 = <strong>1.642857</strong>. Un insumo que cuesta $10.000 se cotiza a $16.429.</p>
+  </div>
+  <div class="tbl-wrap"><table>
+    <caption>Cómo se mueve el factor</caption>
+    <thead><tr><th>Margen objetivo</th><th>Factor (admin 15%)</th><th>Qué significa</th></tr></thead>
+    <tbody>
+      <tr><td>0%</td><td>1.15</td><td>Solo cubre costo + administración. Cero utilidad.</td></tr>
+      <tr><td>30%</td><td>1.643</td><td>La utilidad es el 30% del precio.</td></tr>
+      <tr><td>50%</td><td>2.30</td><td>La utilidad es la mitad del precio.</td></tr>
+      <tr><td>90%</td><td>11.5</td><td>Precio muy alto; la utilidad es el 90% del precio.</td></tr>
+      <tr><td>100%</td><td>(imposible)</td><td>Sería división por cero: no se puede cobrar de forma que la utilidad sea el 100% del precio y aún así pagar los costos.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="warn"><span class="callout-strong">Trampa del 100%</span>Si se pone el margen en 100% (o más de 99.9%), la app usa <code>factor = 1 + admin%</code> para no reventar — y eso significa <strong>vender al costo, con cero utilidad</strong>. Es lo contrario de lo que uno esperaría. Por eso el campo "Margen objetivo" en el formulario de cotización está limitado a máximo 95%.</div>
+
+  <h3 id="s3-margenes">3.2 Margen objetivo, margen real y margen mínimo</h3>
+  <p>Son tres números distintos que conviene no confundir:</p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Concepto</th><th>Qué es</th><th>Dónde se define / se ve</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Margen objetivo</td><td>La ganancia que se <em>busca</em>, como % del precio. Solo se aplica a los ítems que están en modo <strong>Auto</strong>.</td><td>Se configura en el formulario de la cotización (y su valor por defecto en Parámetros). Cada cotización guarda el suyo.</td></tr>
+      <tr><td class="col">Margen real</td><td>La ganancia que de verdad <em>quedó</em>, calculada sobre los precios que efectivamente están en la tabla de ítems (incluyendo los puestos a mano).</td><td>Línea "Utilidad real de la oferta (margen real X% · objetivo Y%)" en el formulario y en la ficha del presupuesto.</td></tr>
+      <tr><td class="col">Margen mínimo</td><td>El umbral por debajo del cual la app recomienda revisar los precios antes de guardar.</td><td>Valor por defecto en Parámetros (<code>margen_minimo_pct</code>, arranca en 15%); editable por cotización.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="formula">
+    <div class="lbl">Utilidad real y margen real</div>
+    <div class="eq">costo directo   = Σ (cantidad × costo unitario interno) de cada ítem
+administración  = costo directo × administración%
+precio a cliente (antes de IVA) = Σ subtotales cliente de cada ítem
+utilidad real   = precio a cliente − costo directo − administración
+margen real     = utilidad real / precio a cliente</div>
+    <p>Si todos los ítems están en Auto, el margen real es exactamente igual al margen objetivo. Cada ítem manual que se ponga por debajo de lo que daría el margen "baja" el margen real.</p>
+  </div>
+  <div class="note">Además existe una "utilidad a tarifa" (<code>costo × factor − costo − admin</code>), que es la utilidad teórica si <em>todo</em> se cotizara con el factor. La app la calcula internamente como referencia, pero <strong>no</strong> la muestra como resultado de la oferta, porque puede ser hasta 4 veces mayor que la real cuando hay muchos ítems manuales.</div>
+
+  <h4>Aviso al guardar</h4>
+  <p>Al guardar una cotización (no al "Guardar borrador"), si el margen real quedó por debajo del mínimo recomendado, aparece un mensaje:</p>
+  <ul>
+    <li>Si la utilidad es negativa: <em>"Esta cotización pierde plata: la ganancia queda en −$X (margen −Y%)."</em></li>
+    <li>Si es positiva pero baja: <em>"Esta cotización deja un margen real de X%, por debajo del mínimo recomendado (Y%). Ganancia: $Z."</em></li>
+  </ul>
+  <p>Con botones <span class="pill n">Revisar</span> y <span class="pill a">Guardar de todas formas</span>. <strong>No bloquea.</strong> Si el margen está bien, no pregunta nada.</p>
+
+  <h3 id="s3-iva">3.3 IVA por ítem</h3>
+  <p>El IVA no es un interruptor único de toda la cotización. El interruptor maestro es "¿Responde por IVA?" (si está en No, no hay IVA en toda la cotización y las casillas quedan deshabilitadas). Si está en Sí, <strong>cada ítem tiene su propia casilla de IVA</strong> y el 19% se calcula solo sobre la suma de los ítems gravados.</p>
+  <div class="formula">
+    <div class="lbl">IVA de la cotización</div>
+    <div class="eq">base gravada = Σ subtotales cliente de los ítems con IVA marcado
+IVA          = base gravada × 19%
+total cotizado al cliente = precio a cliente (antes de IVA) + IVA</div>
+  </div>
+  <p>El IVA efectivo se guarda con la cotización (<code>iva_monto</code>) y se propaga al presupuesto al aprobar, para que el control de rentabilidad no infle el IVA cuando es parcial.</p>
+
+  <h3 id="s3-efectivo">3.4 Efectivo neto esperado</h3>
+  <p>Es cuánto le llega <em>realmente a caja</em> a D&amp;P después de lo que el cliente retiene y paga directamente a la DIAN y al municipio. Es distinto del motor de rentabilidad (que compara costo contra precio): aquí se parte del valor cotizado.</p>
+  <div class="formula">
+    <div class="lbl">Efectivo neto</div>
+    <div class="eq">valor sin IVA          = valor cotizado (con IVA) − IVA
+retención en la fuente = valor sin IVA × (retención% / 100)
+ICA                    = valor sin IVA × (tarifa ICA por mil / 1000)
+efectivo neto esperado = valor cotizado (con IVA) − retención − ICA − otras retenciones</div>
+    <p>La retención en la fuente es un <strong>porcentaje</strong> (ej. 11% honorarios → ÷ 100). El ICA es una <strong>tarifa por mil</strong> (ej. Bogotá servicios 9,66 × 1.000 → ÷ 1000), como lo cobran los municipios. Ambas tarifas vienen de la ficha del cliente. "Otras retenciones" es un valor fijo en pesos que se escribe por cotización.</p>
+  </div>
+  <div class="note">El error del ICA (dividir por 100 en vez de por 1000) que existía en agosto de 2026 ya está corregido: el ICA de un contrato de $33.600.000 con tarifa 9,66 es 33.600.000 × 9,66 / 1.000 = $324.576, no $3.245.760.</div>
+
+  <h3 id="s3-control">3.5 Control de costos del presupuesto</h3>
+  <div class="formula">
+    <div class="lbl">Plan de costos</div>
+    <div class="eq">plan (presupuesto vigente) = Σ "Presupuestado" de las líneas del plan de costos
+real ejecutado             = Σ (cantidad × valor unitario) de las compras del proyecto no archivadas
+                             (si aún no hay compras, usa el campo "Real" manual de cada línea)
+disponible                 = plan − real
+ganancia estimada (vs. plan) = valor cotizado − plan − administración − IVA
+ganancia según costos reales = valor cotizado − real − administración − IVA</div>
+    <p>La administración y el IVA que se restan aquí son los <strong>valores fijos</strong> calculados en el presupuesto (no se recalculan sobre el gasto real).</p>
+  </div>
+  <div class="note">Cuando el proyecto ya tiene compras registradas, la columna "Real" de cada línea del plan de costos se bloquea y muestra el encabezado <span class="pill n">Real (ref.)</span> — "referencia". El costo real total ya no se teclea a mano línea por línea: sale automático de Compras. Los valores en gris de esa columna son datos antiguos que ya no se usan.</div>
+
+  <h3 id="s3-semaforo">3.6 Semáforos del proyecto (tablero Control de proyectos)</h3>
+  <h4>Semáforo de plata</h4>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Estado</th><th>Cuándo</th></tr></thead>
+    <tbody>
+      <tr><td><span class="pill r">Sobre presupuesto</span></td><td>El comprometido en compras supera el plan por más de $1, <strong>o</strong> la ganancia según costos reales es negativa.</td></tr>
+      <tr><td><span class="pill a">En atención</span></td><td>El comprometido llegó al umbral de ejecución (80% del plan por defecto, configurable) sin excederlo.</td></tr>
+      <tr><td><span class="pill v">Sano</span></td><td>Todo lo demás.</td></tr>
+    </tbody>
+  </table></div>
+  <h4>Semáforo de tiempo</h4>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Estado</th><th>Cuándo</th></tr></thead>
+    <tbody>
+      <tr><td><span class="pill r">Atrasado</span></td><td>Ya pasó la fecha de entrega del proyecto.</td></tr>
+      <tr><td><span class="pill a">Por vencer</span></td><td>Faltan 15 días o menos para la entrega (configurable en Parámetros).</td></tr>
+      <tr><td><span class="pill v">A tiempo</span></td><td>Falta más tiempo que el aviso previo.</td></tr>
+      <tr><td><span class="pill n">Sin fecha</span></td><td>El proyecto no tiene fecha de entrega cargada.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note">"A tiempo" significa literalmente "no ha pasado la fecha de entrega". El avance real frente al tiempo transcurrido es otra dimensión, que viene del módulo Seguimiento.</div>
+
+  <h4>Definiciones de las cifras del proyecto</h4>
+  <div class="formula">
+    <div class="eq">valor aprobado    = Σ valor cotizado de los presupuestos del proyecto
+plan de costos    = Σ "Presupuestado" de todas las líneas
+comprometido      = Σ (cantidad × valor unitario) de TODAS las compras no archivadas
+                    (sin importar si están pagadas o no)
+pagado            = Σ igual, pero solo de las compras con estado "Pagado"
+ganancia proyectada = valor aprobado − plan − administración − IVA   (estable aunque no haya compras)
+ganancia real       = valor aprobado − comprometido − administración − IVA</div>
+  </div>
+</section>
+
+<!-- ================= 4 ================= -->
+<section class="sec" id="s4">
+  <h2><span class="num">4</span>Gestión · Inicio</h2>
+  <p class="lede">Panel de arranque del módulo. Tiene un filtro por período y por responsable en la parte superior que afecta todo lo de abajo.</p>
+
+  <h3>KPIs (tarjetas superiores)</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Tarjeta</th><th>Qué muestra</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Utilidad proyectada del período</td><td>Suma de la <strong>ganancia proyectada</strong> (valor − plan − admin − IVA) de los proyectos del filtro. Es estable aunque los proyectos todavía no tengan compras. Antes usaba la "ganancia real", que sin compras se parecía al valor completo del contrato e inflaba el número.</td></tr>
+      <tr><td class="col">Valor aprobado</td><td>Suma del valor cotizado de los proyectos del filtro.</td></tr>
+      <tr><td class="col">Proyectos</td><td>Cuántos proyectos caen en el período seleccionado.</td></tr>
+      <tr><td class="col">Clientes atendidos</td><td>Clientes distintos en esos proyectos.</td></tr>
+      <tr><td class="col">Empresas atendidas</td><td>Empresas atendidas distintas en esos proyectos.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Gráficos</h3>
+  <ul>
+    <li><strong>Control de proyectos — dos donas:</strong> "Plata" (Sano / En atención / Sobre presupuesto) y "Tiempo" (A tiempo / Por vencer / Atrasado / Sin fecha), con los mismos conteos de la tabla de abajo. El verde y el ámbar siguen el tema activo; el rojo y el gris son fijos.</li>
+    <li><strong>Utilidad proyectada por mes — barras:</strong> los mismos datos de la tabla "Evolución mensual". Completa con $0 los meses que quedan del año a partir del primer mes con actividad (no inventa actividad, son ceros reales).</li>
+  </ul>
+
+  <h3>Tabla "Control de proyectos"</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Columna</th><th>Qué es</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Proyecto</td><td>Código y nombre.</td></tr>
+      <tr><td class="col">Aprobado</td><td>Valor aprobado del proyecto (Σ valor cotizado de sus presupuestos).</td></tr>
+      <tr><td class="col">Presupuesto</td><td>Plan de costos (Σ presupuestado de las líneas).</td></tr>
+      <tr><td class="col">Gastado</td><td>Comprometido en compras.</td></tr>
+      <tr><td class="col">Disponible</td><td>Presupuesto − gastado. En rojo si es negativo.</td></tr>
+      <tr><td class="col">Ganancia real</td><td>Valor aprobado − comprometido − admin − IVA. Muestra "sin compras aún" mientras no haya gasto real registrado.</td></tr>
+      <tr><td class="col">Plata</td><td>Semáforo de plata (ver 3.6).</td></tr>
+      <tr><td class="col">Tiempo</td><td>Semáforo de tiempo (ver 3.6).</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Tabla "Evolución mensual"</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Columna</th><th>Qué es</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Mes</td><td>Mes del año (solo los meses con al menos un proyecto).</td></tr>
+      <tr><td class="col">Valor aprobado</td><td>Σ valor de los proyectos que arrancan ese mes.</td></tr>
+      <tr><td class="col">Utilidad proyectada</td><td>Σ ganancia proyectada de esos proyectos.</td></tr>
+      <tr><td class="col">Proyectos / Clientes / Empresas</td><td>Conteos distintos de ese mes.</td></tr>
+      <tr><td class="col">Variación</td><td>Diferencia de utilidad proyectada frente al mes anterior.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ================= 5 ================= -->
+<section class="sec" id="s5">
+  <h2><span class="num">5</span>Gestión · Cotizaciones</h2>
+  <p class="lede">Donde se arma la oferta al cliente. Una cotización aprobada genera automáticamente un proyecto y un presupuesto.</p>
+
+  <h3>Lista de cotizaciones</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Columna</th><th>Qué es</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Código</td><td>Consecutivo único de la cotización. Lo escribe el usuario (no se autogenera). No se puede repetir.</td></tr>
+      <tr><td class="col">Nombre</td><td>Nombre interno de la cotización.</td></tr>
+      <tr><td class="col">Cliente</td><td>Del catálogo de Clientes.</td></tr>
+      <tr><td class="col">Empresa atendida</td><td>La empresa concreta que recibe el servicio. Puede ser el mismo cliente.</td></tr>
+      <tr><td class="col">Responsable</td><td>Responsable comercial de la cotización.</td></tr>
+      <tr><td class="col">Fecha</td><td>Fecha de elaboración.</td></tr>
+      <tr><td class="col">Estado / vínculo</td><td>Estado (ver abajo) y, si ya está aprobada, el proyecto y presupuesto que generó.</td></tr>
+      <tr><td class="col">Valor cotizado</td><td>Total con IVA (<code>clientTotal</code>) — sale de los precios reales de la tabla de ítems.</td></tr>
+      <tr><td class="col">Enlaces</td><td>Cuántos enlaces a soportes (SharePoint u otros) tiene adjuntos.</td></tr>
+      <tr><td class="col">Acciones</td><td>Editar · PDF (descarga la cotización del cliente) · Aprobar → crear proyecto · Rechazar · Eliminar.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>Estados de la cotización</h4>
+  <p><span class="pill n">Borrador</span> · <span class="pill n">Pendiente por definir</span> · <span class="pill n">Enviada</span> · <span class="pill v">Aprobada</span> · <span class="pill r">Rechazada</span> · <span class="pill n">Cancelada</span></p>
+  <div class="tip">Cada cotización guarda su <strong>propio</strong> margen, administración e IVA. Aprobar la cotización copia esos porcentajes al presupuesto — antes no se copiaban y el presupuesto nacía con los valores por defecto de la base de datos (15/30/19).</div>
+
+  <h3>Formulario de cotización — datos generales</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Campo</th><th>Qué es</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Código / consecutivo</td><td>Obligatorio. Lo asigna el usuario según su numeración.</td></tr>
+      <tr><td class="col">Fecha de elaboración</td><td>Por defecto hoy.</td></tr>
+      <tr><td class="col">Cliente</td><td>Del catálogo. Al elegirlo se cargan sus tarifas tributarias (retención, ICA) para el efectivo neto.</td></tr>
+      <tr><td class="col">Empresa atendida</td><td>Del catálogo de Empresas atendidas del cliente, o el cliente directamente. Al elegirla se autocompletan Contacto, Correo y Teléfono con los datos guardados en su ficha (editables solo para esta cotización).</td></tr>
+      <tr><td class="col">Nombre de la cotización</td><td>Obligatorio. Nombre interno.</td></tr>
+      <tr><td class="col">Responsable comercial</td><td>Quién la elabora.</td></tr>
+      <tr><td class="col">Unidad</td><td>Nº de personas / unidades de referencia.</td></tr>
+      <tr><td class="col">Vigencia de la oferta (días)</td><td>Por defecto 30. Aparece en el PDF del cliente.</td></tr>
+      <tr><td class="col">Estado de la cotización</td><td>Ver estados arriba.</td></tr>
+      <tr><td class="col">Descripción de la cotización</td><td>El texto que describe al cliente lo ofrecido. <strong>Es lo que sale en el PDF</strong> (el PDF ya no lista los ítems).</td></tr>
+      <tr><td class="col">Contacto / Correo / Teléfono</td><td>Contacto de seguimiento; se autocompleta desde la empresa atendida.</td></tr>
+      <tr><td class="col">¿Responde por IVA?</td><td>Interruptor maestro del IVA.</td></tr>
+      <tr><td class="col">Seguimiento interno</td><td>Notas internas. No se imprime en la cotización del cliente.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Tabla de ítems de la cotización</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Columna</th><th>Qué es</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Origen</td><td>El tipo de ítem: <code>insumo</code>, <code>profesional</code> o <code>material</code>. Se agrega desde el catálogo correspondiente.</td></tr>
+      <tr><td class="col">Descripción</td><td>Descripción del ítem (viene del catálogo).</td></tr>
+      <tr><td class="col">Cant.</td><td>Cantidad. Editable.</td></tr>
+      <tr><td class="col">Costo unit. interno</td><td>Lo que le cuesta a D&amp;P por unidad. Viene del catálogo al agregar el ítem.</td></tr>
+      <tr><td class="col">Precio cliente unit.</td><td>Lo que se le cobra al cliente por unidad. Ver Auto / Manual abajo.</td></tr>
+      <tr><td class="col">IVA</td><td>Casilla: ¿este ítem lleva IVA? Deshabilitada si la cotización no responde por IVA.</td></tr>
+      <tr><td class="col">Subtotal cliente</td><td>Precio cliente unitario × cantidad.</td></tr>
+    </tbody>
+  </table></div>
+  <h4>Auto vs. Manual</h4>
+  <ul>
+    <li><span class="pill v">Auto</span> — la app pone el precio: <code>costo unitario × factor</code> (que depende del margen objetivo). Si se cambia el margen, se recalcula.</li>
+    <li><span class="pill a">Manual</span> — se escribió el precio a mano. Ese ítem <strong>ignora el margen objetivo</strong> y conserva lo que se puso. Teclear el mismo número que da el Auto no lo saca de Auto. El botón "↺ auto" lo devuelve.</li>
+  </ul>
+
+  <h3>Bloque "Parámetros de esta cotización"</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Campo / línea</th><th>Qué es</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Costos administrativos (%)</td><td>Overhead de D&amp;P, como % del costo directo. Por defecto 15%.</td></tr>
+      <tr><td class="col">Margen objetivo (%)</td><td>Ganancia buscada sobre el precio. Solo aplica a ítems en Auto. Máx. 95%. Por defecto 30%.</td></tr>
+      <tr><td class="col">Margen mínimo (%)</td><td>Umbral de aviso. Precargado desde Parámetros; editable por cotización.</td></tr>
+      <tr><td class="col">Costo directo interno</td><td>Σ (cantidad × costo unitario) de todos los ítems.</td></tr>
+      <tr><td class="col">Costos administrativos ($)</td><td>Costo directo × administración%.</td></tr>
+      <tr><td class="col">Utilidad real de la oferta</td><td>Precio a cliente − costo directo − administración. Con "(margen real X% · objetivo Y%)". En ámbar si el real quedó más de 3 puntos por debajo del objetivo, con un recuadro que explica por qué.</td></tr>
+      <tr><td class="col">Precio a cliente antes de IVA</td><td>Σ subtotales cliente.</td></tr>
+      <tr><td class="col">IVA (19%)</td><td>Sobre la base gravada (solo ítems con IVA marcado).</td></tr>
+      <tr><td class="col">Total cotizado al cliente</td><td>Precio antes de IVA + IVA. Es el valor que se guarda y el que ve el cliente.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Bloque "Efectivo neto esperado"</h3>
+  <p>Muestra el cálculo de la sección 3.4: valor cotizado con IVA, menos IVA, menos retención en la fuente (% del cliente), menos ICA (tarifa por mil del cliente), menos otras retenciones (campo editable). El resultado es lo que realmente entra a caja.</p>
+
+  <h3>Enlaces de la cotización</h3>
+  <p>En vez de subir archivos, se pegan enlaces a los soportes en SharePoint (u otro). Cada enlace tiene un título opcional. Máximo 10. La URL se normaliza y valida.</p>
+
+  <h3>El PDF del cliente</h3>
+  <p>El PDF es minimalista y corporativo: encabezado con recuadro de "Cotización" y regla verde, datos del cliente en tabla con bordes, la "Descripción de la cotización" en un recuadro con filo verde, un "Resumen económico" con encabezado verde oscuro y total destacado (valor antes de IVA / IVA / total), y las condiciones comerciales en tabla de dos columnas. <strong>Nunca muestra costos internos, administración, utilidad ni el listado de ítems.</strong></p>
+</section>
+
+<!-- ================= 6 ================= -->
+<section class="sec" id="s6">
+  <h2><span class="num">6</span>Gestión · Proyectos</h2>
+  <p class="lede">Un proyecto nace de una cotización aprobada (o rechazada). El código <code>PROY-AAAA-###</code> es único y ascendente.</p>
+
+  <h3>Lista de proyectos</h3>
+  <p>Por defecto oculta los archivados y los rechazados; hay un checkbox "Mostrar archivados y rechazados (N)" para verlos.</p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Columna</th><th>Qué es</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Código proyecto</td><td><code>PROY-AAAA-###</code>.</td></tr>
+      <tr><td class="col">Cotización</td><td>La cotización de origen.</td></tr>
+      <tr><td class="col">Nombre actual</td><td>Nombre del proyecto (editable en la ficha, arranca del de la cotización).</td></tr>
+      <tr><td class="col">Cliente / NIT cliente</td><td>Heredados del cliente.</td></tr>
+      <tr><td class="col">Responsable</td><td>Responsable del proyecto.</td></tr>
+      <tr><td class="col">Estado</td><td>Planeado · En ejecución · Suspendido · Finalizado · Cancelado · Rechazado. Si está archivado, muestra "Archivado".</td></tr>
+      <tr><td class="col">Mes inicio / Mes cierre</td><td>De las fechas de inicio y fin del proyecto.</td></tr>
+      <tr><td class="col">Valor aprobado</td><td>Σ valor cotizado de los presupuestos del proyecto.</td></tr>
+      <tr><td class="col">Comprometido</td><td>Σ compras no archivadas del proyecto (antes se llamaba "Costo vigente").</td></tr>
+      <tr><td class="col">Utilidad proyectada</td><td>Valor aprobado − plan − admin − IVA (antes "Utilidad vigente"). Muestra "—" mientras no haya gasto real.</td></tr>
+      <tr><td class="col">Acciones</td><td>Abrir / Editar · Archivar.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Ficha del proyecto</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Campo</th><th>Qué es</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Nombre</td><td>Nombre del proyecto (editable).</td></tr>
+      <tr><td class="col">Cliente / Empresa atendida</td><td>Editables.</td></tr>
+      <tr><td class="col">Responsable</td><td>Responsable del proyecto.</td></tr>
+      <tr><td class="col">Estado</td><td>Ciclo de vida del proyecto.</td></tr>
+      <tr><td class="col">Fecha de inicio / fecha de fin</td><td>Alimentan el semáforo de tiempo.</td></tr>
+      <tr><td class="col">Observaciones</td><td>Notas.</td></tr>
+    </tbody>
+  </table></div>
+  <p>La ficha ya no tiene la tarjeta "Compras registradas" (era una lista duplicada; las compras se ven en su módulo) ni la tarjeta "Contrato y retenciones" (el valor del contrato es el valor cotizado, y las retenciones viven en la ficha del cliente). Un texto apunta a la cotización para ver esos datos. Al guardar aparece "✓ Cambios guardados".</p>
+  <p>Abajo lista los presupuestos del proyecto, cada uno con un badge <span class="pill v">✅ Viable</span> / <span class="pill r">❌ No viable</span> (ver sección 7).</p>
+</section>
+
+<!-- ================= 7 ================= -->
+<section class="sec" id="s7">
+  <h2><span class="num">7</span>Gestión · Presupuestos</h2>
+  <p class="lede">El presupuesto es el control financiero del proyecto: parte de la cotización aprobada y se compara contra el gasto real.</p>
+
+  <h3>Lista de presupuestos</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Columna</th><th>Qué es</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Cód. presupuesto</td><td>Código del presupuesto.</td></tr>
+      <tr><td class="col">Proyecto</td><td>Proyecto al que pertenece.</td></tr>
+      <tr><td class="col">Cotización base</td><td>La cotización aprobada que lo originó.</td></tr>
+      <tr><td class="col">Cliente / NIT</td><td>Heredados.</td></tr>
+      <tr><td class="col">Nombre</td><td>Nombre del presupuesto.</td></tr>
+      <tr><td class="col">Valor aprobado</td><td>Valor cotizado al cliente (editable en la ficha).</td></tr>
+      <tr><td class="col">Presupuesto base</td><td>Plan de costos (Σ presupuestado de las líneas).</td></tr>
+      <tr><td class="col">Costo real</td><td>Gasto real: de las compras si el proyecto ya tiene; si no, del campo "Real" manual de las líneas.</td></tr>
+      <tr><td class="col">Disponible</td><td>Plan − real. En rojo si es negativo.</td></tr>
+      <tr><td class="col">Ganancia estimada</td><td>Valor cotizado − plan − admin − IVA.</td></tr>
+      <tr><td class="col">Utilidad vigente</td><td>Valor cotizado − real − admin − IVA. Muestra "—" mientras no haya costos reales.</td></tr>
+      <tr><td class="col">Ejecución</td><td>El avance de gasto: "Sin ejecutar" / "X% ejecutado" / "Excedido". (Antes se llamaba "Estado" y se confundía con el estado del proyecto.)</td></tr>
+      <tr><td class="col">Estado del proyecto</td><td>Solo lectura: el estado real del proyecto. El presupuesto no tiene ciclo de vida propio.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Ficha del presupuesto — datos base</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Campo</th><th>Qué es</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Nombre</td><td>Nombre del presupuesto.</td></tr>
+      <tr><td class="col">Costo directo base</td><td>Referencia de la cotización aprobada.</td></tr>
+      <tr><td class="col">Costos administrativos (%)</td><td>Heredado de la cotización. Editable.</td></tr>
+      <tr><td class="col">Margen objetivo (%)</td><td>Heredado de la cotización. Editable. Nota: cambiarlo mueve las cifras "a tarifa", no la utilidad real (que depende del valor cotizado).</td></tr>
+      <tr><td class="col">Aplica IVA / Tarifa de IVA (%)</td><td>Heredados de la cotización.</td></tr>
+      <tr><td class="col">Valor cotizado al cliente</td><td>Editable. <strong>Este es el valor que usan el control del proyecto y los reportes.</strong> Si difiere del de la cotización por más de $1, aparece un aviso ámbar.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Ficha del presupuesto — resumen financiero</h3>
+  <h4>Referencia · cotización aprobada</h4>
+  <p>Cifras de la oferta que aceptó el cliente. No cambian al ajustar el control de costos.</p>
+  <ul>
+    <li><strong>Costo directo (cotización aprobada)</strong></li>
+    <li><strong>Costos administrativos (X%)</strong></li>
+    <li><strong>IVA</strong> (si aplica)</li>
+    <li><strong>Utilidad de la oferta (margen real X% · objetivo Y%)</strong> — valor cotizado − costo − administración − IVA. En rojo si es negativa.</li>
+    <li><strong>Valor cotizado al cliente</strong></li>
+  </ul>
+  <h4>Control del proyecto · líneas vigentes</h4>
+  <ul>
+    <li><strong>Presupuesto vigente (plan)</strong> — Σ presupuestado.</li>
+    <li><strong>Costo real ejecutado</strong> — de las compras.</li>
+    <li><strong>Disponible (plan − real)</strong></li>
+    <li><strong>Ganancia estimada (vs. plan)</strong></li>
+    <li><strong>Ganancia según costos reales</strong> — muestra "— sin costos reales" mientras no haya gasto real.</li>
+  </ul>
+
+  <h4>Criterio de "Viable"</h4>
+  <div class="formula">
+    <div class="lbl">Viabilidad</div>
+    <div class="eq">viable = (valor cotizado − costo directo − administración − IVA) ≥ 0</div>
+    <p>Es decir: "la cotización cubre todos los costos, el overhead y el IVA → no da pérdida". <strong>No</strong> compara contra el margen objetivo ni contra una utilidad mínima. Una cotización que deje $1 es "viable". El aviso de "margen mínimo" (sección 3.2) es lo que alerta cuando el margen es bajo pero positivo.</p>
+  </div>
+
+  <h3>Plan de costos del proyecto</h3>
+  <p>Lista editable de líneas de costo. Empieza con los ítems de la cotización base. El orden es fijo (columna <code>orden</code>): editar un ítem ya no lo mueve de posición.</p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Columna</th><th>Qué es</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Origen</td><td><code>Presupuesto</code> (sembrado de la cotización), <code>Manual</code> (agregado a mano) o <code>Compra</code> (importado desde Compras).</td></tr>
+      <tr><td class="col">Categoría</td><td>Compras / insumos · Servicios / profesionales · Materiales / desgaste · Transporte / logística · Viáticos · Otros costos · Costos directos.</td></tr>
+      <tr><td class="col">Descripción</td><td>Editable.</td></tr>
+      <tr><td class="col">Proveedor / responsable</td><td>Texto libre. Editable.</td></tr>
+      <tr><td class="col">Presupuestado</td><td>Lo que se planea gastar en esta línea. Editable. Su suma es el "plan".</td></tr>
+      <tr><td class="col">Real (ejecutado / ref.)</td><td>Si el proyecto no tiene compras: se edita a mano. Si tiene compras: se bloquea y queda solo como referencia (el real total sale de Compras).</td></tr>
+      <tr><td class="col">Variación</td><td>Presupuestado − real de esa línea. En rojo si se pasó.</td></tr>
+      <tr><td class="col">Estado</td><td>Planeado · Cotizado · Aprobado · Pagado.</td></tr>
+    </tbody>
+  </table></div>
+  <p>Acciones del plan: <strong>Restaurar base</strong> (vuelve a traer los ítems originales de la cotización), <strong>Importar desde Compras</strong> (trae las compras del proyecto como líneas, sin duplicar las ya importadas), <strong>+ Agregar costo</strong>.</p>
+</section>
+
+<!-- ================= 8 ================= -->
+<section class="sec" id="s8">
+  <h2><span class="num">8</span>Gestión · Compras</h2>
+  <p class="lede">Cada compra registrada contra un proyecto alimenta automáticamente su costo real.</p>
+
+  <h3>Lista de compras</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Columna</th><th>Qué es</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Código</td><td>Consecutivo <code>COM-####</code>.</td></tr>
+      <tr><td class="col">Proyecto / centro de costos</td><td>Proyecto al que se carga la compra.</td></tr>
+      <tr><td class="col">Cliente</td><td>Heredado del proyecto.</td></tr>
+      <tr><td class="col">Fecha</td><td>Fecha de la compra.</td></tr>
+      <tr><td class="col">Proveedor</td><td>Del catálogo de Proveedores.</td></tr>
+      <tr><td class="col">Descripción</td><td>Qué se compró (insumo del catálogo o servicio libre).</td></tr>
+      <tr><td class="col">Cant. / V. unit. / Total</td><td>Cantidad, valor unitario, y su producto.</td></tr>
+      <tr><td class="col">Estado</td><td>Estado de pago: <span class="pill n">Pendiente</span> · <span class="pill a">Parcial</span> · <span class="pill v">Pagado</span>.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Formulario de compra</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Campo</th><th>Qué es</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Referencia</td><td>Nº de factura / remisión / referencia.</td></tr>
+      <tr><td class="col">Proyecto</td><td>Obligatorio. Define a qué proyecto se carga el gasto.</td></tr>
+      <tr><td class="col">Fecha</td><td>Fecha de la compra.</td></tr>
+      <tr><td class="col">Proveedor</td><td>Del catálogo.</td></tr>
+      <tr><td class="col">Categoría</td><td>Tipo de gasto.</td></tr>
+      <tr><td class="col">Insumo</td><td>Opcional, del Banco de insumos (si es un ítem catalogado).</td></tr>
+      <tr><td class="col">Servicio</td><td>Descripción libre si no es un insumo catalogado.</td></tr>
+      <tr><td class="col">Cantidad / Valor unitario</td><td>El total de la compra es su producto.</td></tr>
+      <tr><td class="col">Valor pagado</td><td>Cuánto se ha pagado ya (para el estado Parcial / Pagado).</td></tr>
+      <tr><td class="col">Estado de pago</td><td>Pendiente · Parcial · Pagado.</td></tr>
+      <tr><td class="col">Notas</td><td>Observaciones.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ================= 9 ================= -->
+<section class="sec" id="s9">
+  <h2><span class="num">9</span>Gestión · Catálogos</h2>
+  <p class="lede">Los catálogos son las tablas maestras. Se registran una vez y se reutilizan en cotizaciones, proyectos y compras. Todos permiten ordenar por cualquier columna (clic en el encabezado: 1er clic ascendente, 2do descendente, 3ro vuelve al orden original) y buscar/filtrar.</p>
+
+  <h3>9.1 Clientes</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Campo</th><th>Qué es</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Código</td><td>Consecutivo del cliente.</td></tr>
+      <tr><td class="col">Nombre</td><td>Razón social.</td></tr>
+      <tr><td class="col">NIT</td><td>Se hereda a cotizaciones, proyectos y presupuestos.</td></tr>
+      <tr><td class="col">Tipo / Sector</td><td>Clasificación.</td></tr>
+      <tr><td class="col">Contacto / Cargo / Correo / Teléfono</td><td>Contacto principal.</td></tr>
+      <tr><td class="col">Ciudad / Dirección</td><td>Ubicación.</td></tr>
+      <tr><td class="col">Estado</td><td>Activo / Inactivo.</td></tr>
+      <tr><td class="col">Retención en la fuente (%)</td><td><strong>Perfil tributario.</strong> Se aplica a todas las cotizaciones del cliente para el efectivo neto. Es un porcentaje.</td></tr>
+      <tr><td class="col">Tarifa de ICA (por mil)</td><td><strong>Perfil tributario.</strong> Tarifa por mil (÷ 1000), no porcentaje.</td></tr>
+      <tr><td class="col">Nombre del asesor</td><td>Asesor comercial de D&amp;P para ese cliente.</td></tr>
+      <tr><td class="col">Observaciones</td><td>Notas.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>9.2 Empresas atendidas</h3>
+  <p>La empresa concreta que recibe el servicio (puede ser el mismo cliente o una filial/tercero).</p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Campo</th><th>Qué es</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Empresa atendida / NIT / Sector / Dirección / Ciudad</td><td>Identificación.</td></tr>
+      <tr><td class="col">Contacto / Cargo / Correo del contacto / Teléfono del contacto</td><td>Se autocompletan en la cotización al elegir esta empresa.</td></tr>
+      <tr><td class="col">Nombre del asesor / Teléfono del asesor / Correo del asesor</td><td>Asesor.</td></tr>
+      <tr><td class="col">Estado</td><td>Activo / Inactivo.</td></tr>
+      <tr><td class="col">Observaciones</td><td>Notas.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>9.3 Proveedores</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Campo</th><th>Qué es</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Código / Nombre / razón social / NIT / Tipo</td><td>Identificación.</td></tr>
+      <tr><td class="col">Contacto / Correo / Teléfono / Dirección / Ciudad</td><td>Contacto.</td></tr>
+      <tr><td class="col">Forma de pago</td><td>Condiciones de pago acordadas.</td></tr>
+      <tr><td class="col">Estado</td><td>Activo / Inactivo.</td></tr>
+      <tr><td class="col">Nombre del asesor / Observaciones</td><td>Otros.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>9.4 Banco de insumos</h3>
+  <p>Cada insumo o servicio aparece una sola vez, con su costo de referencia. Orden por defecto: por código.</p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Campo</th><th>Qué es</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Código</td><td>Consecutivo del ítem.</td></tr>
+      <tr><td class="col">Categoría</td><td>Papelería, servicios, logística, etc.</td></tr>
+      <tr><td class="col">Unidad</td><td>unidad / hora / día / minuto / jornada / noche.</td></tr>
+      <tr><td class="col">Ítem / descripción</td><td>Nombre del ítem.</td></tr>
+      <tr><td class="col">Proveedor (opcional)</td><td>Proveedor de referencia.</td></tr>
+      <tr><td class="col">Valor unitario / valor hora</td><td>Costo interno. Este es el "costo unitario interno" que se trae a las cotizaciones.</td></tr>
+      <tr><td class="col">Actualización</td><td>Fecha del último cambio de costo.</td></tr>
+      <tr><td class="col">Estado</td><td>Activo / Inactivo.</td></tr>
+      <tr><td class="col">Observaciones</td><td>Notas.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>9.5 Inventario de materiales</h3>
+  <p>Materiales reutilizables cuyo costo se imputa por desgaste (no por consumo total).</p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Campo</th><th>Qué es</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Código / Nombre del material / Categoría</td><td>Identificación.</td></tr>
+      <tr><td class="col">Cantidad en stock / Ubicación en almacén / Custodio</td><td>Control físico.</td></tr>
+      <tr><td class="col">Estado</td><td>Disponible / En uso / En mantenimiento / Dado de baja.</td></tr>
+      <tr><td class="col">Valor de reposición</td><td>Cuánto cuesta reponer el material completo.</td></tr>
+      <tr><td class="col">Vida útil (jornadas)</td><td>Cuántas jornadas de uso aguanta.</td></tr>
+      <tr><td class="col">Costo/jornada</td><td>Calculado: valor de reposición ÷ vida útil en jornadas. Es lo que se imputa a una cotización por usar el material.</td></tr>
+      <tr><td class="col">Observaciones</td><td>Notas.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>9.6 Profesionales</h3>
+  <p>Profesionales externos que se subcontratan. No tienen acceso a la plataforma ni aparecen en Agenda; solo se les hace seguimiento administrativo.</p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Campo</th><th>Qué es</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Cédula / Nombre completo / Ciudad</td><td>Identificación.</td></tr>
+      <tr><td class="col">Perfil / profesión / Especialidad</td><td>Qué hace.</td></tr>
+      <tr><td class="col">Correo / Teléfono / Teléfono de emergencias</td><td>Contacto.</td></tr>
+      <tr><td class="col">EPS / ARL</td><td>Seguridad social.</td></tr>
+      <tr><td class="col">Tarifa por hora / Valor jornada</td><td>Costo de contratación. Es el "costo unitario interno" cuando se agrega a una cotización.</td></tr>
+      <tr><td class="col">Vínculo</td><td>Tipo de vínculo contractual.</td></tr>
+      <tr><td class="col">Link a la carpeta de documentos</td><td>Enlace externo (hoja de vida, contratos).</td></tr>
+      <tr><td class="col">Estado</td><td>Activo / Inactivo.</td></tr>
+      <tr><td class="col">Observaciones</td><td>Notas.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ================= 10 ================= -->
+<section class="sec" id="s10">
+  <h2><span class="num">10</span>Seguimiento · Inicio</h2>
+  <p class="lede">Panel de arranque del módulo de operación. Muestra los pendientes de la persona (o de todos, según el filtro superior).</p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Columna de la tabla</th><th>Qué es</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Tarea</td><td>Nombre de la tarea.</td></tr>
+      <tr><td class="col">Cliente</td><td>Cliente asociado.</td></tr>
+      <tr><td class="col">Proyecto</td><td>Proyecto asociado.</td></tr>
+      <tr><td class="col">Responsable</td><td>Quién la tiene asignada.</td></tr>
+      <tr><td class="col">Estado</td><td>Disponible / En proceso / Pausada / Terminada.</td></tr>
+      <tr><td class="col">Vence</td><td>Fecha límite. En rojo si ya pasó.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ================= 11 ================= -->
+<section class="sec" id="s11">
+  <h2><span class="num">11</span>Seguimiento · Banco de tareas</h2>
+  <p class="lede">El tablero de trabajo del equipo. Tres columnas: Disponibles, En proceso, Terminadas pendientes de archivo.</p>
+
+  <h3>Los 5 pasos del flujo</h3>
+  <ol>
+    <li><strong>Revisa la tarea</strong> — abre "Ver detalles" para leer descripción, instrucciones y entregables.</li>
+    <li><strong>Toma y programa</strong> — al tomarla, indica fecha y hora; la Agenda se crea automáticamente.</li>
+    <li><strong>Mide el tiempo</strong> — el cronómetro corre solo cuando la tarea está En proceso.</li>
+    <li><strong>Finaliza</strong> — al terminar se detiene el cronómetro y el tiempo queda consolidado.</li>
+    <li><strong>Revisión y archivo</strong> — la Directora califica la calidad y archiva. Queda en "Finalizadas y archivadas".</li>
+  </ol>
+  <div class="note">Las acciones administrativas (eliminar, cambiar de estado a la fuerza, archivar) son solo de la Directora de Proyectos.</div>
+
+  <h3>Formulario "Publicar tarea" / "Registrar actividad manual"</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Campo</th><th>Qué es</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Nombre de la actividad</td><td>Obligatorio. Campo de texto libre. (Antes era un desplegable "Actividad del mapa de procesos"; se cambió a escritura manual.)</td></tr>
+      <tr><td class="col">Cliente</td><td>Obligatorio. Del catálogo.</td></tr>
+      <tr><td class="col">Empresa atendida</td><td>Se filtra según el cliente elegido.</td></tr>
+      <tr><td class="col">Proyecto</td><td>Obligatorio. <strong>Solo lista proyectos activos</strong> (no archivados ni rechazados).</td></tr>
+      <tr><td class="col">Proceso</td><td>Obligatorio. Del catálogo de Procesos. Selección independiente (ya no se autocompleta).</td></tr>
+      <tr><td class="col">Responsable</td><td>Equipo interno o profesional externo. En "actividad manual" un miembro solo puede asignarse a sí mismo (salvo admin).</td></tr>
+      <tr><td class="col">Prioridad</td><td>Alta / Media / Baja.</td></tr>
+      <tr><td class="col">Fecha límite</td><td>Obligatoria.</td></tr>
+      <tr><td class="col">Horas estimadas</td><td>Referencia para el cálculo de carga y de eficiencia de tiempo.</td></tr>
+      <tr><td class="col">Fecha / Hora de inicio (Agenda)</td><td>Cuándo se va a trabajar; crea el bloque de Agenda.</td></tr>
+      <tr><td class="col">Descripción / Instrucciones para el desarrollo</td><td>Detalle del trabajo.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Estados de una tarea</h3>
+  <p><span class="pill n">Disponible</span> — nadie la ha tomado · <span class="pill a">En proceso</span> — alguien la está trabajando, el cronómetro corre · <span class="pill n">Pausada</span> — en pausa, el cronómetro detenido · <span class="pill v">Terminada</span> — hecha, pendiente de revisión y archivo.</p>
+</section>
+
+<!-- ================= 12 ================= -->
+<section class="sec" id="s12">
+  <h2><span class="num">12</span>Seguimiento · Actividades</h2>
+  <p class="lede">Vista de todas las tareas como registro de actividad, con filtro por cargo. Sirve para ver qué se hizo y con qué resultado.</p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Columna</th><th>Qué es</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Fecha</td><td>Fecha de la actividad.</td></tr>
+      <tr><td class="col">Cargo</td><td>Cargo del responsable.</td></tr>
+      <tr><td class="col">Actividad</td><td>Nombre de la tarea.</td></tr>
+      <tr><td class="col">Cliente / Proyecto</td><td>Asociados.</td></tr>
+      <tr><td class="col">Estado</td><td>Resultado de la actividad: <span class="pill v">Cumplida</span> · <span class="pill a">Pendiente/Parcial</span> · <span class="pill r">No cumplida</span>.</td></tr>
+      <tr><td class="col">Origen</td><td>"Banco de tareas" o "Actividad manual".</td></tr>
+      <tr><td class="col">Observaciones</td><td>Notas de publicación.</td></tr>
+    </tbody>
+  </table></div>
+  <p>La Directora puede eliminar una actividad desde aquí, con confirmación. Eso la quita también del Banco de tareas, el Historial y Efectividad.</p>
+</section>
+
+<!-- ================= 13 ================= -->
+<section class="sec" id="s13">
+  <h2><span class="num">13</span>Seguimiento · Agenda</h2>
+  <p class="lede">Calendario semanal. Cada bloque es una tarea programada con día, hora de inicio y horas. Se crean automáticamente al tomar/programar una tarea, y se pueden reprogramar arrastrando.</p>
+  <div class="note">La Agenda alimenta la <strong>Capacidad del equipo</strong> (cuántas horas tiene cada quien planificadas esta semana), pero ya <strong>no</strong> influye en la Efectividad.</div>
+  <h4>Recordatorios emergentes</h4>
+  <p>Cuando se acerca la hora de un bloque, la app muestra un aviso emergente con sonido. Se puede descartar. El estado del recordatorio (pendiente / mostrado / descartado) se guarda para no repetirlo.</p>
+</section>
+
+<!-- ================= 14 ================= -->
+<section class="sec" id="s14">
+  <h2><span class="num">14</span>Seguimiento · Equipo</h2>
+  <p class="lede">Carga semanal y pendientes por persona. <strong>Solo lista usuarios activos.</strong></p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Columna</th><th>Qué es</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Persona</td><td>Nombre y cargo.</td></tr>
+      <tr><td class="col">Abiertas</td><td>Tareas no archivadas y no terminadas asignadas a la persona.</td></tr>
+      <tr><td class="col">Vencidas</td><td>De las abiertas, las que ya pasaron su fecha límite. En rojo.</td></tr>
+      <tr><td class="col">En proceso</td><td>Tareas En proceso o Pausadas.</td></tr>
+      <tr><td class="col">Archivadas</td><td>Tareas ya archivadas de la persona (con enlace "Ver archivadas" para la Directora).</td></tr>
+      <tr><td class="col">Carga semanal</td><td>Horas planificadas en Agenda esta semana / capacidad semanal de la persona, con % y una lectura: Capacidad disponible / Carga equilibrada / Carga alta (≥80%) / Sobrecarga (&gt;100%).</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ================= 15 ================= -->
+<section class="sec" id="s15">
+  <h2><span class="num">15</span>Seguimiento · Efectividad</h2>
+  <p class="lede">Mide la calidad del trabajo terminado. La calidad la califica un administrador al revisar cada tarea antes de archivarla (escala de 1 a 5 estrellas).</p>
+  <div class="formula">
+    <div class="lbl">Calidad</div>
+    <div class="eq">1 estrella = 20%   ·   2 = 40%   ·   3 = 60%   ·   4 = 80%   ·   5 = 100%</div>
+    <p>El promedio de calidad del período es el promedio de las tareas ya calificadas. Las tareas sin calificar cuentan como "efectividad provisional".</p>
+  </div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Columna</th><th>Qué es</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Tarea / Responsable</td><td>Identificación.</td></tr>
+      <tr><td class="col">Terminada</td><td>Fecha de cierre.</td></tr>
+      <tr><td class="col">Tiempo consolidado</td><td>Horas reales registradas por el cronómetro.</td></tr>
+      <tr><td class="col">Calidad</td><td>La calificación en estrellas / %.</td></tr>
+      <tr><td class="col">Resultado</td><td>La efectividad final una vez calificada.</td></tr>
+      <tr><td class="col">Acción</td><td>Calificar (solo Directora).</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note">Los pesos configurables en Parámetros (cumplimiento, oportunidad, calidad, eficiencia de tiempo) son parte del modelo de puntaje ampliado; la vista actual de Efectividad se centra en la calidad calificada y el tiempo consolidado.</div>
+</section>
+
+<!-- ================= 16 ================= -->
+<section class="sec" id="s16">
+  <h2><span class="num">16</span>Seguimiento · Procesos</h2>
+  <p class="lede">Catálogo del mapa de procesos de D&amp;P: cada proceso tiene un código y un nombre. Se usa para clasificar las tareas (campo "Proceso" del formulario de publicar tarea).</p>
+</section>
+
+<!-- ================= 17 ================= -->
+<section class="sec" id="s17">
+  <h2><span class="num">17</span>Seguimiento · Finalizadas y archivadas</h2>
+  <p class="lede">El histórico de tareas cerradas. No afecta la carga actual del equipo.</p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Columna</th><th>Qué es</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Actividad</td><td>Nombre de la tarea.</td></tr>
+      <tr><td class="col">Cliente / empresa / Proyecto</td><td>Asociados.</td></tr>
+      <tr><td class="col">Responsable</td><td>Quién la hizo.</td></tr>
+      <tr><td class="col">Finalizada</td><td>Fecha de cierre.</td></tr>
+      <tr><td class="col">Tiempo</td><td>Horas consolidadas del cronómetro.</td></tr>
+      <tr><td class="col">Calidad</td><td>Calificación final.</td></tr>
+      <tr><td class="col">Entregable</td><td>Enlace o nota del entregable.</td></tr>
+      <tr><td class="col">Archivada</td><td>Fecha de archivo (columna visible según filtro).</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ================= 18 ================= -->
+<section class="sec" id="s18">
+  <h2><span class="num">18</span>Reportes</h2>
+  <p class="lede">Vistas consolidadas de ambos módulos, con exportación a PDF.</p>
+  <h3>Reportes predefinidos</h3>
+  <ul>
+    <li><strong>Resumen operativo:</strong> tareas disponibles / en proceso / terminadas, proyectos activos, clientes, presupuestos, presupuestos viables, valor cotizado total, ganancia estimada total, actividades cumplidas.</li>
+    <li><strong>Proyectos y presupuestos:</strong> por proyecto — código, cliente, empresa, estado, nº de presupuestos, ganancia estimada, total costos, total valor cotizado.</li>
+    <li><strong>Rentabilidad por presupuesto:</strong> por presupuesto — costos, administración, utilidad, IVA, valor cotizado, viabilidad (Viable / No viable).</li>
+    <li><strong>Cotizaciones:</strong> código, nombre, cliente, empresa, fecha, valor cotizado, estado.</li>
+  </ul>
+  <h3>Reportes personalizados</h3>
+  <p>Permiten elegir columnas y filtros propios.</p>
+  <h3>Control de proyectos en PDF</h3>
+  <p>Exporta el tablero de Control de proyectos (los semáforos de plata y tiempo) a un PDF con el mismo formato corporativo.</p>
+</section>
+
+<!-- ================= 19 ================= -->
+<section class="sec" id="s19">
+  <h2><span class="num">19</span>Administración</h2>
+  <p class="lede">Solo para administradores. Configuración del negocio y control.</p>
+
+  <h3>19.1 Usuarios</h3>
+  <p>Invitar usuario (por correo), editar rol / módulos / cargo / capacidad semanal, y <strong>Desactivar / Reactivar</strong> (ver sección 2). El indicador verde/gris al lado del nombre muestra si la persona está en línea (actividad en los últimos 2 minutos).</p>
+
+  <h3>19.2 Parámetros del negocio</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Parámetro</th><th>Qué controla</th><th>Def.</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Costos administrativos (%)</td><td>Overhead por defecto para cotizaciones nuevas.</td><td>15</td></tr>
+      <tr><td class="col">Margen de utilidad objetivo (%)</td><td>Margen por defecto para cotizaciones nuevas.</td><td>30</td></tr>
+      <tr><td class="col">Margen mínimo recomendado (%)</td><td>Umbral por debajo del cual, al guardar una cotización, aparece el aviso de revisar precios. Cada cotización lo hereda y lo puede ajustar.</td><td>15</td></tr>
+      <tr><td class="col">IVA predeterminado (%)</td><td>Tarifa de IVA por defecto.</td><td>19</td></tr>
+      <tr><td class="col">Alerta de ejecución del presupuesto (%)</td><td>% del plan gastado al que un proyecto pasa a "En atención" (amarillo). El rojo es al 100% o si la ganancia real es negativa.</td><td>80</td></tr>
+      <tr><td class="col">Aviso previo a la entrega (días)</td><td>Días antes de la fecha de entrega en que un proyecto pasa a "Por vencer".</td><td>15</td></tr>
+      <tr><td class="col">Gastos / Ingresos mensuales de la empresa</td><td>Referencia para análisis de punto de equilibrio.</td><td>0</td></tr>
+    </tbody>
+  </table></div>
+  <p>Bloque aparte: <strong>Parámetros de Efectividad</strong> — pesos de cumplimiento / oportunidad / calidad / eficiencia de tiempo, y capacidad semanal estándar (horas).</p>
+
+  <h3>19.3 Temas</h3>
+  <p>Selector entre 6 temas visuales de la plataforma. Cambia la paleta de colores de toda la interfaz y de los gráficos.</p>
+
+  <h3>19.4 Auditoría</h3>
+  <p>Historial de quién cambió qué y cuándo. Registra <strong>INSERT / UPDATE / DELETE</strong> con los valores anterior y nuevo, vía disparadores de base de datos (captura todo cambio, no solo los que pasan por la app).</p>
+  <h4>Alcance</h4>
+  <p>Se auditan: <strong>Proyectos, Compras, Parámetros financieros, Cotizaciones, Presupuestos, Plan de costos, Clientes y Empresas atendidas.</strong> Los guardados que no cambian nada (comunes por el autoguardado) no generan registro. Hay un filtro por tabla en la parte superior.</p>
+  <h4>Retención</h4>
+  <p>Se conservan los <strong>últimos 12 meses</strong>. Una limpieza automática nocturna (dentro de la base de datos) borra lo más viejo.</p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Columna</th><th>Qué es</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Fecha</td><td>Cuándo se hizo el cambio.</td></tr>
+      <tr><td class="col">Tabla</td><td>Qué se cambió.</td></tr>
+      <tr><td class="col">Acción</td><td>Creado / Editado / Eliminado.</td></tr>
+      <tr><td class="col">Usuario</td><td>Quién lo hizo (— si el cambio fue por un proceso automático).</td></tr>
+      <tr><td class="col">Cambios</td><td>Para ediciones: campo por campo, "antes → después".</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>19.5 Soporte técnico</h3>
+  <p>Para reportar problemas o solicitudes de mejora de la plataforma. Al crear un ticket se envía un correo automático al equipo de soporte.</p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Campo</th><th>Qué es</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Título</td><td>Resumen corto del problema.</td></tr>
+      <tr><td class="col">Urgencia</td><td>Baja / Media / Alta.</td></tr>
+      <tr><td class="col">Descripción</td><td>Qué pasó, en qué pantalla, qué se esperaba.</td></tr>
+      <tr><td class="col">Página o sección (opcional)</td><td>Dónde ocurre.</td></tr>
+      <tr><td class="col">Estado (gestión)</td><td>Abierto / En revisión / Resuelto, con una nota de respuesta.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>19.6 Resumen semanal por correo</h3>
+  <p>Todos los lunes, un correo automático a los administradores con: tareas terminadas de la semana, proyectos con ganancia negativa, compras pendientes de pago y su saldo total.</p>
+</section>
+
+<!-- ================= 20 ================= -->
+<section class="sec" id="s20">
+  <h2><span class="num">20</span>Glosario</h2>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Término</th><th>Significado</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Valor cotizado / valor aprobado</td><td>El precio total con IVA que acepta el cliente. Es lo mismo que el "valor del contrato".</td></tr>
+      <tr><td class="col">Costo directo</td><td>Lo que le cuesta a D&amp;P ejecutar (insumos + profesionales + materiales), sin overhead.</td></tr>
+      <tr><td class="col">Administración (overhead)</td><td>Gastos de estructura de D&amp;P imputados al proyecto, como % del costo directo.</td></tr>
+      <tr><td class="col">Factor</td><td>El multiplicador <code>(1+admin%)/(1−margen%)</code> que convierte costo en precio.</td></tr>
+      <tr><td class="col">Margen objetivo</td><td>Ganancia buscada como % del precio (solo aplica a ítems en Auto).</td></tr>
+      <tr><td class="col">Margen real</td><td>Ganancia que de verdad quedó, sobre los precios reales de la tabla.</td></tr>
+      <tr><td class="col">Margen mínimo</td><td>Umbral de aviso al guardar.</td></tr>
+      <tr><td class="col">Utilidad "a tarifa"</td><td>Utilidad teórica si todo se cotizara con el factor. Referencia interna, no se muestra como resultado.</td></tr>
+      <tr><td class="col">Plan de costos</td><td>Lo que se planea gastar por línea, en el presupuesto.</td></tr>
+      <tr><td class="col">Comprometido / gastado</td><td>Suma de todas las compras del proyecto (pagadas o no).</td></tr>
+      <tr><td class="col">Pagado</td><td>Suma de las compras con estado "Pagado".</td></tr>
+      <tr><td class="col">Disponible</td><td>Plan − real. Cuánto queda antes de pasarse del presupuesto.</td></tr>
+      <tr><td class="col">Ganancia proyectada</td><td>Valor − plan − admin − IVA. Lo que se espera ganar si todo sale como se planeó.</td></tr>
+      <tr><td class="col">Ganancia real</td><td>Valor − comprometido − admin − IVA. Lo que se está ganando de verdad.</td></tr>
+      <tr><td class="col">Efectivo neto esperado</td><td>Lo que entra a caja después de retención en la fuente, ICA y otras retenciones.</td></tr>
+      <tr><td class="col">Retención en la fuente</td><td>Impuesto que el cliente retiene y paga a la DIAN a nombre de D&amp;P. Porcentaje.</td></tr>
+      <tr><td class="col">ICA</td><td>Impuesto de industria y comercio municipal. Tarifa "por mil" (÷ 1000).</td></tr>
+      <tr><td class="col">Viable</td><td>La cotización no da pérdida (utilidad ≥ 0). No garantiza un margen bueno.</td></tr>
+      <tr><td class="col">Auto / Manual</td><td>Modo del precio de un ítem: calculado por la app / escrito a mano.</td></tr>
+      <tr><td class="col">Semáforo de plata / de tiempo</td><td>Indicadores de estado del proyecto por presupuesto y por cronograma.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ================= 21 ================= -->
+<section class="sec" id="s21">
+  <h2><span class="num">21</span>Cambios recientes</h2>
+  <p class="lede">Ajustes hechos a la plataforma durante septiembre de 2026, que este manual ya refleja.</p>
+  <ul>
+    <li><strong>Cálculo del ICA</strong> corregido (÷ 1000, tarifa por mil, no ÷ 100).</li>
+    <li><strong>"Valor sugerido" eliminado</strong> de cotizaciones y presupuestos: todo se apoya en el valor cotizado real.</li>
+    <li><strong>IVA por ítem</strong> en vez de un interruptor global.</li>
+    <li><strong>Retención en la fuente e ICA</strong> movidas a la ficha del cliente; "efectivo neto esperado" mostrado en la cotización.</li>
+    <li><strong>Soportes → Enlaces</strong>: enlaces a SharePoint en vez de subir archivos.</li>
+    <li><strong>PDF del cliente</strong> rediseñado, minimalista y corporativo, sin listado de ítems.</li>
+    <li><strong>Coherencia cotización → proyecto → presupuesto</strong>: al aprobar, el presupuesto hereda administración, margen e IVA de la cotización. El tablero usa las mismas cifras que la ficha.</li>
+    <li><strong>Utilidad real vs. "a tarifa"</strong>: los paneles muestran la utilidad real, no la teórica.</li>
+    <li><strong>Gráficos</strong> agregados a Inicio de Gestión (donas de semáforo, barras de utilidad mensual).</li>
+    <li><strong>Ordenar por columna</strong> en todos los catálogos (clic en el encabezado).</li>
+    <li><strong>Autocompletar contacto</strong> desde la empresa atendida al elegirla en la cotización.</li>
+    <li><strong>"Estado" del presupuesto → "Ejecución"</strong> + columna "Estado del proyecto".</li>
+    <li><strong>Margen objetivo / margen real / margen mínimo</strong> aclarados en el formulario, con aviso al guardar por debajo del mínimo y recuadro explicativo del desvío.</li>
+    <li><strong>Leyenda Auto/Manual</strong> encima de la tabla de ítems.</li>
+    <li><strong>Plan de costos</strong>: los ítems ya no cambian de posición al editarlos (columna de orden explícita).</li>
+    <li><strong>Publicar tarea</strong>: "Nombre de la actividad" manual en vez del desplegable de catálogo; el campo "Proyecto" solo muestra proyectos activos.</li>
+    <li><strong>Usuarios</strong>: "Desactivar" (con confirmación) en vez de eliminar; el enlace de invitación lleva directo a cambio de contraseña; el formulario de invitar cierra y confirma al enviar.</li>
+    <li><strong>Equipo</strong>: solo lista usuarios activos.</li>
+    <li><strong>Soporte técnico</strong>: nueva sección en Administración con aviso por correo.</li>
+    <li><strong>Auditoría</strong>: alcance ampliado (cotizaciones, presupuestos, plan de costos, clientes, empresas), filtro por tabla, retención de 12 meses.</li>
+  </ul>
+</section>
+
+
+<script>
+(function () {
+  var norm = function (s) { return (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); };
+  var input = document.getElementById("q");
+  var clearBtn = document.getElementById("qclear");
+  var wrap = document.getElementById("search");
+  var count = document.getElementById("qcount");
+  var toc = document.querySelector("nav.toc ol");
+  var lis = Array.prototype.slice.call(toc.querySelectorAll(":scope > li"));
+  var sections = Array.prototype.slice.call(document.querySelectorAll("main section.sec"));
+
+  var idx = {};
+  sections.forEach(function (sec) { idx[sec.id] = norm(sec.textContent); });
+  var liInfo = lis.map(function (li) {
+    var a = li.querySelector(":scope > a[href^='#']");
+    var id = a ? a.getAttribute("href").slice(1) : null;
+    var subs = Array.prototype.slice.call(li.querySelectorAll("a.sub"));
+    return { li: li, id: id, subs: subs, labels: norm(a ? a.textContent : "") + " " + subs.map(function (s) { return norm(s.textContent); }).join(" ") };
+  });
+
+  function clearMarks() {
+    document.querySelectorAll("mark.hit").forEach(function (m) {
+      var t = document.createTextNode(m.textContent);
+      var parent = m.parentNode;
+      parent.replaceChild(t, m);
+      parent.normalize();
+    });
+  }
+
+  function highlight(sec, q) {
+    if (!sec || !q) return;
+    var walker = document.createTreeWalker(sec, NodeFilter.SHOW_TEXT, {
+      acceptNode: function (n) {
+        if (!n.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+        var p = n.parentNode.nodeName;
+        if (p === "SCRIPT" || p === "STYLE" || p === "MARK") return NodeFilter.FILTER_REJECT;
+        return norm(n.nodeValue).indexOf(q) > -1 ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      }
+    });
+    var targets = [], n;
+    while ((n = walker.nextNode())) targets.push(n);
+    targets.forEach(function (node) {
+      var hay = norm(node.nodeValue), raw = node.nodeValue, frag = document.createDocumentFragment();
+      var i = 0, at;
+      while ((at = hay.indexOf(q, i)) > -1) {
+        if (at > i) frag.appendChild(document.createTextNode(raw.slice(i, at)));
+        var m = document.createElement("mark");
+        m.className = "hit";
+        m.textContent = raw.slice(at, at + q.length);
+        frag.appendChild(m);
+        i = at + q.length;
+      }
+      if (i < raw.length) frag.appendChild(document.createTextNode(raw.slice(i)));
+      node.parentNode.replaceChild(frag, node);
+    });
+  }
+
+  function run() {
+    var raw = input.value.trim();
+    var q = norm(raw);
+    wrap.classList.toggle("has-value", raw.length > 0);
+    clearMarks();
+
+    if (!q) {
+      liInfo.forEach(function (info) {
+        info.li.classList.remove("hidden");
+        info.subs.forEach(function (s) { s.classList.remove("hidden"); });
+      });
+      count.textContent = "";
+      return;
+    }
+
+    var shown = 0, firstSec = null;
+    liInfo.forEach(function (info) {
+      var inBody = info.id && idx[info.id] && idx[info.id].indexOf(q) > -1;
+      var inLabel = info.labels.indexOf(q) > -1;
+      var match = inBody || inLabel;
+      info.li.classList.toggle("hidden", !match);
+      if (match) {
+        shown++;
+        if (!firstSec) firstSec = document.getElementById(info.id);
+        info.subs.forEach(function (s) {
+          var sid = s.getAttribute("href").slice(1);
+          var subSec = document.getElementById(sid);
+          var subMatch = norm(s.textContent).indexOf(q) > -1 || (subSec && norm(subSec.textContent).indexOf(q) > -1);
+          s.classList.toggle("hidden", !subMatch);
+        });
+      }
+    });
+
+    count.textContent = shown === 0 ? "Sin resultados" : (shown === 1 ? "1 seccion" : shown + " secciones");
+    sections.forEach(function (sec) { highlight(sec, q); });
+    var firstMark = document.querySelector("mark.hit");
+    if (firstMark) firstMark.classList.add("current");
+    if (firstSec) firstSec.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  var t;
+  input.addEventListener("input", function () { clearTimeout(t); t = setTimeout(run, 140); });
+  input.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { input.value = ""; run(); input.blur(); }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      var marks = Array.prototype.slice.call(document.querySelectorAll("mark.hit"));
+      if (!marks.length) return;
+      var cur = document.querySelector("mark.hit.current");
+      var i = cur ? marks.indexOf(cur) : -1;
+      if (cur) cur.classList.remove("current");
+      var next = marks[(i + 1) % marks.length];
+      next.classList.add("current");
+      next.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  });
+  clearBtn.addEventListener("click", function () { input.value = ""; run(); input.focus(); });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "/" && document.activeElement !== input && !/^(INPUT|TEXTAREA)$/.test(document.activeElement.nodeName)) {
+      e.preventDefault(); input.focus();
+    }
+  });
+})();
+</script>
+</main>
+</div>
+
+</body>
+</html>
