@@ -45,6 +45,17 @@ type BaseCotizacion = {
 const CATEGORIAS = ["Compras / insumos", "Servicios / profesionales", "Materiales / desgaste", "Transporte / logistica", "Viáticos", "Otros costos", "Costos directos"];
 const ESTADOS = ["Planeado", "Cotizado", "Aprobado", "Pagado"];
 
+export type CompraVinculada = {
+  id: string;
+  codigo: string | null;
+  descripcion: string | null;
+  proveedor: string | null;
+  lineaId: string | null;
+  valor: number;
+  pagado: number;
+  estado: string;
+};
+
 export function PresupuestoDetalle({
   presupuesto,
   costos,
@@ -54,6 +65,7 @@ export function PresupuestoDetalle({
   hayCompras,
   comprometidoCompras,
   pagadoCompras,
+  comprasVinculadas,
 }: {
   presupuesto: Presupuesto;
   costos: Costo[];
@@ -63,6 +75,7 @@ export function PresupuestoDetalle({
   hayCompras: boolean;
   comprometidoCompras: number;
   pagadoCompras: number;
+  comprasVinculadas: CompraVinculada[];
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -403,6 +416,15 @@ export function PresupuestoDetalle({
         </table>
       </div>
 
+      {hayCompras && (
+        <Conciliacion
+          costos={costos.filter((c) => c.origen !== "Compra")}
+          compras={comprasVinculadas}
+          comprometido={comprometidoCompras}
+          pagado={pagadoCompras}
+        />
+      )}
+
       {itemOpen && (
         <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4" onClick={() => setItemOpen(false)}>
           <form action={guardarItem} onClick={(e) => e.stopPropagation()} className="w-full max-w-lg rounded-lg bg-white p-6 shadow-lg">
@@ -462,6 +484,88 @@ function Campo({ label, children }: { label: string; children: React.ReactNode }
       <span className="mb-1 block text-neutral-600">{label}</span>
       {children}
     </label>
+  );
+}
+
+/** Conciliación plan vs. compras: cada línea del plan con sus compras vinculadas y su desviación. */
+function Conciliacion({
+  costos,
+  compras,
+  comprometido,
+  pagado,
+}: {
+  costos: Costo[];
+  compras: CompraVinculada[];
+  comprometido: number;
+  pagado: number;
+}) {
+  const sinAsignar = compras.filter((c) => !c.lineaId);
+  const comprasDe = (lineaId: string) => compras.filter((c) => c.lineaId === lineaId);
+  const badge = (planeado: number, gastado: number) => {
+    if (gastado === 0) return <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] font-semibold text-neutral-500">sin compras</span>;
+    if (gastado - planeado > 1) return <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">excedido</span>;
+    return <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">dentro de lo planeado</span>;
+  };
+  const CompraFila = ({ c }: { c: CompraVinculada }) => (
+    <div className="flex items-center justify-between gap-2 border-t border-neutral-100 py-1 pl-6 text-xs text-neutral-500">
+      <span className="truncate">
+        <span className="font-medium text-neutral-600">{c.codigo || "—"}</span> · {c.descripcion || "—"}
+        {c.proveedor ? ` · ${c.proveedor}` : ""} · <span className="text-neutral-400">{c.estado}</span>
+      </span>
+      <span className="shrink-0 tabular-nums">{money.format(c.valor)}</span>
+    </div>
+  );
+
+  return (
+    <div className="mt-6 rounded-lg border border-neutral-200 bg-white p-5">
+      <h2 className="flex items-center gap-1.5 font-semibold text-emerald-900">
+        <ListChecks size={16} /> Conciliación: plan vs. compras
+      </h2>
+      <p className="mb-3 text-xs text-neutral-500">
+        Cada línea del plan con las compras que se le asignaron. Comprometido total {money.format(comprometido)} · pagado {money.format(pagado)}.
+      </p>
+      <div className="space-y-2">
+        {costos.map((c) => {
+          const suyas = comprasDe(c.id);
+          const gastado = suyas.reduce((s, x) => s + x.valor, 0);
+          const planeado = Number(c.presupuestado || 0);
+          return (
+            <div key={c.id} className="rounded-md border border-neutral-100 p-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                <span className="font-medium text-neutral-800">{c.descripcion || c.categoria}</span>
+                <span className="flex items-center gap-3 text-xs text-neutral-500">
+                  <span>plan {money.format(planeado)}</span>
+                  <span>comprometido {money.format(gastado)}</span>
+                  <span className={gastado - planeado > 1 ? "font-semibold text-red-600" : ""}>
+                    variación {money.format(planeado - gastado)}
+                  </span>
+                  {badge(planeado, gastado)}
+                </span>
+              </div>
+              {suyas.map((x) => (
+                <CompraFila key={x.id} c={x} />
+              ))}
+            </div>
+          );
+        })}
+      </div>
+
+      {sinAsignar.length > 0 && (
+        <div className="mt-4">
+          <h3 className="text-sm font-semibold text-amber-700">
+            Compras sin asignar a ninguna línea ({money.format(sinAsignar.reduce((s, c) => s + c.valor, 0))})
+          </h3>
+          <p className="mb-1 text-xs text-neutral-400">
+            Gasto no planeado, o compras a las que falta indicarles el ítem del plan que cubren (se hace desde Compras).
+          </p>
+          <div className="rounded-md border border-amber-100 bg-amber-50 p-2">
+            {sinAsignar.map((x) => (
+              <CompraFila key={x.id} c={x} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
