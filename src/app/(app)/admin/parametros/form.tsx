@@ -6,6 +6,7 @@ import { actualizarSettings, actualizarEfectividadParametros } from "./actions";
 type Settings = {
   admin_pct: number;
   margin_pct: number;
+  margen_minimo_pct: number;
   iva_pct: number;
   monthly_expenses: number;
   monthly_income: number;
@@ -54,6 +55,12 @@ export function ParametrosForm({ settings, efectividad }: { settings: Settings; 
           <Campo label="Margen de utilidad objetivo (%)">
             <input type="number" step="0.1" name="margin_pct" defaultValue={settings?.margin_pct ?? 30} className="in" />
           </Campo>
+          <Campo label="Margen mínimo recomendado (%)">
+            <input type="number" step="0.1" min="0" max="95" name="margen_minimo_pct" defaultValue={settings?.margen_minimo_pct ?? 15} className="in" />
+          </Campo>
+          <p className="-mt-1 text-xs text-neutral-400">
+            Si una cotización queda por debajo de este margen, al guardarla aparece un aviso recomendando revisar los precios (no bloquea). Cada cotización hereda este valor y lo puede ajustar.
+          </p>
           <Campo label="IVA predeterminado (%)">
             <input type="number" step="0.1" name="iva_pct" defaultValue={settings?.iva_pct ?? 19} className="in" />
           </Campo>

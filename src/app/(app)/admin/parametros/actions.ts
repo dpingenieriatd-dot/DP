@@ -10,6 +10,7 @@ export async function actualizarSettings(formData: FormData) {
     .update({
       admin_pct: formData.get("admin_pct") || 15,
       margin_pct: formData.get("margin_pct") || 30,
+      margen_minimo_pct: formData.get("margen_minimo_pct") || 15,
       iva_pct: formData.get("iva_pct") || 19,
       umbral_ejecucion_pct: formData.get("umbral_ejecucion_pct") || 80,
       dias_aviso_entrega: formData.get("dias_aviso_entrega") || 15,
