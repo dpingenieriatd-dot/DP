@@ -282,7 +282,7 @@ export function PresupuestoDetalle({
           <Fila label={`Costos administrativos (${presupuesto.admin_pct}%)`} valor={money.format(f.admin)} />
           {f.iva > 0 && <Fila label="IVA" valor={money.format(f.iva)} />}
           <Fila
-            label={`Utilidad de la oferta (margen real ${(f.margenOferta * 100).toFixed(1)}%)`}
+            label={`Utilidad de la oferta (margen real ${(f.margenOferta * 100).toFixed(1)}% · objetivo ${Number(presupuesto.margen_pct).toFixed(1)}%)`}
             valor={money.format(f.utilidadOferta)}
             warn={f.utilidadOferta < 0}
           />
