@@ -60,6 +60,8 @@ export function ComprasList({
   const [editing, setEditing] = useState<Compra | null>(null);
   const [proyectoSeleccionado, setProyectoSeleccionado] = useState("");
   const [presupuestoSeleccionado, setPresupuestoSeleccionado] = useState("");
+  const [lineaSeleccionada, setLineaSeleccionada] = useState("");
+  const [confirmarExceso, setConfirmarExceso] = useState<{ fd: FormData; mensaje: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -89,6 +91,18 @@ export function ComprasList({
   // Presupuesto efectivo: el único del proyecto, o el elegido a mano si hay varios.
   const presupuestoEfectivo = presupuestosDelProyecto.length === 1 ? presupuestosDelProyecto[0].id : presupuestoSeleccionado;
   const lineasDelPlan = lineasPlan.filter((l) => l.presupuesto_id === presupuestoEfectivo && l.origen !== "Compra");
+
+  // Contexto presupuestal para el formulario (plan / comprometido / disponible),
+  // excluyendo la compra que se está editando para no contarla dos veces.
+  const comprasDelPres = compras.filter((c) => c.presupuesto_id === presupuestoEfectivo && c.id !== editing?.id);
+  const valorCompra = (c: { cantidad: number; valor_unitario: number }) => Number(c.cantidad || 0) * Number(c.valor_unitario || 0);
+  const planPres = presupuestoEfectivo
+    ? lineasPlan.filter((l) => l.presupuesto_id === presupuestoEfectivo).reduce((s, l) => s + Number(l.presupuestado || 0), 0)
+    : 0;
+  const comprometidoPres = comprasDelPres.reduce((s, c) => s + valorCompra(c), 0);
+  const lineaComprometido = (id: string) => comprasDelPres.filter((c) => c.presupuesto_costo_id === id).reduce((s, c) => s + valorCompra(c), 0);
+  const lineaPlaneado = (id: string) => Number(lineasPlan.find((l) => l.id === id)?.presupuestado || 0);
+  const lineaSelObj = lineasDelPlan.find((l) => l.id === lineaSeleccionada);
   const descripcionCompra = (c: Compra) => {
     const insumo = c.insumo_id ? insumos.find((i) => i.id === c.insumo_id)?.descripcion : null;
     return c.descripcion || insumo || c.categoria || c.notas || "—";
@@ -125,6 +139,35 @@ export function ComprasList({
   const totalFiltrado = visibles.reduce((s, c) => s + c.cantidad * c.valor_unitario, 0);
 
   function submit(formData: FormData) {
+    const valorNueva = Number(formData.get("cantidad") || 0) * Number(formData.get("valor_unitario") || 0);
+    const lineaId = String(formData.get("presupuesto_costo_id") || "");
+    const money0 = (n: number) => money.format(Math.round(n));
+
+    let mensaje = "";
+    if (lineaId) {
+      const plan = lineaPlaneado(lineaId);
+      const nuevoTotal = lineaComprometido(lineaId) + valorNueva;
+      if (plan > 0 && nuevoTotal - plan > 1) {
+        const nombre = lineasPlan.find((l) => l.id === lineaId)?.descripcion || "el ítem";
+        mensaje = `Esta compra deja el ítem "${nombre}" en ${money0(nuevoTotal)}, ${money0(nuevoTotal - plan)} sobre lo planeado (${money0(plan)}).`;
+      }
+    }
+    if (!mensaje && presupuestoEfectivo && planPres > 0) {
+      const nuevoTotal = comprometidoPres + valorNueva;
+      if (nuevoTotal - planPres > 1) {
+        mensaje = `Esta compra deja el presupuesto en ${money0(nuevoTotal)}, ${money0(nuevoTotal - planPres)} sobre el plan (${money0(planPres)}).`;
+      }
+    }
+
+    if (mensaje) {
+      setConfirmarExceso({ fd: formData, mensaje });
+      return;
+    }
+    persistir(formData);
+  }
+
+  function persistir(formData: FormData) {
+    setConfirmarExceso(null);
     startTransition(async () => {
       const r = editing ? await actualizarCompra(editing.id, formData) : await crearCompra(formData);
       if (r?.error) setError(r.error);
@@ -157,6 +200,7 @@ export function ComprasList({
               setEditing(null);
               setProyectoSeleccionado("");
               setPresupuestoSeleccionado("");
+              setLineaSeleccionada("");
               setOpen(true);
             }}
             className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
@@ -299,6 +343,7 @@ export function ComprasList({
                           setEditing(c);
                           setProyectoSeleccionado(c.proyecto_id ?? "");
                           setPresupuestoSeleccionado(c.presupuesto_id ?? "");
+                          setLineaSeleccionada(c.presupuesto_costo_id ?? "");
                           setOpen(true);
                         }}
                         className="mr-2 text-xs font-medium text-emerald-700 hover:underline"
@@ -338,6 +383,7 @@ export function ComprasList({
                 onChange={(e) => {
                   setProyectoSeleccionado(e.target.value);
                   setPresupuestoSeleccionado("");
+                  setLineaSeleccionada("");
                 }}
                 required
                 className="in"
@@ -372,7 +418,10 @@ export function ComprasList({
                   <select
                     name="presupuesto_id"
                     value={presupuestoSeleccionado}
-                    onChange={(e) => setPresupuestoSeleccionado(e.target.value)}
+                    onChange={(e) => {
+                      setPresupuestoSeleccionado(e.target.value);
+                      setLineaSeleccionada("");
+                    }}
                     required
                     className="in"
                   >
@@ -392,10 +441,24 @@ export function ComprasList({
               </p>
             )}
 
+            {presupuestoEfectivo && planPres > 0 && (
+              <div className="mt-2 rounded-md border border-neutral-200 bg-neutral-50 p-2.5 text-xs text-neutral-600">
+                <span className="font-semibold text-neutral-700">Presupuesto:</span> plan {money.format(Math.round(planPres))} · comprometido{" "}
+                {money.format(Math.round(comprometidoPres))} · <span className={planPres - comprometidoPres < 0 ? "font-semibold text-red-600" : ""}>disponible{" "}
+                {money.format(Math.round(planPres - comprometidoPres))}</span>{" "}
+                ({planPres > 0 ? Math.round((comprometidoPres / planPres) * 100) : 0}% consumido)
+              </div>
+            )}
+
             {presupuestoEfectivo && (
               <div className="mt-3">
                 <Campo label="Ítem del plan de costos que cubre esta compra">
-                  <select key={presupuestoEfectivo} name="presupuesto_costo_id" defaultValue={editing?.presupuesto_costo_id ?? ""} className="in">
+                  <select
+                    name="presupuesto_costo_id"
+                    value={lineaSeleccionada}
+                    onChange={(e) => setLineaSeleccionada(e.target.value)}
+                    className="in"
+                  >
                     <option value="">— Sin asignar (gasto no planeado) —</option>
                     {lineasDelPlan.map((l) => (
                       <option key={l.id} value={l.id}>
@@ -403,9 +466,19 @@ export function ComprasList({
                       </option>
                     ))}
                   </select>
-                  <span className="mt-1 block text-xs text-neutral-400">
-                    Opcional. Sirve para ver la desviación por línea (planeado vs. comprometido) en la ficha del presupuesto.
-                  </span>
+                  {lineaSelObj ? (
+                    <span className="mt-1 block text-xs text-neutral-500">
+                      {lineaSelObj.descripcion || lineaSelObj.categoria}: planeado {money.format(Math.round(lineaPlaneado(lineaSeleccionada)))} · comprometido{" "}
+                      {money.format(Math.round(lineaComprometido(lineaSeleccionada)))} ·{" "}
+                      <span className={lineaPlaneado(lineaSeleccionada) - lineaComprometido(lineaSeleccionada) < 0 ? "font-semibold text-red-600" : ""}>
+                        disponible {money.format(Math.round(lineaPlaneado(lineaSeleccionada) - lineaComprometido(lineaSeleccionada)))}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="mt-1 block text-xs text-neutral-400">
+                      Opcional. Sirve para ver la desviación por línea (planeado vs. comprometido) en la ficha del presupuesto.
+                    </span>
+                  )}
                 </Campo>
               </div>
             )}
@@ -499,6 +572,29 @@ export function ComprasList({
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {confirmarExceso && (
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 p-4" onClick={() => setConfirmarExceso(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
+            <h2 className="text-lg font-semibold text-amber-700">Compra por encima de lo planeado</h2>
+            <p className="mt-2 text-sm text-neutral-600">{confirmarExceso.mensaje} ¿Revisar los valores o guardar así?</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => setConfirmarExceso(null)}
+                className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50"
+              >
+                Revisar
+              </button>
+              <button
+                onClick={() => persistir(confirmarExceso.fd)}
+                className="rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700"
+              >
+                Guardar de todas formas
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
