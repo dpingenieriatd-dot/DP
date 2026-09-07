@@ -22,6 +22,7 @@ function fromForm(formData: FormData) {
   return {
     proyecto_id: formData.get("proyecto_id") || null,
     presupuesto_id: formData.get("presupuesto_id") || null,
+    presupuesto_costo_id: formData.get("presupuesto_costo_id") || null,
     proveedor_id: formData.get("proveedor_id") || null,
     insumo_id: formData.get("insumo_id") || null,
     fecha: formData.get("fecha") || new Date().toISOString().slice(0, 10),
@@ -52,11 +53,18 @@ function validarCampos(formData: FormData) {
 }
 
 /**
- * Si el proyecto tiene un solo presupuesto y no se eligió uno, se asigna solo.
- * Si tiene varios, la compra queda sin asignar (el formulario debería pedirlo).
+ * Deduce el presupuesto de la compra:
+ *  - si se eligió una línea del plan, el presupuesto es el de esa línea (manda);
+ *  - si no, el que se haya elegido a mano;
+ *  - si no, y el proyecto tiene un solo presupuesto, ese.
  */
 async function resolverPresupuestoId(supabase: SupabaseServer, datos: ReturnType<typeof fromForm>) {
-  if (datos.presupuesto_id || !datos.proyecto_id) return datos.presupuesto_id;
+  if (datos.presupuesto_costo_id) {
+    const { data } = await supabase.from("presupuesto_costos").select("presupuesto_id").eq("id", datos.presupuesto_costo_id).single();
+    if (data?.presupuesto_id) return data.presupuesto_id;
+  }
+  if (datos.presupuesto_id) return datos.presupuesto_id;
+  if (!datos.proyecto_id) return null;
   const { data } = await supabase.from("presupuestos").select("id").eq("proyecto_id", datos.proyecto_id);
   return data && data.length === 1 ? data[0].id : null;
 }

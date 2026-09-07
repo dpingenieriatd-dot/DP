@@ -11,6 +11,7 @@ type Compra = {
   codigo: string | null;
   proyecto_id: string | null;
   presupuesto_id: string | null;
+  presupuesto_costo_id: string | null;
   proveedor_id: string | null;
   insumo_id: string | null;
   fecha: string;
@@ -35,6 +36,7 @@ export function ComprasList({
   insumos,
   clientes,
   presupuestos,
+  lineasPlan,
 }: {
   compras: Compra[];
   proyectos: { id: string; codigo: string | null; nombre: string; cliente_id: string | null }[];
@@ -42,10 +44,12 @@ export function ComprasList({
   insumos: { id: string; descripcion: string; unidad: string | null; costo: number }[];
   clientes: { id: string; nombre: string }[];
   presupuestos: { id: string; codigo: string | null; nombre: string; proyecto_id: string | null }[];
+  lineasPlan: { id: string; presupuesto_id: string | null; descripcion: string | null; categoria: string; presupuestado: number; origen: string }[];
 }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Compra | null>(null);
   const [proyectoSeleccionado, setProyectoSeleccionado] = useState("");
+  const [presupuestoSeleccionado, setPresupuestoSeleccionado] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -72,6 +76,9 @@ export function ComprasList({
   const proyectoInfo = proyectoDe(proyectoSeleccionado);
   const presupuestosDelProyecto = presupuestos.filter((b) => b.proyecto_id === proyectoSeleccionado);
   const etiquetaPresupuesto = (b: { codigo: string | null; nombre: string }) => `${b.codigo ? b.codigo + " · " : ""}${b.nombre}`;
+  // Presupuesto efectivo: el único del proyecto, o el elegido a mano si hay varios.
+  const presupuestoEfectivo = presupuestosDelProyecto.length === 1 ? presupuestosDelProyecto[0].id : presupuestoSeleccionado;
+  const lineasDelPlan = lineasPlan.filter((l) => l.presupuesto_id === presupuestoEfectivo && l.origen !== "Compra");
   const descripcionCompra = (c: Compra) => {
     const insumo = c.insumo_id ? insumos.find((i) => i.id === c.insumo_id)?.descripcion : null;
     return c.descripcion || insumo || c.categoria || c.notas || "—";
@@ -139,6 +146,7 @@ export function ComprasList({
             onClick={() => {
               setEditing(null);
               setProyectoSeleccionado("");
+              setPresupuestoSeleccionado("");
               setOpen(true);
             }}
             className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
@@ -280,6 +288,7 @@ export function ComprasList({
                         onClick={() => {
                           setEditing(c);
                           setProyectoSeleccionado(c.proyecto_id ?? "");
+                          setPresupuestoSeleccionado(c.presupuesto_id ?? "");
                           setOpen(true);
                         }}
                         className="mr-2 text-xs font-medium text-emerald-700 hover:underline"
@@ -316,7 +325,10 @@ export function ComprasList({
               <select
                 name="proyecto_id"
                 value={proyectoSeleccionado}
-                onChange={(e) => setProyectoSeleccionado(e.target.value)}
+                onChange={(e) => {
+                  setProyectoSeleccionado(e.target.value);
+                  setPresupuestoSeleccionado("");
+                }}
                 required
                 className="in"
               >
@@ -347,7 +359,13 @@ export function ComprasList({
             {proyectoSeleccionado && presupuestosDelProyecto.length > 1 && (
               <div className="mt-3">
                 <Campo label="Presupuesto" required>
-                  <select name="presupuesto_id" defaultValue={editing?.presupuesto_id ?? ""} required className="in">
+                  <select
+                    name="presupuesto_id"
+                    value={presupuestoSeleccionado}
+                    onChange={(e) => setPresupuestoSeleccionado(e.target.value)}
+                    required
+                    className="in"
+                  >
                     <option value="">— Este proyecto tiene varios presupuestos, elige uno —</option>
                     {presupuestosDelProyecto.map((b) => (
                       <option key={b.id} value={b.id}>
@@ -362,6 +380,24 @@ export function ComprasList({
               <p className="mt-2 text-xs text-neutral-500">
                 Presupuesto: <span className="font-medium text-neutral-700">{etiquetaPresupuesto(presupuestosDelProyecto[0])}</span> (único del proyecto, se asigna solo).
               </p>
+            )}
+
+            {presupuestoEfectivo && (
+              <div className="mt-3">
+                <Campo label="Ítem del plan de costos que cubre esta compra">
+                  <select key={presupuestoEfectivo} name="presupuesto_costo_id" defaultValue={editing?.presupuesto_costo_id ?? ""} className="in">
+                    <option value="">— Sin asignar (gasto no planeado) —</option>
+                    {lineasDelPlan.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {(l.descripcion || l.categoria) + (l.presupuestado ? ` — planeado ${money.format(l.presupuestado)}` : "")}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="mt-1 block text-xs text-neutral-400">
+                    Opcional. Sirve para ver la desviación por línea (planeado vs. comprometido) en la ficha del presupuesto.
+                  </span>
+                </Campo>
+              </div>
             )}
 
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
