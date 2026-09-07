@@ -82,7 +82,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
         <h1 className="text-2xl font-semibold text-emerald-900">Auditoría</h1>
         <p className="text-sm text-neutral-500">
           Historial de cambios (quién, cuándo y qué cambió) en Proyectos, Compras, Parámetros, Cotizaciones, Presupuestos,
-          Plan de costos, Clientes y Empresas atendidas. Últimos 300 registros{tablaValida ? ` de ${NOMBRES_TABLA[tablaValida]}` : ""}.
+          Plan de costos, Clientes y Empresas atendidas. Últimos 300 registros{tablaValida ? ` de ${NOMBRES_TABLA[tablaValida]}` : ""}. Se conservan los últimos 12 meses.
         </p>
       </div>
 
