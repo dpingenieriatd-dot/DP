@@ -37,6 +37,7 @@ export type CotizacionPayload = {
   seguimiento_interno: string;
   admin_pct: number;
   margen_pct: number;
+  margen_minimo_pct: number;
   descripcion_cliente: string;
   forma_pago: string;
   condiciones_cliente: string;
@@ -160,6 +161,7 @@ export async function crearCotizacion(payload: CotizacionPayload) {
       resp_iva: payload.resp_iva,
       margen_pct: payload.margen_pct,
       admin_pct: payload.admin_pct,
+      margen_minimo_pct: payload.margen_minimo_pct,
       costos_estimados: calc.direct,
       valor_cotizado: calc.clientTotal,
       iva_monto: calc.clientIva,
@@ -219,6 +221,7 @@ export async function actualizarCotizacion(id: string, payload: CotizacionPayloa
       resp_iva: payload.resp_iva,
       margen_pct: payload.margen_pct,
       admin_pct: payload.admin_pct,
+      margen_minimo_pct: payload.margen_minimo_pct,
       costos_estimados: calc.direct,
       valor_cotizado: calc.clientTotal,
       iva_monto: calc.clientIva,

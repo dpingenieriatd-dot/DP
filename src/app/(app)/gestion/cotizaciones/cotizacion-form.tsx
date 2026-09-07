@@ -26,6 +26,7 @@ type Cotizacion = {
   resp_iva: boolean | null;
   margen_pct: number | null;
   admin_pct: number | null;
+  margen_minimo_pct: number | null;
   descripcion_cliente: string | null;
   forma_pago: string | null;
   condiciones_cliente: string | null;
@@ -58,8 +59,10 @@ export function CotizacionForm({
   profesionales,
   materiales,
   itemsIniciales,
+  margenMinimoDefault,
 }: {
   editing: Cotizacion | null;
+  margenMinimoDefault: number;
   clientes: { id: string; nombre: string; retencion_fuente_pct?: number | null; ica_por_mil?: number | null }[];
   empresas: { id: string; nombre: string; cliente_id: string | null; contacto?: string | null; correo?: string | null; telefono?: string | null }[];
   profiles: { id: string; full_name: string | null; email: string | null }[];
@@ -93,17 +96,27 @@ export function CotizacionForm({
   const [condicionesCliente, setCondicionesCliente] = useState(editing?.condiciones_cliente ?? "");
   const [adminPct, setAdminPct] = useState(editing?.admin_pct ?? 15);
   const [margenPct, setMargenPct] = useState(editing?.margen_pct ?? 30);
+  const [margenMinimoPct, setMargenMinimoPct] = useState(editing?.margen_minimo_pct ?? margenMinimoDefault);
   const [otrasRetenciones, setOtrasRetenciones] = useState(editing?.otras_retenciones ?? 0);
 
   const [items, setItems] = useState<ItemLocal[]>(
     itemsIniciales.map((i) => ({ key: nuevoKey(), tipo: i.tipo, descripcion: i.descripcion, unidad: i.unidad, cantidad: i.cantidad, costo_unitario: i.costo_unitario, precio_cliente_override: i.precio_cliente_override, lleva_iva: i.lleva_iva ?? true }))
   );
   const [modalTipo, setModalTipo] = useState<"insumo" | "profesional" | "material" | null>(null);
+  const [confirmarMargen, setConfirmarMargen] = useState<{ estadoForzado: string | null } | null>(null);
 
   const calc = useMemo(
     () => calcularCotizacionItems(items, { admin_pct: adminPct, margen_pct: margenPct, resp_iva: respIva, iva_pct: 19 }),
     [items, adminPct, margenPct, respIva]
   );
+
+  const conItems = calc.clientSubtotal > 0;
+  const margenObjetivoFrac = Number(margenPct) / 100;
+  const margenMinimoFrac = Number(margenMinimoPct) / 100;
+  // Aviso informativo en el formulario: el margen real se alejó del objetivo (>3 puntos).
+  const margenBajoObjetivo = conItems && calc.margenReal < margenObjetivoFrac - 0.03;
+  // Gatilla el modal de recomendación al guardar (no bloquea).
+  const margenBajoMinimo = conItems && calc.margenReal < margenMinimoFrac;
 
   const empresasDelCliente = empresas.filter((e) => !clienteId || e.cliente_id === clienteId || e.cliente_id === null);
   const clienteActual = clientes.find((c) => c.id === clienteId);
@@ -147,6 +160,7 @@ export function CotizacionForm({
       seguimiento_interno: seguimiento,
       admin_pct: Number(adminPct) || 0,
       margen_pct: Number(margenPct) || 0,
+      margen_minimo_pct: Number(margenMinimoPct) || 0,
       descripcion_cliente: descripcionCliente,
       forma_pago: formaPago,
       condiciones_cliente: condicionesCliente,
@@ -169,6 +183,17 @@ export function CotizacionForm({
     if (!clienteId || !empresaId) return setError("Selecciona cliente y empresa atendida.");
     if (!items.length) return setError("Agrega al menos un ítem a la cotización.");
     setError(null);
+    // "Guardar borrador" no dispara el aviso; sí lo hace guardar / guardar cambios
+    // cuando el margen real quedó por debajo del mínimo recomendado.
+    if (estadoForzado !== "Borrador" && margenBajoMinimo) {
+      setConfirmarMargen({ estadoForzado });
+      return;
+    }
+    persistir(estadoForzado);
+  }
+
+  function persistir(estadoForzado: string | null) {
+    setConfirmarMargen(null);
     const datos = payload();
     if (estadoForzado) datos.estado = estadoForzado;
     startTransition(async () => {
@@ -327,11 +352,18 @@ export function CotizacionForm({
         </div>
 
         <div className="rounded-lg border border-neutral-200 bg-white p-6">
-          <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="mb-3 flex items-start justify-between gap-3">
             <h2 className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-neutral-500">
               <ListChecks size={15} /> Ítems de la cotización
             </h2>
             <span className="text-xs text-neutral-400">El precio cliente unitario incluye administración + utilidad; el IVA se calcula al final</span>
+          </div>
+
+          <div className="mb-3 rounded-md border border-neutral-200 bg-neutral-50 p-2.5 text-xs text-neutral-600">
+            <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 font-semibold text-emerald-700">Auto</span> la app pone el
+            precio (costo × margen objetivo).{" "}
+            <span className="rounded-full bg-amber-100 px-1.5 py-0.5 font-semibold text-amber-700">Manual</span> escribiste el
+            precio a mano y ese ítem no usa el margen objetivo. Usa <span className="font-semibold">↺ auto</span> para devolverlo.
           </div>
 
           <div className="overflow-auto rounded-md border border-neutral-200">
@@ -455,9 +487,9 @@ export function CotizacionForm({
                 <SlidersHorizontal size={15} /> Parámetros de esta cotización
               </h2>
               <p className="mt-1 text-xs text-neutral-500">
-                Administración y utilidad definen el precio automático de cada ítem (costo × factor). Cambiarlos recalcula
-                las filas en <span className="font-semibold text-emerald-700">Auto</span>; las filas en{" "}
-                <span className="font-semibold text-amber-700">Manual</span> conservan el precio que pusiste. Solo afectan esta cotización.
+                El <span className="font-semibold text-emerald-900">margen objetivo</span> es la ganancia que buscas sobre el precio. Se usa para calcular el precio
+                automático de cada ítem que esté en <span className="font-semibold text-emerald-700">Auto</span>; los ítems en{" "}
+                <span className="font-semibold text-amber-700">Manual</span> conservan el precio que pusiste y no lo usan. Solo afectan esta cotización.
               </p>
             </div>
             <div className="flex flex-wrap items-end gap-3">
@@ -469,9 +501,16 @@ export function CotizacionForm({
                 </div>
               </label>
               <label className="text-xs text-neutral-500">
-                Margen de utilidad
+                Margen objetivo
                 <div className="mt-1 flex items-center gap-1">
                   <input type="number" min={0} max={95} step={0.1} value={margenPct} onChange={(e) => setMargenPct(Number(e.target.value))} className="w-20 rounded-md border border-emerald-300 px-2 py-1.5 text-right text-sm font-semibold text-emerald-900" />
+                  <span className="font-semibold">%</span>
+                </div>
+              </label>
+              <label className="text-xs text-neutral-500">
+                Margen mínimo
+                <div className="mt-1 flex items-center gap-1">
+                  <input type="number" min={0} max={95} step={0.1} value={margenMinimoPct} onChange={(e) => setMargenMinimoPct(Number(e.target.value))} title="Viene de Administración > Parámetros. Si el margen real queda por debajo, al guardar aparece un aviso." className="w-20 rounded-md border border-neutral-300 px-2 py-1.5 text-right text-sm font-semibold text-neutral-700" />
                   <span className="font-semibold">%</span>
                 </div>
               </label>
@@ -481,15 +520,24 @@ export function CotizacionForm({
           <div className="mt-4 space-y-1.5 border-t border-neutral-100 pt-4 text-sm">
             <Linea label="Costo directo interno" valor={calc.direct} />
             <Linea label={`Costos administrativos (${adminPct}%)`} valor={calc.admin} />
-            <div className={`flex items-center justify-between ${calc.utilidadReal < 0 ? "text-red-600" : "text-neutral-600"}`}>
+            <div className={`flex items-center justify-between ${calc.utilidadReal < 0 ? "text-red-600" : margenBajoObjetivo ? "text-amber-700" : "text-neutral-600"}`}>
               <span>
                 Utilidad real de la oferta
                 {calc.clientSubtotal > 0 && (
-                  <span className="ml-1 text-xs text-neutral-400">(margen real {(calc.margenReal * 100).toFixed(1)}%)</span>
+                  <span className="ml-1 text-xs">
+                    (margen real {(calc.margenReal * 100).toFixed(1)}% · objetivo {Number(margenPct).toFixed(1)}%)
+                  </span>
                 )}
               </span>
               <span>{money.format(calc.utilidadReal)}</span>
             </div>
+            {margenBajoObjetivo && (
+              <div className="rounded-md border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-800">
+                El margen real ({(calc.margenReal * 100).toFixed(1)}%) quedó por debajo del objetivo ({Number(margenPct).toFixed(1)}%).
+                Suele pasar cuando varios ítems tienen precio <span className="font-semibold">Manual</span> por debajo de lo que daría el
+                margen objetivo. Revisa la columna &quot;Precio cliente unit.&quot; si no fue a propósito.
+              </div>
+            )}
             <div className="flex items-center justify-between border-t border-neutral-200 pt-2 font-semibold text-neutral-700">
               <span>Precio a cliente antes de IVA</span>
               <span>{money.format(calc.clientSubtotal)}</span>
@@ -653,6 +701,44 @@ export function CotizacionForm({
           onClose={() => setModalTipo(null)}
           onConfirm={agregarItem}
         />
+      )}
+
+      {confirmarMargen && (
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 p-4" onClick={() => setConfirmarMargen(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
+            <h2 className={`text-lg font-semibold ${calc.utilidadReal < 0 ? "text-red-700" : "text-amber-700"}`}>
+              {calc.utilidadReal < 0 ? "Esta cotización pierde plata" : "Margen por debajo del mínimo"}
+            </h2>
+            <p className="mt-2 text-sm text-neutral-600">
+              {calc.utilidadReal < 0 ? (
+                <>
+                  La ganancia queda en <strong>{money.format(calc.utilidadReal)}</strong> (margen{" "}
+                  {(calc.margenReal * 100).toFixed(1)}%). Te recomendamos revisar los precios de los ítems antes de guardar.
+                </>
+              ) : (
+                <>
+                  Esta cotización deja un margen real de <strong>{(calc.margenReal * 100).toFixed(1)}%</strong>, por debajo del
+                  mínimo recomendado ({Number(margenMinimoPct).toFixed(1)}%). Ganancia:{" "}
+                  <strong>{money.format(calc.utilidadReal)}</strong>. ¿Revisar los precios o guardar así?
+                </>
+              )}
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => setConfirmarMargen(null)}
+                className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50"
+              >
+                Revisar
+              </button>
+              <button
+                onClick={() => persistir(confirmarMargen.estadoForzado)}
+                className="rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700"
+              >
+                Guardar de todas formas
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

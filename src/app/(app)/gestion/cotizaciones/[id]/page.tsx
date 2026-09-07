@@ -6,7 +6,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: cotizacion }, { data: clientes }, { data: empresas }, { data: profiles }, { data: enlaces }, { data: insumos }, { data: profesionales }, { data: materiales }, { data: items }] =
+  const [{ data: cotizacion }, { data: clientes }, { data: empresas }, { data: profiles }, { data: enlaces }, { data: insumos }, { data: profesionales }, { data: materiales }, { data: items }, { data: settings }] =
     await Promise.all([
       supabase.from("cotizaciones").select("*").eq("id", id).single(),
       supabase.from("clientes").select("id, nombre, retencion_fuente_pct, ica_por_mil").order("nombre"),
@@ -17,6 +17,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       supabase.from("profesionales").select("id, nombre, perfil, tarifa_hora").eq("estado", "Activo").order("nombre"),
       supabase.from("materiales").select("id, codigo, nombre, valor_reposicion, vida_util_jornadas").neq("estado", "Dado de baja").order("nombre"),
       supabase.from("cotizacion_items").select("*").eq("cotizacion_id", id).order("orden"),
+      supabase.from("settings").select("margen_minimo_pct").eq("id", 1).single(),
     ]);
 
   if (!cotizacion) notFound();
@@ -24,6 +25,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   return (
     <CotizacionForm
       editing={cotizacion}
+      margenMinimoDefault={Number(settings?.margen_minimo_pct ?? 15)}
       clientes={clientes ?? []}
       empresas={empresas ?? []}
       profiles={profiles ?? []}
