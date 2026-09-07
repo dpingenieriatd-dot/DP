@@ -37,7 +37,7 @@ const ICONS: Record<string, LucideIcon> = {
   "id-card": IdCard,
 };
 
-type NavItem = { href: string; label: string; subsection?: string; icon?: string };
+type NavItem = { href: string; label: string; subsection?: string; icon?: string; external?: boolean };
 type NavGroup = { section: string; items: NavItem[] };
 
 function iniciales(nombre: string) {
@@ -122,19 +122,27 @@ export function AppShell({
                     {group.items
                       .filter((i) => i.subsection === sub)
                       .map((item) => {
-                        const activo = pathname === item.href || (item.href !== "/gestion" && item.href !== "/seguimiento" && pathname?.startsWith(item.href + "/"));
+                        const activo =
+                          !item.external &&
+                          (pathname === item.href ||
+                            (item.href !== "/gestion" && item.href !== "/seguimiento" && pathname?.startsWith(item.href + "/")));
                         const Icon = item.icon ? ICONS[item.icon] : undefined;
-                        return (
-                          <Link
-                            key={item.href}
-                            href={item.href}
-                            onClick={() => setOpen(false)}
-                            className={`flex items-center gap-2 px-5 py-2 text-sm ${
-                              activo ? "bg-emerald-800/80 font-semibold text-white" : "text-white/85 hover:bg-white/5"
-                            }`}
-                          >
+                        const clase = `flex items-center gap-2 px-5 py-2 text-sm ${
+                          activo ? "bg-emerald-800/80 font-semibold text-white" : "text-white/85 hover:bg-white/5"
+                        }`;
+                        const contenido = (
+                          <>
                             {Icon && <Icon size={16} className="shrink-0" />}
                             <span>{item.label}</span>
+                          </>
+                        );
+                        return item.external ? (
+                          <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)} className={clase}>
+                            {contenido}
+                          </a>
+                        ) : (
+                          <Link key={item.href} href={item.href} onClick={() => setOpen(false)} className={clase}>
+                            {contenido}
                           </Link>
                         );
                       })}
