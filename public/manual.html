@@ -704,10 +704,10 @@ ganancia real       = valor aprobado − comprometido − administración − IV
   <p>Acciones del plan: <strong>Restaurar base</strong> (vuelve a traer los ítems originales de la cotización), <strong>Importar desde Compras</strong> (trae las compras como líneas de referencia, con presupuestado en cero, sin duplicar las ya traídas), <strong>+ Agregar costo</strong>.</p>
 
   <h3>Conciliación: plan vs. compras</h3>
-  <p>Aparece cuando el presupuesto ya tiene compras. Cada línea del plan con las compras que se le asignaron (desde el formulario de Compras, campo "Ítem del plan de costos que cubre esta compra"):</p>
+  <p>Aparece cuando el presupuesto ya tiene compras. Dos vistas:</p>
   <ul>
-    <li>Por línea: <strong>planeado</strong> vs. <strong>comprometido</strong> (Σ de sus compras) y la <strong>variación</strong>.</li>
-    <li>Distintivo: <span class="pill n">sin compras</span> · <span class="pill v">dentro de lo planeado</span> · <span class="pill r">excedido</span>.</li>
+    <li><strong>Por categoría</strong>: una tabla con planeado (del plan) vs. comprometido (de las compras) vs. variación, para cada categoría.</li>
+    <li><strong>Por línea del plan</strong>: cada línea con las compras que se le asignaron (desde el formulario de Compras, campo "Ítem del plan de costos que cubre esta compra"), su planeado vs. comprometido, la variación y un distintivo <span class="pill n">sin compras</span> · <span class="pill v">dentro de lo planeado</span> · <span class="pill r">excedido</span>.</li>
     <li>Al final, <strong>"Compras sin asignar a ninguna línea"</strong>: gasto no planeado, o compras a las que falta indicarles la línea.</li>
   </ul>
 </section>
@@ -741,7 +741,7 @@ ganancia real       = valor aprobado − comprometido − administración − IV
       <tr><td class="col">Ítem del plan de costos que cubre esta compra</td><td>Opcional. La línea del plan a la que corresponde este gasto — habilita la desviación por línea en la Conciliación de la ficha del presupuesto. En blanco = gasto no planeado.</td></tr>
       <tr><td class="col">Fecha</td><td>Fecha de la compra.</td></tr>
       <tr><td class="col">Proveedor</td><td>Del catálogo.</td></tr>
-      <tr><td class="col">Categoría</td><td>Tipo de gasto (lista propia de Compras — su unificación con el plan de costos viene en una fase siguiente).</td></tr>
+      <tr><td class="col">Categoría</td><td>Tipo de gasto. Misma lista que el Plan de costos: Compras / insumos · Servicios / profesionales · Materiales / desgaste · Transporte / logistica · Viáticos · Otros costos · Costos directos. Habilita la comparación planeado vs. comprometido por categoría.</td></tr>
       <tr><td class="col">Insumo</td><td>Opcional, del Banco de insumos (si es un ítem catalogado).</td></tr>
       <tr><td class="col">Servicio</td><td>Descripción libre si no es un insumo catalogado.</td></tr>
       <tr><td class="col">Cantidad / Valor unitario</td><td>El total de la compra es su producto. Es lo que suma al <em>comprometido</em> del presupuesto.</td></tr>
@@ -1132,7 +1132,7 @@ ganancia real       = valor aprobado − comprometido − administración − IV
     <li><strong>Soporte técnico</strong>: nueva sección en Administración con aviso por correo.</li>
     <li><strong>Auditoría</strong>: alcance ampliado (cotizaciones, presupuestos, plan de costos, clientes, empresas), filtro por tabla, retención de 12 meses.</li>
     <li><strong>Compras ↔ Presupuestos (Fase 1)</strong>: cada compra pertenece a un presupuesto (auto si el proyecto tiene uno solo); el control de cada presupuesto suma solo sus compras; la ficha separa "Comprometido" de "Pagado" (el semáforo usa lo comprometido); "Importar desde Compras" ya no infla el plan.</li>
-    <li><strong>Compras ↔ Presupuestos (Fase 2)</strong>: cada compra puede vincularse a una línea del plan de costos; sección "Conciliación: plan vs. compras" en la ficha con planeado vs. comprometido y la variación por línea, más las compras sin asignar.</li>
+    <li><strong>Compras ↔ Presupuestos (Fase 2)</strong>: cada compra puede vincularse a una línea del plan de costos; Compras y el plan usan la misma lista de categorías; sección "Conciliación: plan vs. compras" en la ficha con planeado vs. comprometido por categoría y por línea, más las compras sin asignar.</li>
   </ul>
 </section>
 
