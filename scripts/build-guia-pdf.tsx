@@ -241,7 +241,7 @@ function Doc() {
             ["5", "Módulo Seguimiento", "Inicio, Banco de tareas, Actividades, Agenda, Equipo, Efectividad, Procesos, Archivadas"],
             ["6", "Módulo Gestión", "Control de proyectos, Cotizaciones, Proyectos, Presupuestos, Compras, Catálogos"],
             ["7", "Reportes", "Reportes descargables y reportes personalizados"],
-            ["8", "Administración", "Usuarios, Parámetros, Temas, Auditoría, Soporte técnico, resumen semanal"],
+            ["8", "Administración", "Usuarios, Parámetros, Temas, Auditoría, Soporte técnico, Manual, resumen semanal"],
             ["9", "Preguntas frecuentes", "Problemas comunes y cómo resolverlos"],
             ["10", "Glosario", "Definición de los términos que usa la plataforma"],
           ].map(([n, t, d]) => (
@@ -937,7 +937,15 @@ function Doc() {
           respuesta.
         </P>
 
-        <H2>8.6 Resumen semanal por correo</H2>
+        <H2>8.6 Manual de la plataforma</H2>
+        <P>
+          Enlace en el menú (abre en una pestaña nueva) al manual detallado de la plataforma: una referencia técnica que
+          explica cada columna, cada fórmula y cada sección, más profunda que esta guía. Está publicado en
+          app.dpingenieriaintegral.com/manual.html; el enlace directo es público (no necesita iniciar sesión) porque es
+          un manual de la herramienta, sin datos del negocio.
+        </P>
+
+        <H2>8.7 Resumen semanal por correo</H2>
         <P>
           Cada lunes en la mañana llega automáticamente a la Directora un correo con: tareas cerradas la semana anterior,
           proyectos con margen negativo y compras pendientes de pago. Sirve para tener una vista rápida sin entrar a
