@@ -31,6 +31,8 @@ type Cotizacion = {
   forma_pago: string | null;
   condiciones_cliente: string | null;
   otras_retenciones: number | null;
+  retencion_fuente_pct: number | null;
+  ica_por_mil: number | null;
 };
 
 type Enlace = { id: string; cotizacion_id: string; titulo: string | null; url: string };
@@ -98,6 +100,13 @@ export function CotizacionForm({
   const [margenPct, setMargenPct] = useState(editing?.margen_pct ?? 30);
   const [margenMinimoPct, setMargenMinimoPct] = useState(editing?.margen_minimo_pct ?? margenMinimoDefault);
   const [otrasRetenciones, setOtrasRetenciones] = useState(editing?.otras_retenciones ?? 0);
+  const clienteInicial = clientes.find((c) => c.id === (editing?.cliente_id ?? ""));
+  const [retencionFuentePct, setRetencionFuentePct] = useState(
+    editing?.retencion_fuente_pct ?? Number(clienteInicial?.retencion_fuente_pct ?? 0)
+  );
+  const [icaPorMil, setIcaPorMil] = useState(
+    editing?.ica_por_mil ?? Number(clienteInicial?.ica_por_mil ?? 0)
+  );
 
   const [items, setItems] = useState<ItemLocal[]>(
     itemsIniciales.map((i) => ({ key: nuevoKey(), tipo: i.tipo, descripcion: i.descripcion, unidad: i.unidad, cantidad: i.cantidad, costo_unitario: i.costo_unitario, precio_cliente_override: i.precio_cliente_override, lleva_iva: i.lleva_iva ?? true }))
@@ -124,6 +133,17 @@ export function CotizacionForm({
   // Al elegir la empresa atendida, autocompleta el contacto de seguimiento
   // con el contacto guardado en su ficha (Empresas atendidas) — se puede
   // editar después para esta cotización puntual sin tocar el catálogo.
+  // Al elegir el cliente, prellena la retención en la fuente y la tarifa de
+  // ICA con las de su ficha (Clientes) — se pueden ajustar después para esta
+  // cotización puntual sin tocar el catálogo.
+  function seleccionarCliente(valor: string) {
+    setClienteId(valor);
+    setEmpresaId("");
+    const cliente = clientes.find((c) => c.id === valor);
+    setRetencionFuentePct(Number(cliente?.retencion_fuente_pct ?? 0));
+    setIcaPorMil(Number(cliente?.ica_por_mil ?? 0));
+  }
+
   function seleccionarEmpresa(valor: string) {
     setEmpresaId(valor);
     const empresa = empresas.find((e) => e.id === valor);
@@ -137,8 +157,8 @@ export function CotizacionForm({
   const efectivo = calcularEfectivoEsperado({
     valorConIva: calc.clientTotal,
     iva: calc.clientIva,
-    retencionFuentePct: Number(clienteActual?.retencion_fuente_pct ?? 0),
-    icaPorMil: Number(clienteActual?.ica_por_mil ?? 0),
+    retencionFuentePct: Number(retencionFuentePct) || 0,
+    icaPorMil: Number(icaPorMil) || 0,
     otrasRetenciones: Number(otrasRetenciones) || 0,
   });
 
@@ -165,6 +185,8 @@ export function CotizacionForm({
       forma_pago: formaPago,
       condiciones_cliente: condicionesCliente,
       otras_retenciones: Number(otrasRetenciones) || 0,
+      retencion_fuente_pct: Number(retencionFuentePct) || 0,
+      ica_por_mil: Number(icaPorMil) || 0,
       items: items.map(({ tipo, descripcion, unidad, cantidad, costo_unitario, precio_cliente_override, lleva_iva }) => ({
         tipo,
         descripcion,
@@ -253,10 +275,7 @@ export function CotizacionForm({
             <Campo label="Cliente" required>
               <select
                 value={clienteId}
-                onChange={(e) => {
-                  setClienteId(e.target.value);
-                  setEmpresaId("");
-                }}
+                onChange={(e) => seleccionarCliente(e.target.value)}
                 className="in"
               >
                 <option value="">Seleccione…</option>
@@ -567,13 +586,35 @@ export function CotizacionForm({
             <Landmark size={15} /> Efectivo neto esperado
           </h2>
           <p className="mb-3 text-xs text-neutral-500">
-            Lo que realmente le llega a caja a D&amp;P después de lo que el cliente retiene y paga a la DIAN/municipio. La
-            retención en la fuente y la tarifa de ICA salen de la ficha del cliente
-            {clienteActual ? "" : " (selecciona un cliente para verlas)"}.
+            Lo que realmente le llega a caja a D&amp;P después de lo que el cliente retiene y paga a la DIAN/municipio. Al
+            elegir el cliente se traen la retención en la fuente y la tarifa de ICA de su ficha; ajústalas si esta
+            cotización retiene distinto (no cambia el catálogo de clientes).
           </p>
-          <div className="mb-3 max-w-xs">
+          <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <label className="block text-sm">
-              <span className="mb-1 block text-neutral-600">Otras retenciones ($, valor fijo de esta cotización)</span>
+              <span className="mb-1 block text-neutral-600">Retención en la fuente (%)</span>
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                value={retencionFuentePct}
+                onChange={(e) => setRetencionFuentePct(Number(e.target.value) || 0)}
+                className="in"
+              />
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block text-neutral-600">ICA (tarifa por mil, ej. 9,66)</span>
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                value={icaPorMil}
+                onChange={(e) => setIcaPorMil(Number(e.target.value) || 0)}
+                className="in"
+              />
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block text-neutral-600">Otras retenciones ($, valor fijo)</span>
               <input
                 type="number"
                 min={0}
@@ -588,10 +629,10 @@ export function CotizacionForm({
             <Linea label="Valor cotizado (con IVA)" valor={efectivo.valorConIva} />
             <Linea label="− IVA (no es ingreso de D&P)" valor={-efectivo.iva} />
             <Linea
-              label={`− Retención en la fuente (${Number(clienteActual?.retencion_fuente_pct ?? 0)}%)`}
+              label={`− Retención en la fuente (${Number(retencionFuentePct) || 0}%)`}
               valor={-efectivo.retencion}
             />
-            <Linea label={`− ICA (${Number(clienteActual?.ica_por_mil ?? 0)} × 1.000)`} valor={-efectivo.ica} />
+            <Linea label={`− ICA (${Number(icaPorMil) || 0} × 1.000)`} valor={-efectivo.ica} />
             <Linea label="− Otras retenciones" valor={-efectivo.otrasRetenciones} />
             <div className="flex items-center justify-between border-t border-emerald-200 pt-2 text-base font-bold text-emerald-900">
               <span>Efectivo neto esperado</span>

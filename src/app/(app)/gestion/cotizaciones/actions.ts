@@ -42,6 +42,8 @@ export type CotizacionPayload = {
   forma_pago: string;
   condiciones_cliente: string;
   otras_retenciones: number;
+  retencion_fuente_pct: number;
+  ica_por_mil: number;
   items: ItemPayload[];
 };
 
@@ -158,6 +160,8 @@ export async function crearCotizacion(payload: CotizacionPayload) {
       forma_pago: payload.forma_pago,
       condiciones_cliente: payload.condiciones_cliente,
       otras_retenciones: Number(payload.otras_retenciones || 0),
+      retencion_fuente_pct: Number(payload.retencion_fuente_pct || 0),
+      ica_por_mil: Number(payload.ica_por_mil || 0),
       resp_iva: payload.resp_iva,
       margen_pct: payload.margen_pct,
       admin_pct: payload.admin_pct,
@@ -218,6 +222,8 @@ export async function actualizarCotizacion(id: string, payload: CotizacionPayloa
       forma_pago: payload.forma_pago,
       condiciones_cliente: payload.condiciones_cliente,
       otras_retenciones: Number(payload.otras_retenciones || 0),
+      retencion_fuente_pct: Number(payload.retencion_fuente_pct || 0),
+      ica_por_mil: Number(payload.ica_por_mil || 0),
       resp_iva: payload.resp_iva,
       margen_pct: payload.margen_pct,
       admin_pct: payload.admin_pct,
