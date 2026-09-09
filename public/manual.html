@@ -383,7 +383,7 @@ total cotizado al cliente = precio a cliente (antes de IVA) + IVA</div>
 retención en la fuente = valor sin IVA × (retención% / 100)
 ICA                    = valor sin IVA × (tarifa ICA por mil / 1000)
 efectivo neto esperado = valor cotizado (con IVA) − retención − ICA − otras retenciones</div>
-    <p>La retención en la fuente es un <strong>porcentaje</strong> (ej. 11% honorarios → ÷ 100). El ICA es una <strong>tarifa por mil</strong> (ej. Bogotá servicios 9,66 × 1.000 → ÷ 1000), como lo cobran los municipios. Ambas tarifas vienen de la ficha del cliente. "Otras retenciones" es un valor fijo en pesos que se escribe por cotización.</p>
+    <p>La retención en la fuente es un <strong>porcentaje</strong> (ej. 11% honorarios → ÷ 100). El ICA es una <strong>tarifa por mil</strong> (ej. Bogotá servicios 9,66 × 1.000 → ÷ 1000), como lo cobran los municipios. Al elegir el cliente, la retención en la fuente y la tarifa de ICA se traen de su ficha, pero son <strong>editables por cotización</strong> (no siempre se retiene lo mismo ni aplica la misma tarifa de ICA) y se guardan en cada cotización. "Otras retenciones" es un valor fijo en pesos que se escribe por cotización.</p>
   </div>
   <div class="note">El error del ICA (dividir por 100 en vez de por 1000) que existía en agosto de 2026 ya está corregido: el ICA de un contrato de $33.600.000 con tarifa 9,66 es 33.600.000 × 9,66 / 1.000 = $324.576, no $3.245.760.</div>
 
@@ -521,7 +521,7 @@ ganancia real       = valor aprobado − comprometido − administración − IV
     <tbody>
       <tr><td class="col">Código / consecutivo</td><td>Obligatorio. Lo asigna el usuario según su numeración.</td></tr>
       <tr><td class="col">Fecha de elaboración</td><td>Por defecto hoy.</td></tr>
-      <tr><td class="col">Cliente</td><td>Del catálogo. Al elegirlo se cargan sus tarifas tributarias (retención, ICA) para el efectivo neto.</td></tr>
+      <tr><td class="col">Cliente</td><td>Del catálogo. Al elegirlo se prellenan sus tarifas tributarias (retención en la fuente, ICA) en el bloque de efectivo neto, donde se pueden ajustar para esta cotización.</td></tr>
       <tr><td class="col">Empresa atendida</td><td>Del catálogo de Empresas atendidas del cliente, o el cliente directamente. Al elegirla se autocompletan Contacto, Correo y Teléfono con los datos guardados en su ficha (editables solo para esta cotización).</td></tr>
       <tr><td class="col">Nombre de la cotización</td><td>Obligatorio. Nombre interno.</td></tr>
       <tr><td class="col">Responsable comercial</td><td>Quién la elabora.</td></tr>
@@ -571,7 +571,7 @@ ganancia real       = valor aprobado − comprometido − administración − IV
   </table></div>
 
   <h3>Bloque "Efectivo neto esperado"</h3>
-  <p>Muestra el cálculo de la sección 3.4: valor cotizado con IVA, menos IVA, menos retención en la fuente (% del cliente), menos ICA (tarifa por mil del cliente), menos otras retenciones (campo editable). El resultado es lo que realmente entra a caja.</p>
+  <p>Muestra el cálculo de la sección 3.4: valor cotizado con IVA, menos IVA, menos retención en la fuente, menos ICA, menos otras retenciones. Los tres campos (retención %, ICA por mil y otras retenciones) son editables por cotización: la retención y el ICA se prellenan de la ficha del cliente al elegirlo y se ajustan aquí si esta cotización retiene distinto. El resultado es lo que realmente entra a caja.</p>
 
   <h3>Enlaces de la cotización</h3>
   <p>En vez de subir archivos, se pegan enlaces a los soportes en SharePoint (u otro). Cada enlace tiene un título opcional. Máximo 10. La URL se normaliza y valida.</p>
@@ -775,8 +775,8 @@ ganancia real       = valor aprobado − comprometido − administración − IV
       <tr><td class="col">Contacto / Cargo / Correo / Teléfono</td><td>Contacto principal.</td></tr>
       <tr><td class="col">Ciudad / Dirección</td><td>Ubicación.</td></tr>
       <tr><td class="col">Estado</td><td>Activo / Inactivo.</td></tr>
-      <tr><td class="col">Retención en la fuente (%)</td><td><strong>Perfil tributario.</strong> Se aplica a todas las cotizaciones del cliente para el efectivo neto. Es un porcentaje.</td></tr>
-      <tr><td class="col">Tarifa de ICA (por mil)</td><td><strong>Perfil tributario.</strong> Tarifa por mil (÷ 1000), no porcentaje.</td></tr>
+      <tr><td class="col">Retención en la fuente (%)</td><td><strong>Perfil tributario.</strong> Valor inicial que toma cada cotización nueva del cliente para el efectivo neto; luego se ajusta por cotización. Es un porcentaje.</td></tr>
+      <tr><td class="col">Tarifa de ICA (por mil)</td><td><strong>Perfil tributario.</strong> Tarifa por mil (÷ 1000), no porcentaje. También es el valor inicial de cada cotización, ajustable por cotización.</td></tr>
       <tr><td class="col">Nombre del asesor</td><td>Asesor comercial de D&amp;P para ese cliente.</td></tr>
       <tr><td class="col">Observaciones</td><td>Notas.</td></tr>
     </tbody>
@@ -1143,6 +1143,7 @@ ganancia real       = valor aprobado − comprometido − administración − IV
     <li><strong>Compras ↔ Presupuestos (Fase 1)</strong>: cada compra pertenece a un presupuesto (auto si el proyecto tiene uno solo); el control de cada presupuesto suma solo sus compras; la ficha separa "Comprometido" de "Pagado" (el semáforo usa lo comprometido); "Importar desde Compras" ya no infla el plan.</li>
     <li><strong>Compras ↔ Presupuestos (Fase 2)</strong>: cada compra puede vincularse a una línea del plan de costos; Compras y el plan usan la misma lista de categorías; sección "Conciliación: plan vs. compras" en la ficha con planeado vs. comprometido por categoría y por línea, más las compras sin asignar.</li>
     <li><strong>Compras ↔ Presupuestos (Fase 3)</strong>: el formulario de compra muestra plan / comprometido / disponible del presupuesto y de la línea elegida; aviso al guardar si la compra deja algo por encima de lo planeado.</li>
+    <li><strong>Retención en la fuente e ICA editables por cotización</strong>: en el bloque "Efectivo neto esperado" se prellenan de la ficha del cliente al elegirlo, pero se pueden ajustar y quedan guardadas en cada cotización (no siempre se retiene lo mismo ni aplica la misma tarifa de ICA).</li>
     <li><strong>Este manual</strong>: publicado en app.dpingenieriaintegral.com/manual.html, con enlace en el menú (Administración → Manual de la plataforma) y buscador.</li>
   </ul>
 </section>
