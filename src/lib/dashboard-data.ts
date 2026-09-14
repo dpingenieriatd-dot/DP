@@ -24,7 +24,7 @@ export async function getDashboardData() {
   for (const pre of presupuestos ?? []) {
     const f = calcularPresupuesto(pre);
     const items = (costos ?? []).filter((c) => c.presupuesto_id === pre.id);
-    const control = calcularControlCostos(items, f.valorCotizado, f.admin, f.iva);
+    const control = calcularControlCostos(items, f.valorCotizado, f.admin, f.iva + f.impoconsumo);
     ingresos += f.valorCotizado;
     gananciaEstTotal += control.gananciaEst;
     if (f.viable) viables += 1;

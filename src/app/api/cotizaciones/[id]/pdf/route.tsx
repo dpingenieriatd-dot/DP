@@ -19,8 +19,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   if (cotError || !cotizacion) return NextResponse.json({ error: "Cotización no encontrada" }, { status: 404 });
 
   const calc = calcularCotizacionItems(
-    (items ?? []).map((i) => ({ cantidad: Number(i.cantidad || 0), costo_unitario: Number(i.costo_unitario || 0), precio_cliente_override: i.precio_cliente_override, lleva_iva: i.lleva_iva })),
-    { admin_pct: cotizacion.admin_pct ?? 15, margen_pct: cotizacion.margen_pct ?? 30, resp_iva: cotizacion.resp_iva ?? true, iva_pct: 19 }
+    (items ?? []).map((i) => ({
+      cantidad: Number(i.cantidad || 0),
+      costo_unitario: Number(i.costo_unitario || 0),
+      precio_cliente_override: i.precio_cliente_override,
+      tipo_impuesto: i.tipo_impuesto,
+      tarifa_impuesto: i.tarifa_impuesto,
+    })),
+    { admin_pct: cotizacion.admin_pct ?? 15, margen_pct: cotizacion.margen_pct ?? 30, resp_iva: cotizacion.resp_iva ?? true }
   );
 
   const buffer = await renderToBuffer(
@@ -40,6 +46,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       clientSubtotal={calc.clientSubtotal}
       aplicaIva={calc.aplicaIva}
       clientIva={calc.clientIva}
+      clientImpoconsumo={calc.clientImpoconsumo}
       clientTotal={calc.clientTotal}
     />
   );

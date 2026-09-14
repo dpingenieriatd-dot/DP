@@ -40,7 +40,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const presupuestosConCalc = (presupuestos ?? []).map((pre) => {
     const items = (costos ?? []).filter((c) => c.presupuesto_id === pre.id);
     const f = calcularPresupuesto({ ...pre, costos: costoBasePresupuesto(pre, items) });
-    const control = calcularControlCostos(items, f.valorCotizado, f.admin, f.iva, comprometidoDe(pre.id));
+    const control = calcularControlCostos(items, f.valorCotizado, f.admin, f.iva + f.impoconsumo, comprometidoDe(pre.id));
     return { pre, f, control };
   });
 

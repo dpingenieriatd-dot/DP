@@ -49,6 +49,7 @@ type PresupuestoInput = {
   resp_iva: boolean | null;
   iva_pct: number | string | null;
   iva_monto?: number | string | null;
+  impoconsumo_monto?: number | string | null;
 };
 type CostoInput = { presupuesto_id: string; presupuestado: number | string | null };
 type CompraInput = {
@@ -97,6 +98,7 @@ export function construirFilasControl(input: {
           iva_pct: Number(x.iva_pct ?? input.settings?.iva_pct ?? 19),
           valor_cotizado: Number(x.valor_cotizado || 0),
           iva_monto: x.iva_monto == null ? null : Number(x.iva_monto),
+          impoconsumo_monto: x.impoconsumo_monto == null ? null : Number(x.impoconsumo_monto),
         }),
       );
       const planCosto = porPresupuesto.reduce((s, f) => s + f.costos, 0);
@@ -104,7 +106,7 @@ export function construirFilasControl(input: {
         valorAprobado: pres.reduce((s, x) => s + Number(x.valor_cotizado || 0), 0),
         planCosto,
         admin: porPresupuesto.reduce((s, f) => s + f.admin, 0),
-        iva: porPresupuesto.reduce((s, f) => s + f.iva, 0),
+        iva: porPresupuesto.reduce((s, f) => s + f.iva + f.impoconsumo, 0),
         compras: input.compras.filter((c) => c.proyecto_id === p.id),
         umbralRiesgoPct,
       });

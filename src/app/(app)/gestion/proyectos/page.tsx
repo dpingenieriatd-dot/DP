@@ -37,13 +37,14 @@ export default async function Page() {
         iva_pct: Number(p.iva_pct ?? settings?.iva_pct ?? 19),
         valor_cotizado: Number(p.valor_cotizado || 0),
         iva_monto: p.iva_monto == null ? null : Number(p.iva_monto),
+        impoconsumo_monto: p.impoconsumo_monto == null ? null : Number(p.impoconsumo_monto),
       }),
     );
     const estado = calcularEstadoProyecto({
       valorAprobado: presDelProyecto.reduce((s, p) => s + Number(p.valor_cotizado || 0), 0),
       planCosto: porPresupuesto.reduce((s, f) => s + f.costos, 0),
       admin: porPresupuesto.reduce((s, f) => s + f.admin, 0),
-      iva: porPresupuesto.reduce((s, f) => s + f.iva, 0),
+      iva: porPresupuesto.reduce((s, f) => s + f.iva + f.impoconsumo, 0),
       compras: (compras ?? []).filter((c) => c.proyecto_id === proy.id),
       umbralRiesgoPct,
     });

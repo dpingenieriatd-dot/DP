@@ -17,7 +17,8 @@ export type ItemPayload = {
   cantidad: number;
   costo_unitario: number;
   precio_cliente_override: number | null;
-  lleva_iva: boolean;
+  tipo_impuesto: "iva" | "impoconsumo" | "ninguno";
+  tarifa_impuesto: number;
 };
 
 export type CotizacionPayload = {
@@ -95,7 +96,8 @@ function itemsParaCalculo(items: ItemPayload[]): ItemCotizacion[] {
     cantidad: Number(i.cantidad || 0),
     costo_unitario: Number(i.costo_unitario || 0),
     precio_cliente_override: i.precio_cliente_override,
-    lleva_iva: i.lleva_iva,
+    tipo_impuesto: i.tipo_impuesto,
+    tarifa_impuesto: i.tarifa_impuesto,
   }));
 }
 
@@ -112,7 +114,8 @@ async function reemplazarItems(supabase: SupabaseServer, cotizacionId: string, i
       cantidad: i.cantidad,
       costo_unitario: i.costo_unitario,
       precio_cliente_override: i.precio_cliente_override,
-      lleva_iva: i.lleva_iva,
+      tipo_impuesto: i.tipo_impuesto,
+      tarifa_impuesto: i.tarifa_impuesto,
       orden: idx,
     }))
   );
@@ -136,7 +139,6 @@ export async function crearCotizacion(payload: CotizacionPayload) {
     admin_pct: payload.admin_pct,
     margen_pct: payload.margen_pct,
     resp_iva: payload.resp_iva,
-    iva_pct: 19,
   });
   const empresaId = await resolveEmpresaId(supabase, payload.empresa_id);
 
@@ -169,6 +171,7 @@ export async function crearCotizacion(payload: CotizacionPayload) {
       costos_estimados: calc.direct,
       valor_cotizado: calc.clientTotal,
       iva_monto: calc.clientIva,
+      impoconsumo_monto: calc.clientImpoconsumo,
       creado_por: user?.id ?? null,
     })
     .select("id")
@@ -198,7 +201,6 @@ export async function actualizarCotizacion(id: string, payload: CotizacionPayloa
     admin_pct: payload.admin_pct,
     margen_pct: payload.margen_pct,
     resp_iva: payload.resp_iva,
-    iva_pct: 19,
   });
   const empresaId = await resolveEmpresaId(supabase, payload.empresa_id);
 
@@ -231,6 +233,7 @@ export async function actualizarCotizacion(id: string, payload: CotizacionPayloa
       costos_estimados: calc.direct,
       valor_cotizado: calc.clientTotal,
       iva_monto: calc.clientIva,
+      impoconsumo_monto: calc.clientImpoconsumo,
     })
     .eq("id", id);
   if (error) return { error: codigoDuplicado(error) };
@@ -411,7 +414,7 @@ export async function aprobarYCrearProyecto(cotizacionId: string, aprobacion: Ap
       // presupuesto). Antes NO se copiaban y el presupuesto nacía con 15/30/19.
       admin_pct: cot.admin_pct ?? 15,
       margen_pct: cot.margen_pct ?? 30,
-      iva_pct: 19, // las cotizaciones tienen el IVA fijo en 19 %
+      iva_pct: 19, // solo un respaldo si algún día falta iva_monto; la tarifa real vive por ítem en la cotización
       resp_iva: cot.resp_iva ?? true,
       // PENDIENTE POR DECISIÓN (ver PENDIENTES.md): valor_cotizado se siembra
       // aquí pero el campo es editable en el presupuesto, así que puede
@@ -419,6 +422,7 @@ export async function aprobarYCrearProyecto(cotizacionId: string, aprobacion: Ap
       // presupuesto; la lista de Cotizaciones y el PDF, el de la cotización.
       valor_cotizado: cot.valor_cotizado,
       iva_monto: cot.iva_monto ?? null,
+      impoconsumo_monto: cot.impoconsumo_monto ?? null,
     })
     .select("id")
     .single();

@@ -39,6 +39,7 @@ type BaseCotizacion = {
   items: { descripcion: string; cantidad: number; unidad: string; costoUnitario: number; unitClient: number; subtotal: number }[];
   subtotalCliente: number;
   ivaCliente: number;
+  impoconsumoCliente: number;
   total: number;
 };
 
@@ -187,8 +188,11 @@ export function PresupuestoDetalle({
             </table>
           </div>
           <div className="mt-3 space-y-1 border-t border-neutral-100 pt-3 text-sm">
-            <Fila label="Subtotal aprobado antes de IVA" valor={money.format(baseCotizacion.subtotalCliente)} />
-            <Fila label="IVA facturado al cliente" valor={money.format(baseCotizacion.ivaCliente)} />
+            <Fila label="Subtotal aprobado antes de impuestos" valor={money.format(baseCotizacion.subtotalCliente)} />
+            {baseCotizacion.ivaCliente > 0 && <Fila label="IVA facturado al cliente" valor={money.format(baseCotizacion.ivaCliente)} />}
+            {baseCotizacion.impoconsumoCliente > 0 && (
+              <Fila label="Impoconsumo facturado al cliente" valor={money.format(baseCotizacion.impoconsumoCliente)} />
+            )}
             <Fila label="Total aprobado por el cliente" valor={money.format(baseCotizacion.total)} bold />
           </div>
         </div>
@@ -241,7 +245,7 @@ export function PresupuestoDetalle({
             valor={hayCompras ? money.format(control.gananciaActual) : "— sin compras"}
             warn={hayCompras && control.gananciaActual < 0}
           />
-          <Mini label="Costos admin. + IVA de los costos del proyecto" valor={money.format(f.admin + f.iva)} />
+          <Mini label="Costos admin. + IVA/impoconsumo de los costos del proyecto" valor={money.format(f.admin + f.iva + f.impoconsumo)} />
         </div>
       </div>
 
@@ -294,11 +298,12 @@ export function PresupuestoDetalle({
 
           <p className="mt-2 text-xs font-semibold uppercase text-neutral-400">Referencia · cotización aprobada</p>
           <p className="mb-1 text-xs text-neutral-400">
-            Cifras de la oferta que aceptó el cliente. La utilidad es la real de esta cotización (precio cotizado − costo − administración − IVA), no una reconstrucción con el margen objetivo. No cambian al ajustar el control de costos.
+            Cifras de la oferta que aceptó el cliente. La utilidad es la real de esta cotización (precio cotizado − costo − administración − IVA/impoconsumo), no una reconstrucción con el margen objetivo. No cambian al ajustar el control de costos.
           </p>
           <Fila label="Costo directo (cotización aprobada)" valor={money.format(f.costos)} />
           <Fila label={`Costos administrativos (${presupuesto.admin_pct}%)`} valor={money.format(f.admin)} />
           {f.iva > 0 && <Fila label="IVA" valor={money.format(f.iva)} />}
+          {f.impoconsumo > 0 && <Fila label="Impoconsumo" valor={money.format(f.impoconsumo)} />}
           <Fila
             label={`Utilidad de la oferta (margen real ${(f.margenOferta * 100).toFixed(1)}% · objetivo ${Number(presupuesto.margen_pct).toFixed(1)}%)`}
             valor={money.format(f.utilidadOferta)}

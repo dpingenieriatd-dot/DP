@@ -18,6 +18,12 @@ export type PresupuestoBase = {
   /** IVA efectivo de la cotización aprobada (con IVA por ítem). Si viene, se
    *  usa tal cual en vez de estimar iva_pct% sobre todo el valor. */
   iva_monto?: number | null;
+  /** Impoconsumo efectivo de la cotización aprobada (con impuesto por ítem —
+   *  cada ítem lleva IVA, impoconsumo o ninguno, nunca ambos). Igual que
+   *  iva_monto, es un impuesto que no es ingreso de D&P: se resta de la
+   *  utilidad de la oferta. Ausente/null en presupuestos que no vienen de una
+   *  cotización con impoconsumo → 0. */
+  impoconsumo_monto?: number | null;
 };
 
 export function calcularPresupuesto(p: PresupuestoBase) {
@@ -35,18 +41,23 @@ export function calcularPresupuesto(p: PresupuestoBase) {
   // IVA: el efectivo de la cotización (IVA por ítem) si se propagó; si no,
   // estimación clásica de iva_pct% sobre todo el valor cuando responde IVA.
   const iva = p.iva_monto != null ? Number(p.iva_monto) : p.resp_iva ? valor * (ivaPct / 100) : 0;
+  // Impoconsumo: solo llega propagado de la cotización (no hay tarifa por
+  // defecto que estimar, a diferencia del IVA — no todos los presupuestos
+  // tienen ítems con impoconsumo).
+  const impoconsumo = Number(p.impoconsumo_monto || 0);
 
   const valorCotizado = Number(p.valor_cotizado || 0);
   // Utilidad y margen REALES de esta oferta: sobre lo que efectivamente se
   // cotizó (no la reconstrucción "a tarifa"). Pueden ser < objetivo o
   // negativos. `utilidadOferta` es también el criterio de viabilidad:
-  // viable = la cotización cubre costo directo + admin (+ IVA) → no da pérdida.
-  const utilidadOferta = valorCotizado - costos - admin - iva;
+  // viable = la cotización cubre costo directo + admin (+ IVA/impoconsumo) →
+  // no da pérdida.
+  const utilidadOferta = valorCotizado - costos - admin - iva - impoconsumo;
   const margenOferta = valorCotizado > 0 ? utilidadOferta / valorCotizado : 0;
   const margenNeg = utilidadOferta; // alias histórico
   const viable = utilidadOferta >= 0;
 
-  return { costos, admin, utilidadEsperada, utilidadOferta, margenOferta, valor, iva, valorCotizado, margenNeg, viable };
+  return { costos, admin, utilidadEsperada, utilidadOferta, margenOferta, valor, iva, impoconsumo, valorCotizado, margenNeg, viable };
 }
 
 export type CostoItem = { presupuestado: number; real: number };
@@ -82,28 +93,40 @@ export function calcularControlCostos(items: CostoItem[], valorCotizado: number,
  * (pueden ser < objetivo o negativas); `base`/`utilidad` son las cifras
  * "a tarifa" derivadas solo del factor.
  */
+/** Impuesto que puede llevar un ítem de cotización. Nunca ambos a la vez: el
+ *  cliente indica que, si el ítem cobra IVA, no cobra impoconsumo y viceversa
+ *  (así aplica para servicios como los psicológicos, que van con uno u otro
+ *  según el caso). La tarifa es SIEMPRE manual: no todos los ítems pagan lo
+ *  mismo (19%, 5%, 0% de IVA; 8%, 4% de impoconsumo, etc.). */
+export type TipoImpuestoItem = "iva" | "impoconsumo" | "ninguno";
+
 export type ItemCotizacion = {
   cantidad: number;
   costo_unitario: number;
   precio_cliente_override: number | null;
-  /** Si el ítem es gravado con IVA. Default true (ausente = true) para
-   *  compatibilidad con ítems viejos. Solo cuenta si la cotización responde IVA. */
-  lleva_iva?: boolean;
+  /** Impuesto de este ítem. Ausente = "iva" (compatibilidad con ítems viejos,
+   *  que llevaban `lleva_iva`). "iva" solo cobra si además la cotización
+   *  responde por IVA (resp_iva); "impoconsumo" cobra siempre que esté marcado. */
+  tipo_impuesto?: TipoImpuestoItem;
+  /** Tarifa del impuesto anterior, en %. Se escribe a mano por ítem — ausente
+   *  cae a 19% si tipo_impuesto es "iva", o 0 en cualquier otro caso. */
+  tarifa_impuesto?: number | null;
 };
 
 export function calcularCotizacionItems(
   items: ItemCotizacion[],
-  opts: { admin_pct: number; margen_pct: number; resp_iva: boolean; iva_pct: number }
+  opts: { admin_pct: number; margen_pct: number; resp_iva: boolean }
 ) {
   const a = Number(opts.admin_pct ?? 15) / 100;
   const u = Number(opts.margen_pct ?? 30) / 100;
-  const ivaFrac = Number(opts.iva_pct ?? 19) / 100;
   const factor = u >= 0.999 ? 1 + a : (1 + a) / (1 - u);
 
   const direct = items.reduce((s, i) => s + Number(i.cantidad || 0) * Number(i.costo_unitario || 0), 0);
   const admin = direct * a;
   const base = direct * factor;
   const utilidad = Math.max(0, base - direct - admin);
+  // Interruptor maestro: si D&P no responde por IVA, ningún ítem lo cobra
+  // aunque esté marcado como "iva" — el impoconsumo no depende de este switch.
   const aplicaIva = !!opts.resp_iva;
 
   const itemsCalculados = items.map((i) => {
@@ -111,14 +134,21 @@ export function calcularCotizacionItems(
     const autoUnitClient = Number(i.costo_unitario || 0) * factor;
     const override = i.precio_cliente_override;
     const unitClient = override != null && override > 0 ? Number(override) : autoUnitClient;
-    const llevaIva = i.lleva_iva !== false; // ausente = true
-    return { ...i, autoUnitClient, unitClient, llevaIva, subtotalCliente: unitClient * cantidad };
+    const tipoImpuesto: TipoImpuestoItem = i.tipo_impuesto ?? "iva";
+    const tarifaImpuesto = Number(i.tarifa_impuesto ?? (tipoImpuesto === "iva" ? 19 : 0));
+    const llevaIva = tipoImpuesto === "iva" && aplicaIva;
+    const llevaImpoconsumo = tipoImpuesto === "impoconsumo";
+    const subtotalCliente = unitClient * cantidad;
+    const montoIva = llevaIva ? subtotalCliente * (tarifaImpuesto / 100) : 0;
+    const montoImpoconsumo = llevaImpoconsumo ? subtotalCliente * (tarifaImpuesto / 100) : 0;
+    return { ...i, autoUnitClient, unitClient, tipoImpuesto, tarifaImpuesto, llevaIva, llevaImpoconsumo, subtotalCliente, montoIva, montoImpoconsumo };
   });
   const clientSubtotal = itemsCalculados.reduce((s, i) => s + i.subtotalCliente, 0);
-  // IVA solo sobre los ítems gravados, y solo si la cotización responde IVA.
-  const baseGravada = aplicaIva ? itemsCalculados.filter((i) => i.llevaIva).reduce((s, i) => s + i.subtotalCliente, 0) : 0;
-  const clientIva = baseGravada * ivaFrac;
-  const clientTotal = clientSubtotal + clientIva;
+  const baseGravadaIva = itemsCalculados.filter((i) => i.llevaIva).reduce((s, i) => s + i.subtotalCliente, 0);
+  const baseGravadaImpoconsumo = itemsCalculados.filter((i) => i.llevaImpoconsumo).reduce((s, i) => s + i.subtotalCliente, 0);
+  const clientIva = itemsCalculados.reduce((s, i) => s + i.montoIva, 0);
+  const clientImpoconsumo = itemsCalculados.reduce((s, i) => s + i.montoImpoconsumo, 0);
+  const clientTotal = clientSubtotal + clientIva + clientImpoconsumo;
 
   // Utilidad/margen REALES de la oferta: sobre el precio que efectivamente se
   // cobra (clientSubtotal), no sobre el "a tarifa" (base). direct + admin +
@@ -126,14 +156,32 @@ export function calcularCotizacionItems(
   const utilidadReal = clientSubtotal - direct - admin;
   const margenReal = clientSubtotal > 0 ? utilidadReal / clientSubtotal : 0;
 
-  return { direct, admin, utilidad, utilidadReal, margenReal, base, itemsCalculados, clientSubtotal, baseGravada, clientIva, clientTotal, factor, aplicaIva };
+  return {
+    direct,
+    admin,
+    utilidad,
+    utilidadReal,
+    margenReal,
+    base,
+    itemsCalculados,
+    clientSubtotal,
+    baseGravadaIva,
+    baseGravadaImpoconsumo,
+    clientIva,
+    clientImpoconsumo,
+    clientTotal,
+    factor,
+    aplicaIva,
+  };
 }
 
 export type EfectivoInputs = {
-  /** Valor cotizado al cliente, IVA incluido (cotizaciones.valor_cotizado). */
+  /** Valor cotizado al cliente, IVA e impoconsumo incluidos (cotizaciones.valor_cotizado). */
   valorConIva: number;
   /** IVA efectivo embebido en el valor cotizado (cotizaciones.iva_monto). */
   iva: number;
+  /** Impoconsumo efectivo embebido en el valor cotizado (cotizaciones.impoconsumo_monto). */
+  impoconsumo: number;
   /** Perfil tributario del cliente. */
   retencionFuentePct: number; // porcentaje (ej. 11)
   icaPorMil: number; // tarifa POR MIL (ej. 9,66), no porcentaje
@@ -147,23 +195,27 @@ export type EfectivoInputs = {
  * fuente, ICA, otras). Es distinto del motor de rentabilidad, que compara
  * costo vs. precio — aquí se parte del valor cotizado.
  *
- * Retención en la fuente e ICA se calculan sobre la base SIN IVA (estándar en
- * Colombia). La retención en la fuente es un PORCENTAJE (11 % honorarios →
- * /100); el ICA es una TARIFA POR MIL (Bogotá servicios 9,66 x 1.000 → /1000),
- * como lo cobran los municipios. Ambas tarifas vienen del perfil del cliente.
+ * Retención en la fuente e ICA se calculan sobre la base SIN IVA NI
+ * IMPOCONSUMO (estándar en Colombia). La retención en la fuente es un
+ * PORCENTAJE (11 % honorarios → /100); el ICA es una TARIFA POR MIL (Bogotá
+ * servicios 9,66 x 1.000 → /1000), como lo cobran los municipios. Ambas
+ * tarifas vienen del perfil del cliente. El IVA y el impoconsumo sí quedan en
+ * la caja de D&P (el cliente los paga junto con el resto de la factura) pero
+ * no son ingreso propio — se muestran aparte solo como referencia.
  */
 export function calcularEfectivoEsperado(p: EfectivoInputs) {
   const valorConIva = Number(p.valorConIva || 0);
   const iva = Number(p.iva || 0);
+  const impoconsumo = Number(p.impoconsumo || 0);
   const otrasRetenciones = Number(p.otrasRetenciones || 0);
 
-  const valorSinIva = valorConIva - iva;
+  const valorSinIva = valorConIva - iva - impoconsumo;
   const retencion = valorSinIva * (Number(p.retencionFuentePct || 0) / 100);
   const ica = valorSinIva * (Number(p.icaPorMil || 0) / 1000);
 
   const efectivoNetoEsperado = valorConIva - retencion - ica - otrasRetenciones;
 
-  return { valorSinIva, iva, valorConIva, retencion, ica, otrasRetenciones, efectivoNetoEsperado };
+  return { valorSinIva, iva, impoconsumo, valorConIva, retencion, ica, otrasRetenciones, efectivoNetoEsperado };
 }
 
 export const money = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });

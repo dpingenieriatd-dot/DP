@@ -38,7 +38,7 @@ export default async function Page() {
     const items = (costos ?? []).filter((c) => c.presupuesto_id === pre.id);
     const f = calcularPresupuesto({ ...pre, costos: costoBasePresupuesto(pre, items) });
     const realCompras = comprometidoDePresupuesto(pre);
-    const control = calcularControlCostos(items, f.valorCotizado, f.admin, f.iva, realCompras > 0 ? realCompras : undefined);
+    const control = calcularControlCostos(items, f.valorCotizado, f.admin, f.iva + f.impoconsumo, realCompras > 0 ? realCompras : undefined);
     const proyecto = proyectoDe(pre.proyecto_id);
     const cliente = clienteDeProyecto(pre.proyecto_id);
     const cotizacion = cotizaciones?.find((c) => c.id === pre.cotizacion_id);

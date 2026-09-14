@@ -179,7 +179,7 @@ export async function GET(req: Request) {
     for (const pre of presDelProyecto) {
       const f = calcularPresupuesto(pre);
       const items = (costos ?? []).filter((c) => c.presupuesto_id === pre.id);
-      const control = calcularControlCostos(items, f.valorCotizado, f.admin, f.iva);
+      const control = calcularControlCostos(items, f.valorCotizado, f.admin, f.iva + f.impoconsumo);
       gananciaTotal += control.gananciaEst;
     }
     if (gananciaTotal < 0) {

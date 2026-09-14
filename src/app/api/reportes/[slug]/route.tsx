@@ -53,7 +53,7 @@ async function reporteResumen(supabase: SupabaseClient): Promise<ReportDoc> {
   for (const pre of presupuestos ?? []) {
     const f = calcularPresupuesto(pre);
     const items = (costos ?? []).filter((c) => c.presupuesto_id === pre.id);
-    const control = calcularControlCostos(items, f.valorCotizado, f.admin, f.iva);
+    const control = calcularControlCostos(items, f.valorCotizado, f.admin, f.iva + f.impoconsumo);
     ingresos += f.valorCotizado;
     ganancia += control.gananciaEst;
     if (f.viable) viables += 1;
@@ -100,7 +100,7 @@ async function reporteProyectos(supabase: SupabaseClient, filters?: ReportFilter
     for (const pre of presDelProyecto) {
       const f = calcularPresupuesto(pre);
       const items = (costos ?? []).filter((c) => c.presupuesto_id === pre.id);
-      ganancia += calcularControlCostos(items, f.valorCotizado, f.admin, f.iva).gananciaEst;
+      ganancia += calcularControlCostos(items, f.valorCotizado, f.admin, f.iva + f.impoconsumo).gananciaEst;
     }
     gananciaTotal += ganancia;
     return {

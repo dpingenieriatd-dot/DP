@@ -37,7 +37,19 @@ type Cotizacion = {
 
 type Enlace = { id: string; cotizacion_id: string; titulo: string | null; url: string };
 
-type ItemExistente = { id: string; tipo: "insumo" | "profesional" | "material"; descripcion: string; unidad: string; cantidad: number; costo_unitario: number; precio_cliente_override: number | null; lleva_iva: boolean | null };
+type TipoImpuesto = "iva" | "impoconsumo" | "ninguno";
+
+type ItemExistente = {
+  id: string;
+  tipo: "insumo" | "profesional" | "material";
+  descripcion: string;
+  unidad: string;
+  cantidad: number;
+  costo_unitario: number;
+  precio_cliente_override: number | null;
+  tipo_impuesto: TipoImpuesto | null;
+  tarifa_impuesto: number | null;
+};
 
 export type Insumo = { id: string; codigo: string | null; descripcion: string; unidad: string | null; costo: number };
 export type Profesional = { id: string; nombre: string; perfil: string | null; tarifa_hora: number | null };
@@ -109,13 +121,23 @@ export function CotizacionForm({
   );
 
   const [items, setItems] = useState<ItemLocal[]>(
-    itemsIniciales.map((i) => ({ key: nuevoKey(), tipo: i.tipo, descripcion: i.descripcion, unidad: i.unidad, cantidad: i.cantidad, costo_unitario: i.costo_unitario, precio_cliente_override: i.precio_cliente_override, lleva_iva: i.lleva_iva ?? true }))
+    itemsIniciales.map((i) => ({
+      key: nuevoKey(),
+      tipo: i.tipo,
+      descripcion: i.descripcion,
+      unidad: i.unidad,
+      cantidad: i.cantidad,
+      costo_unitario: i.costo_unitario,
+      precio_cliente_override: i.precio_cliente_override,
+      tipo_impuesto: i.tipo_impuesto ?? "iva",
+      tarifa_impuesto: i.tarifa_impuesto ?? ((i.tipo_impuesto ?? "iva") === "iva" ? 19 : 0),
+    }))
   );
   const [modalTipo, setModalTipo] = useState<"insumo" | "profesional" | "material" | null>(null);
   const [confirmarMargen, setConfirmarMargen] = useState<{ estadoForzado: string | null } | null>(null);
 
   const calc = useMemo(
-    () => calcularCotizacionItems(items, { admin_pct: adminPct, margen_pct: margenPct, resp_iva: respIva, iva_pct: 19 }),
+    () => calcularCotizacionItems(items, { admin_pct: adminPct, margen_pct: margenPct, resp_iva: respIva }),
     [items, adminPct, margenPct, respIva]
   );
 
@@ -157,6 +179,7 @@ export function CotizacionForm({
   const efectivo = calcularEfectivoEsperado({
     valorConIva: calc.clientTotal,
     iva: calc.clientIva,
+    impoconsumo: calc.clientImpoconsumo,
     retencionFuentePct: Number(retencionFuentePct) || 0,
     icaPorMil: Number(icaPorMil) || 0,
     otrasRetenciones: Number(otrasRetenciones) || 0,
@@ -187,14 +210,15 @@ export function CotizacionForm({
       otras_retenciones: Number(otrasRetenciones) || 0,
       retencion_fuente_pct: Number(retencionFuentePct) || 0,
       ica_por_mil: Number(icaPorMil) || 0,
-      items: items.map(({ tipo, descripcion, unidad, cantidad, costo_unitario, precio_cliente_override, lleva_iva }) => ({
+      items: items.map(({ tipo, descripcion, unidad, cantidad, costo_unitario, precio_cliente_override, tipo_impuesto, tarifa_impuesto }) => ({
         tipo,
         descripcion,
         unidad,
         cantidad,
         costo_unitario,
         precio_cliente_override,
-        lleva_iva,
+        tipo_impuesto,
+        tarifa_impuesto: Number(tarifa_impuesto) || 0,
       })),
     };
   }
@@ -375,7 +399,7 @@ export function CotizacionForm({
             <h2 className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-neutral-500">
               <ListChecks size={15} /> Ítems de la cotización
             </h2>
-            <span className="text-xs text-neutral-400">El precio cliente unitario incluye administración + utilidad; el IVA se calcula al final</span>
+            <span className="text-xs text-neutral-400">El precio cliente unitario incluye administración + utilidad; el impuesto de cada ítem (IVA o impoconsumo) se calcula al final</span>
           </div>
 
           <div className="mb-3 rounded-md border border-neutral-200 bg-neutral-50 p-2.5 text-xs text-neutral-600">
@@ -394,7 +418,7 @@ export function CotizacionForm({
                   <th className="px-3 py-2 text-right">Cant.</th>
                   <th className="px-3 py-2 text-right">Costo unit. interno</th>
                   <th className="px-3 py-2 text-right">Precio cliente unit.</th>
-                  <th className="px-3 py-2 text-center">IVA</th>
+                  <th className="px-3 py-2 text-center">Impuesto</th>
                   <th className="px-3 py-2 text-right">Subtotal cliente</th>
                   <th className="px-3 py-2" />
                 </tr>
@@ -457,14 +481,44 @@ export function CotizacionForm({
                         </div>
                       </td>
                       <td className="px-3 py-2 text-center">
-                        <input
-                          type="checkbox"
-                          checked={local.lleva_iva}
-                          disabled={!respIva}
-                          title={respIva ? "¿Este ítem lleva IVA?" : "La cotización no responde por IVA"}
-                          onChange={(e) => actualizarItem(local.key, { lleva_iva: e.target.checked })}
-                          className="h-4 w-4 rounded disabled:opacity-40"
-                        />
+                        <select
+                          value={local.tipo_impuesto}
+                          onChange={(e) => {
+                            const tipo = e.target.value as TipoImpuesto;
+                            // Sugiere una tarifa típica al cambiar de impuesto; el usuario
+                            // la puede corregir a mano justo abajo (no siempre es la misma).
+                            const sugerida = tipo === "iva" ? 19 : tipo === "impoconsumo" ? 8 : 0;
+                            actualizarItem(local.key, { tipo_impuesto: tipo, tarifa_impuesto: sugerida });
+                          }}
+                          title={
+                            local.tipo_impuesto === "iva" && !respIva
+                              ? "La cotización no responde por IVA: este ítem no lo cobrará aunque esté marcado"
+                              : undefined
+                          }
+                          className="w-[6.5rem] rounded-md border border-neutral-300 px-1.5 py-1 text-[11px]"
+                        >
+                          <option value="iva">IVA</option>
+                          <option value="impoconsumo">Impoconsumo</option>
+                          <option value="ninguno">Ninguno</option>
+                        </select>
+                        {local.tipo_impuesto !== "ninguno" && (
+                          <div className="mt-1 flex items-center justify-center gap-0.5">
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              step={0.01}
+                              value={local.tarifa_impuesto}
+                              onChange={(e) => actualizarItem(local.key, { tarifa_impuesto: Number(e.target.value) || 0 })}
+                              title="Tarifa manual: no todos los ítems pagan la misma"
+                              className="w-14 rounded-md border border-neutral-300 px-1 py-0.5 text-right"
+                            />
+                            <span className="text-neutral-500">%</span>
+                          </div>
+                        )}
+                        {local.tipo_impuesto === "iva" && !respIva && (
+                          <p className="mt-0.5 text-[9px] leading-tight text-amber-600">No cobra: la cotización no responde IVA</p>
+                        )}
                       </td>
                       <td className="px-3 py-2 text-right font-semibold">{money.format(i.subtotalCliente)}</td>
                       <td className="px-3 py-2 text-center">
@@ -558,26 +612,27 @@ export function CotizacionForm({
               </div>
             )}
             <div className="flex items-center justify-between border-t border-neutral-200 pt-2 font-semibold text-neutral-700">
-              <span>Precio a cliente antes de IVA</span>
+              <span>Precio a cliente antes de impuestos</span>
               <span>{money.format(calc.clientSubtotal)}</span>
             </div>
-            <Linea
-              label={
-                calc.aplicaIva && calc.baseGravada < calc.clientSubtotal
-                  ? `IVA (19% sobre ${money.format(calc.baseGravada)} gravado)`
-                  : "IVA (19%)"
-              }
-              valor={calc.clientIva}
-            />
+            {calc.clientIva > 0 && (
+              <Linea label={`IVA (sobre ${money.format(calc.baseGravadaIva)} gravado)`} valor={calc.clientIva} />
+            )}
+            {calc.clientImpoconsumo > 0 && (
+              <Linea label={`Impoconsumo (sobre ${money.format(calc.baseGravadaImpoconsumo)} gravado)`} valor={calc.clientImpoconsumo} />
+            )}
+            {calc.clientIva === 0 && calc.clientImpoconsumo === 0 && <Linea label="IVA / Impoconsumo" valor={0} />}
             <div className="flex items-center justify-between border-t border-emerald-200 pt-2 text-base font-bold text-emerald-900">
               <span>Total cotizado al cliente</span>
               <span>{money.format(calc.clientTotal)}</span>
             </div>
           </div>
           <p className="mt-3 text-xs text-neutral-400">
-            &quot;Costo directo + Costos administrativos + Utilidad real = Precio a cliente antes de IVA&quot;. La utilidad
-            real sale de los precios que quedaron en la tabla, no del margen objetivo — puede ser menor al objetivo o
-            negativa si se descontó por debajo del costo. El PDF del cliente nunca muestra costos internos, administración ni utilidad.
+            &quot;Costo directo + Costos administrativos + Utilidad real = Precio a cliente antes de impuestos&quot;. La
+            utilidad real sale de los precios que quedaron en la tabla, no del margen objetivo — puede ser menor al
+            objetivo o negativa si se descontó por debajo del costo. Cada ítem elige su propio impuesto (IVA o
+            impoconsumo, nunca ambos) y tarifa — no todos los servicios pagan lo mismo. El PDF del cliente nunca
+            muestra costos internos, administración ni utilidad.
           </p>
         </div>
 
@@ -626,8 +681,11 @@ export function CotizacionForm({
             </label>
           </div>
           <div className="space-y-1.5 border-t border-neutral-100 pt-3 text-sm">
-            <Linea label="Valor cotizado (con IVA)" valor={efectivo.valorConIva} />
+            <Linea label="Valor cotizado (con impuestos)" valor={efectivo.valorConIva} />
             <Linea label="− IVA (no es ingreso de D&P)" valor={-efectivo.iva} />
+            {efectivo.impoconsumo > 0 && (
+              <Linea label="− Impoconsumo (no es ingreso de D&P)" valor={-efectivo.impoconsumo} />
+            )}
             <Linea
               label={`− Retención en la fuente (${Number(retencionFuentePct) || 0}%)`}
               valor={-efectivo.retencion}
@@ -855,7 +913,7 @@ function AgregarItemModal({
       const vida = Number(x.vida_util_jornadas) || 1;
       costo = vida > 0 ? Number(x.valor_reposicion || 0) / vida : 0;
     }
-    onConfirm({ tipo, descripcion, unidad, cantidad: Math.max(0.01, cantidad), costo_unitario: costo, precio_cliente_override: null, lleva_iva: true });
+    onConfirm({ tipo, descripcion, unidad, cantidad: Math.max(0.01, cantidad), costo_unitario: costo, precio_cliente_override: null, tipo_impuesto: "iva", tarifa_impuesto: 19 });
   }
 
   return (

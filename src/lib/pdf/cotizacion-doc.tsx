@@ -147,6 +147,7 @@ export function CotizacionDoc({
   clientSubtotal,
   aplicaIva,
   clientIva,
+  clientImpoconsumo,
   clientTotal,
 }: {
   codigo: string;
@@ -164,6 +165,7 @@ export function CotizacionDoc({
   clientSubtotal: number;
   aplicaIva: boolean;
   clientIva: number;
+  clientImpoconsumo: number;
   clientTotal: number;
 }) {
   const generado = new Date().toLocaleString("es-CO", { dateStyle: "long", timeStyle: "short" });
@@ -223,13 +225,19 @@ export function CotizacionDoc({
               <Text style={s.resumenHeadTxt}>Resumen económico</Text>
             </View>
             <View style={s.resumenFila}>
-              <Text style={s.resumenLabel}>Valor antes de IVA</Text>
+              <Text style={s.resumenLabel}>Valor antes de impuestos</Text>
               <Text style={s.resumenValor}>{money.format(clientSubtotal)}</Text>
             </View>
             <View style={[s.resumenFila, s.resumenFilaAlt]}>
-              <Text style={s.resumenLabel}>IVA (19%)</Text>
-              <Text style={s.resumenValor}>{aplicaIva ? money.format(clientIva) : "No aplica"}</Text>
+              <Text style={s.resumenLabel}>IVA</Text>
+              <Text style={s.resumenValor}>{aplicaIva && clientIva > 0 ? money.format(clientIva) : "No aplica"}</Text>
             </View>
+            {clientImpoconsumo > 0 && (
+              <View style={s.resumenFila}>
+                <Text style={s.resumenLabel}>Impoconsumo</Text>
+                <Text style={s.resumenValor}>{money.format(clientImpoconsumo)}</Text>
+              </View>
+            )}
             <View style={s.totalFila}>
               <Text style={s.totalLabel}>Total</Text>
               <Text style={s.totalValor}>{money.format(clientTotal)}</Text>

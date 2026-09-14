@@ -71,7 +71,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const hayCompras = comprasDeEste.length > 0;
 
   const f = calcularPresupuesto({ ...presupuesto, costos: costoBasePresupuesto(presupuesto, costos ?? []) });
-  const control = calcularControlCostos(costos ?? [], f.valorCotizado, f.admin, f.iva, hayCompras ? comprometidoCompras : undefined);
+  const control = calcularControlCostos(costos ?? [], f.valorCotizado, f.admin, f.iva + f.impoconsumo, hayCompras ? comprometidoCompras : undefined);
 
   let baseCotizacion = null;
   if (presupuesto.cotizaciones) {
@@ -81,12 +81,17 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       .eq("cotizacion_id", presupuesto.cotizaciones.id)
       .order("orden");
     const calc = calcularCotizacionItems(
-      (items ?? []).map((i) => ({ cantidad: i.cantidad, costo_unitario: i.costo_unitario, precio_cliente_override: i.precio_cliente_override, lleva_iva: i.lleva_iva })),
+      (items ?? []).map((i) => ({
+        cantidad: i.cantidad,
+        costo_unitario: i.costo_unitario,
+        precio_cliente_override: i.precio_cliente_override,
+        tipo_impuesto: i.tipo_impuesto,
+        tarifa_impuesto: i.tarifa_impuesto,
+      })),
       {
         admin_pct: presupuesto.cotizaciones.admin_pct ?? 15,
         margen_pct: presupuesto.cotizaciones.margen_pct ?? 30,
         resp_iva: presupuesto.cotizaciones.resp_iva ?? true,
-        iva_pct: 19,
       }
     );
     baseCotizacion = {
@@ -105,6 +110,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       })),
       subtotalCliente: calc.clientSubtotal,
       ivaCliente: calc.clientIva,
+      impoconsumoCliente: calc.clientImpoconsumo,
       total: calc.clientTotal,
     };
   }

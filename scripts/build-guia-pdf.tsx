@@ -649,7 +649,7 @@ function Doc() {
             ["Presupuesto", "El plan de costos del proyecto."],
             ["Gastado", "La suma de todas las compras registradas contra el proyecto (comprometido). Debajo, cuánto de eso ya está pagado."],
             ["Disponible", "Presupuesto menos gastado. En rojo si es negativo."],
-            ["Ganancia real", "Valor aprobado menos lo gastado, menos administración e IVA. Antes de retenciones."],
+            ["Ganancia real", "Valor aprobado menos lo gastado, menos administración, IVA e impoconsumo. Antes de retenciones."],
             ["Plata (semáforo)", "En presupuesto (verde) · En atención al llegar al umbral de ejecución (amarillo) · Sobre presupuesto o en pérdida (rojo)."],
             ["Tiempo (semáforo)", "A tiempo (verde) · Por vencer cuando faltan pocos días (amarillo) · Atrasado si ya pasó la fecha de entrega (rojo) · Sin fecha si no se registró."],
           ]}
@@ -684,7 +684,7 @@ function Doc() {
             ["Cliente · Empresa atendida", "A quién se le cotiza. Empresa atendida puede ser el mismo cliente. Al elegir la empresa atendida, el contacto, correo y teléfono se autocompletan con los datos guardados en su ficha (editables solo para esta cotización)."],
             ["Nombre de la cotización · Responsable comercial", "Título del trabajo y quién lo lleva."],
             ["Contacto, correo, teléfono", "Datos de la persona del cliente. Se autocompletan al elegir la empresa atendida."],
-            ["¿Responde por IVA?", "Interruptor maestro: si D&P responde por IVA. En cada ítem hay además una casilla IVA para marcar cuáles renglones son gravados (hay ítems que llevan y otros que no). El IVA del 19% se calcula solo sobre los ítems gravados."],
+            ["¿Responde por IVA?", "Interruptor maestro solo del IVA: si D&P no responde por IVA, ningún ítem marcado como IVA lo cobra. Además, cada ítem elige su propio impuesto (IVA, impoconsumo o ninguno) y su propia tarifa a mano, porque no todos los servicios pagan lo mismo. Un ítem nunca lleva IVA e impoconsumo a la vez."],
             ["Margen objetivo (%)", "La ganancia que se busca sobre el precio. Solo aplica a los ítems en Auto. Máximo 95%. Se puede ajustar por cotización."],
             ["Margen mínimo (%)", "Umbral de aviso. Viene precargado de Parámetros y se puede ajustar por cotización. Si el margen real queda por debajo, al guardar aparece una recomendación de revisar los precios (no bloquea)."],
             ["Ítems", "Cada línea de la oferta: se elige del Banco de insumos / Profesionales / Materiales, con cantidad. El precio al cliente se calcula solo (Auto), o se puede fijar a mano (Manual)."],
@@ -700,9 +700,9 @@ function Doc() {
           items={[
             "Costo directo interno: lo que le cuesta a D&P.",
             "Costos administrativos: un porcentaje sobre el costo directo.",
-            "Precio a cliente antes de IVA: la suma de los precios de los ítems.",
+            "Precio a cliente antes de impuestos: la suma de los precios de los ítems.",
             "Utilidad real de la oferta: precio a cliente - costo directo - administración. Se muestra con el margen real y el objetivo lado a lado (margen real X% · objetivo Y%). Si el real quedó bastante por debajo del objetivo, se pinta en ámbar con un recuadro que explica por qué (normalmente, ítems en Manual por debajo de lo que daría el margen).",
-            "IVA (solo sobre los ítems marcados como gravados) y Total cotizado al cliente.",
+            "IVA (suma de los ítems marcados como IVA, cada uno con su tarifa) e Impoconsumo (suma de los marcados como impoconsumo) y Total cotizado al cliente.",
             "Cada ítem muestra si su precio está en Auto (la app lo calcula: costo × factor del margen objetivo) o Manual (se escribió a mano y ese ítem ignora el margen). El botón ↺ auto lo devuelve a Auto.",
           ]}
         />
@@ -719,7 +719,7 @@ function Doc() {
             ["Borrador", "Todavía se está armando."],
             ["Pendiente por definir", "Enviada internamente, sin decisión."],
             ["Enviada", "Ya se le envió al cliente."],
-            ["Aprobada", "El cliente la aceptó. Genera proyecto y presupuesto, que heredan el margen, la administración y el IVA de la cotización."],
+            ["Aprobada", "El cliente la aceptó. Genera proyecto y presupuesto, que heredan el margen, la administración y el IVA/impoconsumo efectivo de la cotización."],
             ["Rechazada", "El cliente no la aceptó. Genera un proyecto en estado Rechazado, solo para dejar el registro."],
             ["Cancelada", "Se dio de baja antes de una decisión del cliente."],
           ]}
@@ -753,10 +753,10 @@ function Doc() {
         <H3>Descargar la cotización en PDF</H3>
         <P>
           Desde la lista o desde la ficha, el botón PDF genera la cotización con la marca de D&P, lista para enviar al
-          cliente. El PDF es minimalista: cliente, la descripción de la cotización y tres cifras — valor antes de IVA,
-          IVA y valor total cotizado. No lista los ítems ni muestra cantidades, valores unitarios, costos internos,
-          administración ni utilidad. Todo el detalle de lo que se ofrece va en el campo de descripción de la cotización.
-          Si ya está aprobada, muestra la fecha de aprobación.
+          cliente. El PDF es minimalista: cliente, la descripción de la cotización y las cifras — valor antes de
+          impuestos, IVA, impoconsumo (si aplica) y valor total cotizado. No lista los ítems ni muestra cantidades,
+          valores unitarios, costos internos, administración ni utilidad. Todo el detalle de lo que se ofrece va en el
+          campo de descripción de la cotización. Si ya está aprobada, muestra la fecha de aprobación.
         </P>
       </ContentPage>
 
@@ -765,10 +765,10 @@ function Doc() {
         <P>La ficha de cada proyecto. Los proyectos nacen siempre de una cotización aprobada (o rechazada).</P>
         <Bullets
           items={[
-            "Datos del proyecto: nombre, cliente, empresa atendida, responsable, estado, fechas de inicio y cierre, observaciones. Un texto apunta a la cotización de origen, donde se ven el valor del contrato, el IVA y las retenciones (la ficha del proyecto ya no repite esos datos). Al guardar aparece un aviso Cambios guardados.",
+            "Datos del proyecto: nombre, cliente, empresa atendida, responsable, estado, fechas de inicio y cierre, observaciones. Un texto apunta a la cotización de origen, donde se ven el valor del contrato, el IVA/impoconsumo y las retenciones (la ficha del proyecto ya no repite esos datos). Al guardar aparece un aviso Cambios guardados.",
             "Estados: Planeado, En ejecución, Suspendido, Finalizado, Cancelado (y Rechazado, para los que salen de una cotización rechazada).",
-            "Cada presupuesto del proyecto muestra un distintivo Viable / No viable: viable significa que el valor cotizado cubre costo, administración e IVA (no da pérdida). No compara contra el margen objetivo.",
-            "Efectivo neto esperado: se calcula en la cotización, no en el proyecto. Sale del valor cotizado menos el IVA, la retención en la fuente y el ICA (se prellenan de la ficha del cliente al elegirlo y se pueden ajustar por cotización) y unas otras retenciones fijas. Es cuánto le llega realmente a D&P después de lo que el cliente retiene y paga a la DIAN.",
+            "Cada presupuesto del proyecto muestra un distintivo Viable / No viable: viable significa que el valor cotizado cubre costo, administración, IVA e impoconsumo (no da pérdida). No compara contra el margen objetivo.",
+            "Efectivo neto esperado: se calcula en la cotización, no en el proyecto. Sale del valor cotizado menos la retención en la fuente y el ICA (se prellenan de la ficha del cliente al elegirlo y se pueden ajustar por cotización) y unas otras retenciones fijas. El IVA y el impoconsumo se muestran aparte solo como referencia (no son ingreso de D&P, pero sí quedan en caja). Es cuánto le llega realmente a D&P después de lo que el cliente retiene y paga a la DIAN.",
             "Presupuestos del proyecto: se listan en la ficha, con su estado de viabilidad. Las compras se gestionan en el módulo Compras y su costo real se refleja en el control de cada presupuesto.",
             "Archivar: saca el proyecto de la lista principal (se puede volver a mostrar con la casilla Mostrar archivados y rechazados).",
           ]}
@@ -797,7 +797,7 @@ function Doc() {
         <P>El recuadro de resumen tiene dos bloques:</P>
         <Bullets
           items={[
-            "Referencia · cotización aprobada: costo directo, administración, IVA y utilidad de la oferta (valor cotizado - costo - administración - IVA), con el margen real y el objetivo lado a lado. Cifras fijas de la oferta; no cambian al ajustar el control de costos. En rojo si la utilidad es negativa.",
+            "Referencia · cotización aprobada: costo directo, administración, IVA, impoconsumo y utilidad de la oferta (valor cotizado - costo - administración - IVA - impoconsumo), con el margen real y el objetivo lado a lado. Cifras fijas de la oferta; no cambian al ajustar el control de costos. En rojo si la utilidad es negativa.",
             "Control del proyecto · líneas vigentes: presupuesto vigente (plan), comprometido en compras, pagado a proveedores, por pagar a proveedores, disponible (plan - comprometido), ganancia estimada (vs. plan) y ganancia según lo comprometido. El semáforo y la ganancia real usan lo comprometido, no lo pagado.",
           ]}
         />
@@ -861,7 +861,7 @@ function Doc() {
           rows={[
             ["Resumen ejecutivo", "Indicadores generales de Seguimiento y Gestión."],
             ["Proyectos", "Listado de proyectos con ganancia estimada."],
-            ["Presupuestos", "Costos, utilidad esperada, IVA y viabilidad por presupuesto."],
+            ["Presupuestos", "Costos, utilidad esperada, IVA y viabilidad por presupuesto (la utilidad ya descuenta el impoconsumo cuando lo hay)."],
             ["Cotizaciones", "Histórico de cotizaciones enviadas."],
             ["Compras", "Compras por proyecto, proveedor y estado de pago."],
             ["Clientes / Proveedores / Banco de insumos", "Los catálogos, en formato imprimible."],
@@ -906,7 +906,7 @@ function Doc() {
             ["Costos administrativos (%)", "Porcentaje que se suma al costo directo en cotizaciones y presupuestos."],
             ["Margen de utilidad objetivo (%)", "Margen por defecto de las cotizaciones nuevas."],
             ["Margen mínimo recomendado (%)", "Umbral por debajo del cual, al guardar una cotización, aparece un aviso recomendando revisar los precios. Cada cotización hereda este valor y lo puede ajustar."],
-            ["IVA predeterminado (%)", "Tarifa de IVA."],
+            ["IVA predeterminado (%)", "Solo es respaldo del motor de presupuestos cuando no hay IVA efectivo propagado desde una cotización; en cotizaciones, la tarifa la elige cada ítem a mano."],
             ["Alerta de ejecución del presupuesto (%)", "En el Control de proyectos, a partir de qué % gastado un proyecto pasa a amarillo (por defecto 80%)."],
             ["Aviso previo a la entrega (días)", "Cuántos días antes de la fecha de entrega un proyecto pasa a Por vencer (por defecto 15)."],
             ["Gastos e ingresos mensuales de la empresa", "Referencia para el análisis de crecimiento."],
@@ -1025,16 +1025,16 @@ function Doc() {
             ["Cargo", "El puesto de la persona (texto libre). Se usa para filtrar Actividades y para mostrarlo en su perfil."],
             ["Cotización", "La oferta económica que se le hace a un cliente."],
             ["Ítem", "Cada línea de una cotización o de un presupuesto (un insumo, un servicio, un material) con su cantidad y valor."],
-            ["Viable / No viable", "Un presupuesto es viable si el valor cotizado al cliente cubre el costo directo, la administración y el IVA — es decir, el proyecto no da pérdida."],
+            ["Viable / No viable", "Un presupuesto es viable si el valor cotizado al cliente cubre el costo directo, la administración, el IVA y el impoconsumo — es decir, el proyecto no da pérdida."],
             ["Proyecto", "El trabajo que se ejecuta después de que el cliente aprueba una cotización."],
             ["Presupuesto", "El plan de costos de un proyecto y su control frente a lo realmente gastado."],
             ["Plan / Presupuesto vigente", "La suma de los ítems presupuestados de un proyecto."],
             ["Gastado / Comprometido", "La suma de todas las compras registradas contra el proyecto (aunque no estén pagadas)."],
             ["Pagado", "La parte del gasto que ya tiene estado de pago Pagado."],
             ["Valor aprobado", "El monto que el cliente aceptó pagar, según la cotización aprobada."],
-            ["Ganancia proyectada", "Valor aprobado menos el plan de costos, menos administración e IVA. Lo que se ganaría si todo sale como se presupuestó."],
-            ["Ganancia real", "Valor aprobado menos lo realmente gastado en compras, menos administración e IVA."],
-            ["Efectivo neto esperado", "Lo que le llega a caja a D&P después de IVA, retención en la fuente, ICA y otras retenciones que el cliente descuenta."],
+            ["Ganancia proyectada", "Valor aprobado menos el plan de costos, menos administración, IVA e impoconsumo. Lo que se ganaría si todo sale como se presupuestó."],
+            ["Ganancia real", "Valor aprobado menos lo realmente gastado en compras, menos administración, IVA e impoconsumo."],
+            ["Efectivo neto esperado", "Lo que le llega a caja a D&P después de retención en la fuente, ICA y otras retenciones que el cliente descuenta (el IVA y el impoconsumo quedan en caja pero se muestran aparte como referencia)."],
             ["Semáforo de plata", "En presupuesto (verde) / En atención (amarillo) / Sobre presupuesto o en pérdida (rojo)."],
             ["Semáforo de tiempo", "A tiempo / Por vencer / Atrasado / Sin fecha, según la fecha de entrega del proyecto."],
             ["Efectividad provisional", "El resultado de una persona o tarea mientras no se haya calificado su calidad."],
