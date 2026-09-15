@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { setResponsableFiltro } from "@/lib/responsable-filtro-actions";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -31,6 +32,14 @@ export default function LoginPage() {
       );
       return;
     }
+
+    // El filtro "Responsable: Todos / <persona>" de Banco de tareas y
+    // Actividades se guarda en una cookie de este navegador que dura 1 año,
+    // no en el perfil de quien inicia sesión. Si alguien la dejó puesta en
+    // una persona concreta, la siguiente persona que use ese navegador ve el
+    // tablero vacío sin saber por qué. Se resetea a "Todos" en cada login
+    // para que nunca se herede la selección de otra sesión.
+    await setResponsableFiltro("");
 
     router.push("/");
     router.refresh();
