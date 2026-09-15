@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { actualizarPerfil, invitarUsuario, desactivarUsuario, reactivarUsuario } from "./actions";
+import { actualizarPerfil, invitarUsuario, desactivarUsuario, reactivarUsuario, reenviarInvitacion } from "./actions";
 import { createClient } from "@/lib/supabase/client";
 
 type Perfil = {
@@ -14,6 +14,7 @@ type Perfil = {
   capacidad_semanal_horas: number;
   last_seen_at?: string | null;
   activo: boolean;
+  pendiente: boolean;
 };
 
 const MODULOS = [
@@ -67,6 +68,10 @@ export function UsuariosList({ perfiles, currentUserId }: { perfiles: Perfil[]; 
   const [porDesactivar, setPorDesactivar] = useState<Perfil | null>(null);
   const [desactivarError, setDesactivarError] = useState<string | null>(null);
   const [desactivarPending, startDesactivarTransition] = useTransition();
+  const [reenviarId, setReenviarId] = useState<string | null>(null);
+  const [reenviarOk, setReenviarOk] = useState<string | null>(null);
+  const [reenviarError, setReenviarError] = useState<string | null>(null);
+  const [reenviarPending, startReenviarTransition] = useTransition();
 
   function guardar(id: string, formData: FormData) {
     startTransition(async () => {
@@ -94,6 +99,18 @@ export function UsuariosList({ perfiles, currentUserId }: { perfiles: Perfil[]; 
     startDesactivarTransition(async () => {
       const r = await reactivarUsuario(id);
       if (r?.error) setError(r.error);
+    });
+  }
+
+  function reenviar(p: Perfil) {
+    setReenviarId(p.id);
+    setReenviarOk(null);
+    setReenviarError(null);
+    startReenviarTransition(async () => {
+      const r = await reenviarInvitacion(p.email ?? "");
+      if (r?.error) setReenviarError(r.error);
+      else setReenviarOk(`Invitación reenviada a ${p.email}.`);
+      setReenviarId(null);
     });
   }
 
@@ -131,6 +148,8 @@ export function UsuariosList({ perfiles, currentUserId }: { perfiles: Perfil[]; 
         módulos que le asignes acá. Aquí también se edita el rol y los módulos de quienes ya tienen cuenta.
       </p>
       {inviteOk && <p className="mt-2 text-sm text-emerald-700">{inviteOk}</p>}
+      {reenviarOk && <p className="mt-2 text-sm text-emerald-700">{reenviarOk}</p>}
+      {reenviarError && <p className="mt-2 text-sm text-red-600">{reenviarError}</p>}
       {desactivarError && !porDesactivar && <p className="mt-2 text-sm text-red-600">{desactivarError}</p>}
 
       <div className="mt-4 space-y-3">
@@ -189,6 +208,14 @@ export function UsuariosList({ perfiles, currentUserId }: { perfiles: Perfil[]; 
                       {p.full_name || p.email} {p.id === currentUserId && <span className="text-xs text-neutral-400">(tú)</span>}
                     </div>
                     {!p.activo && <span className="rounded-full bg-neutral-200 px-2 py-0.5 text-xs font-semibold text-neutral-600">Inactivo</span>}
+                    {p.activo && p.pendiente && (
+                      <span
+                        title="Se le envió el correo de invitación pero todavía no puso su contraseña."
+                        className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700"
+                      >
+                        Invitación pendiente
+                      </span>
+                    )}
                   </div>
                   <div className="ml-4 text-xs text-neutral-500">{p.cargo || "Sin cargo asignado"}</div>
                   <div className="ml-4 text-[11px] text-neutral-400">
@@ -213,6 +240,15 @@ export function UsuariosList({ perfiles, currentUserId }: { perfiles: Perfil[]; 
                   <button onClick={() => setEditingId(p.id)} className="text-sm font-medium text-emerald-700 hover:underline">
                     Editar
                   </button>
+                  {p.activo && p.pendiente && (
+                    <button
+                      onClick={() => reenviar(p)}
+                      disabled={reenviarPending}
+                      className="text-sm font-medium text-amber-700 hover:underline disabled:opacity-60"
+                    >
+                      {reenviarPending && reenviarId === p.id ? "Reenviando…" : "Reenviar invitación"}
+                    </button>
+                  )}
                   {p.id !== currentUserId &&
                     (p.activo ? (
                       <button

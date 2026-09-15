@@ -43,6 +43,27 @@ export async function invitarUsuario(formData: FormData) {
   revalidatePath("/admin/usuarios");
 }
 
+/** Reenvía el correo de invitación a alguien que todavía no la aceptó (no puso contraseña).
+ *  Supabase reconoce que el correo ya tiene una cuenta sin confirmar y reenvía el mismo enlace
+ *  en vez de crear una cuenta duplicada -- no toca el perfil (rol/módulos/cargo se conservan). */
+export async function reenviarInvitacion(email: string) {
+  if (!(await requiereAdmin())) return { error: "Solo un administrador puede reenviar invitaciones." };
+  if (!email) return { error: "Falta el correo." };
+
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "No se pudo preparar el reenvío." };
+  }
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://app.dpingenieriaintegral.com";
+  const { error } = await admin.auth.admin.inviteUserByEmail(email, {
+    redirectTo: `${siteUrl}/auth/callback?next=/cuenta/password`,
+  });
+  if (error) return { error: error.message };
+}
+
 export async function desactivarUsuario(id: string) {
   if (!(await requiereAdmin())) return { error: "Solo un administrador puede desactivar usuarios." };
 
