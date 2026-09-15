@@ -5,10 +5,11 @@ import { ProyectosList } from "./list";
 export default async function Page() {
   const supabase = await createClient();
 
-  const [{ data: proyectos }, { data: clientes }, { data: profiles }, { data: presupuestos }, { data: costos }, { data: cotizaciones }, { data: compras }, { data: settings }] =
+  const [{ data: proyectos }, { data: clientes }, { data: empresas }, { data: profiles }, { data: presupuestos }, { data: costos }, { data: cotizaciones }, { data: compras }, { data: settings }] =
     await Promise.all([
       supabase.from("proyectos").select("*").order("created_at", { ascending: false }),
       supabase.from("clientes").select("id, nombre, nit").order("nombre"),
+      supabase.from("empresas_atendidas").select("id, nombre").order("nombre"),
       supabase.from("profiles").select("id, full_name, email").order("full_name"),
       supabase.from("presupuestos").select("*"),
       supabase.from("presupuesto_costos").select("presupuesto_id, presupuestado, real"),
@@ -24,6 +25,7 @@ export default async function Page() {
     return x ? x.nombre || x.full_name || x.email || "—" : "—";
   };
   const nitDe = (id: string | null) => clientes?.find((c) => c.id === id)?.nit || "—";
+  const empresaDe = (id: string | null) => empresas?.find((e) => e.id === id)?.nombre || "—";
   const cotizacionDe = (id: string | null) => cotizaciones?.find((c) => c.id === id) ?? null;
 
   const filas = (proyectos ?? []).map((proy) => {
@@ -57,6 +59,7 @@ export default async function Page() {
       proy: { ...proy, estadoMostrado: proy.archivado ? "Archivado" : proy.estado },
       cliente: nombreDe(clientes, proy.cliente_id),
       nitCliente: nitDe(proy.cliente_id),
+      empresa: empresaDe(proy.empresa_id),
       responsable: nombreDe(profiles, proy.responsable_id),
       cotizacionCodigo: cotizacion?.codigo || "—",
       valorAprobado: cotizacion?.valor_cotizado ?? 0,

@@ -10,6 +10,7 @@ type Fila = {
   proy: { id: string; codigo: string | null; nombre: string; estado: string; estadoMostrado: string; archivado: boolean; fecha_inicio: string | null; fecha_fin: string | null };
   cliente: string;
   nitCliente: string;
+  empresa: string;
   responsable: string;
   cotizacionCodigo: string;
   valorAprobado: number;
@@ -32,6 +33,7 @@ const COLUMNAS = [
   { key: "cotizacion", label: "Cotización" },
   { key: "nombre", label: "Nombre actual" },
   { key: "cliente", label: "Cliente" },
+  { key: "empresa", label: "Empresa atendida" },
   { key: "nit", label: "NIT cliente" },
   { key: "responsable", label: "Responsable" },
   { key: "estado", label: "Estado" },
@@ -55,6 +57,7 @@ export function ProyectosList({ filas }: { filas: Fila[] }) {
     if (key === "cotizacion") return f.cotizacionCodigo;
     if (key === "nombre") return f.proy.nombre;
     if (key === "cliente") return f.cliente;
+    if (key === "empresa") return f.empresa;
     if (key === "nit") return f.nitCliente;
     if (key === "responsable") return f.responsable;
     if (key === "estado") return f.proy.estadoMostrado;
@@ -63,7 +66,7 @@ export function ProyectosList({ filas }: { filas: Fila[] }) {
 
   const visibles = filas
     .filter((f) => mostrarInactivos || !esInactivo(f))
-    .filter((f) => !busqueda || `${f.proy.codigo ?? ""} ${f.proy.nombre} ${f.cliente}`.toLowerCase().includes(busqueda.toLowerCase()))
+    .filter((f) => !busqueda || `${f.proy.codigo ?? ""} ${f.proy.nombre} ${f.cliente} ${f.empresa}`.toLowerCase().includes(busqueda.toLowerCase()))
     .filter((f) => !columnaFiltro || !valorFiltro || valorColumna(f, columnaFiltro).toLowerCase().includes(valorFiltro.toLowerCase()));
 
   return (
@@ -131,13 +134,14 @@ export function ProyectosList({ filas }: { filas: Fila[] }) {
       </div>
 
       <div className="min-h-[360px] overflow-auto rounded-lg border border-neutral-200 bg-white lg:min-h-0 lg:flex-1">
-        <table className="w-full min-w-[1150px] text-xs">
+        <table className="w-full min-w-[1250px] text-xs">
           <thead>
             <tr className="text-left text-[11px] uppercase text-neutral-500">
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Código proyecto</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Cotización</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Nombre actual</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Cliente</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Empresa atendida</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">NIT cliente</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Responsable</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Estado</th>
@@ -150,7 +154,7 @@ export function ProyectosList({ filas }: { filas: Fila[] }) {
             </tr>
           </thead>
           <tbody>
-            {visibles.map(({ proy, cliente, nitCliente, responsable, cotizacionCodigo, valorAprobado, costoVigente, gananciaTotal }) => (
+            {visibles.map(({ proy, cliente, nitCliente, empresa, responsable, cotizacionCodigo, valorAprobado, costoVigente, gananciaTotal }) => (
               <tr key={proy.id} className="border-t border-neutral-100 hover:bg-neutral-50">
                 <td className="px-3 py-2">
                   <Link href={`/gestion/proyectos/${proy.id}`} className="font-medium text-emerald-700 hover:underline">
@@ -160,6 +164,7 @@ export function ProyectosList({ filas }: { filas: Fila[] }) {
                 <td className="px-3 py-2 text-neutral-500">{cotizacionCodigo}</td>
                 <td className="px-3 py-2">{proy.nombre}</td>
                 <td className="px-3 py-2">{cliente}</td>
+                <td className="px-3 py-2">{empresa}</td>
                 <td className="px-3 py-2 text-neutral-500">{nitCliente}</td>
                 <td className="px-3 py-2">{responsable}</td>
                 <td className="px-3 py-2">
@@ -208,7 +213,7 @@ export function ProyectosList({ filas }: { filas: Fila[] }) {
             ))}
             {visibles.length === 0 && (
               <tr>
-                <td colSpan={13} className="px-3 py-8 text-center text-neutral-400">
+                <td colSpan={14} className="px-3 py-8 text-center text-neutral-400">
                   {filas.length === 0 ? "No hay proyectos registrados." : "Ningún registro coincide con los filtros."}
                 </td>
               </tr>

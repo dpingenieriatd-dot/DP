@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CreateModal, DetailModal, type Tarea, type Profile, type Cliente, type Proyecto, type Empresa, type Proceso, type ActividadCatalogo, type Profesional, type AgendaBloque } from "../tareas/board";
+import { CreateModal, DetailModal, asignadoLabel, type Tarea, type Profile, type Cliente, type Proyecto, type Empresa, type Proceso, type ActividadCatalogo, type Profesional, type AgendaBloque } from "../tareas/board";
 import { crearTarea, eliminarTarea } from "../tareas/actions";
 import { resultadoActividad, type ResultadoActividad } from "@/lib/actividad-tarea";
 import { CargoFilter } from "./cargo-filter";
@@ -49,7 +49,7 @@ export function ActividadesList({
   const visibles = items.filter(
     (t) =>
       !busqueda ||
-      `${t.titulo} ${t.clientes?.nombre ?? ""} ${t.proyectos?.nombre ?? ""} ${t._cargo} ${t.notas_publicacion ?? ""}`
+      `${t.titulo} ${t.clientes?.nombre ?? ""} ${t.proyectos?.nombre ?? ""} ${t._cargo} ${asignadoLabel(t, profiles, profesionales) ?? ""} ${t.notas_publicacion ?? ""}`
         .toLowerCase()
         .includes(busqueda.toLowerCase())
   );
@@ -89,11 +89,12 @@ export function ActividadesList({
       {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
 
       <div className="min-h-[360px] overflow-auto rounded-lg border border-neutral-200 bg-white lg:min-h-0 lg:flex-1">
-        <table className="w-full min-w-[1000px] text-xs">
+        <table className="w-full min-w-[1100px] text-xs">
           <thead>
             <tr className="text-left text-[11px] uppercase text-neutral-500">
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Fecha</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Cargo</th>
+              <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Profesional</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Actividad</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Cliente</th>
               <th className="sticky top-0 z-10 bg-neutral-50 px-3 py-2">Proyecto</th>
@@ -110,6 +111,7 @@ export function ActividadesList({
                 <tr key={t.id} className="border-t border-neutral-100 hover:bg-neutral-50">
                   <td className="px-3 py-2">{t._fecha || "—"}</td>
                   <td className="px-3 py-2">{t._cargo}</td>
+                  <td className="px-3 py-2">{asignadoLabel(t, profiles, profesionales) ?? "—"}</td>
                   <td className="px-3 py-2">{t.titulo}</td>
                   <td className="px-3 py-2">{t.clientes?.nombre ?? "—"}</td>
                   <td className="px-3 py-2">{t.proyectos?.nombre ?? "—"}</td>
@@ -142,7 +144,7 @@ export function ActividadesList({
             })}
             {visibles.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-3 py-8 text-center text-neutral-400">
+                <td colSpan={10} className="px-3 py-8 text-center text-neutral-400">
                   No hay actividades para este filtro.
                 </td>
               </tr>
