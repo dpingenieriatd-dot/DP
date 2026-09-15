@@ -467,6 +467,11 @@ function Doc() {
           ]}
         />
         <P>Con el filtro de persona de arriba, puedes ver este resumen para ti o (si eres Directora) para cualquiera del equipo.</P>
+        <Nota>
+          El filtro "Responsable: Todos / persona" (arriba, en Banco de tareas y Actividades) es una preferencia de este
+          navegador, no un permiso: todo el equipo ve siempre las mismas tareas. Se reinicia solo a "Todos" en cada
+          inicio de sesión, para que no quede fijo en una persona de una sesión anterior en el mismo computador.
+        </Nota>
 
         <H2>5.2 Banco de tareas</H2>
         <P>
@@ -547,6 +552,7 @@ function Doc() {
             "Se alimenta sola: al terminar una tarea, su registro aparece aquí automáticamente con origen Banco de tareas.",
             "También se pueden registrar actividades a mano, para trabajo que no pasó por el Banco de tareas.",
             "Filtro por cargo: la tabla y los contadores de arriba se ajustan al cargo que elijas.",
+            "La columna Profesional muestra el nombre real de quien hizo la actividad (del equipo interno o del catálogo de Profesionales si fue externa), no solo su cargo.",
           ]}
         />
 
@@ -765,6 +771,7 @@ function Doc() {
         <P>La ficha de cada proyecto. Los proyectos nacen siempre de una cotización aprobada (o rechazada).</P>
         <Bullets
           items={[
+            "La lista de proyectos muestra Cliente y Empresa atendida como columnas separadas (la empresa atendida es la sede o dependencia concreta que recibió el servicio, puede ser el mismo cliente).",
             "Datos del proyecto: nombre, cliente, empresa atendida, responsable, estado, fechas de inicio y cierre, observaciones. Un texto apunta a la cotización de origen, donde se ven el valor del contrato, el IVA/impoconsumo y las retenciones (la ficha del proyecto ya no repite esos datos). Al guardar aparece un aviso Cambios guardados.",
             "Estados: Planeado, En ejecución, Suspendido, Finalizado, Cancelado (y Rechazado, para los que salen de una cotización rechazada).",
             "Cada presupuesto del proyecto muestra un distintivo Viable / No viable: viable significa que el valor cotizado cubre costo, administración, IVA e impoconsumo (no da pérdida). No compara contra el margen objetivo.",

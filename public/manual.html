@@ -597,7 +597,7 @@ ganancia real       = valor aprobado − comprometido − administración − IV
       <tr><td class="col">Código proyecto</td><td><code>PROY-AAAA-###</code>.</td></tr>
       <tr><td class="col">Cotización</td><td>La cotización de origen.</td></tr>
       <tr><td class="col">Nombre actual</td><td>Nombre del proyecto (editable en la ficha, arranca del de la cotización).</td></tr>
-      <tr><td class="col">Cliente / NIT cliente</td><td>Heredados del cliente.</td></tr>
+      <tr><td class="col">Cliente / Empresa atendida / NIT cliente</td><td>Heredados de la cotización de origen. "Empresa atendida" es la sede o dependencia concreta que recibió el servicio (puede ser el mismo cliente).</td></tr>
       <tr><td class="col">Responsable</td><td>Responsable del proyecto.</td></tr>
       <tr><td class="col">Estado</td><td>Planeado · En ejecución · Suspendido · Finalizado · Cancelado · Rechazado. Si está archivado, muestra "Archivado".</td></tr>
       <tr><td class="col">Mes inicio / Mes cierre</td><td>De las fechas de inicio y fin del proyecto.</td></tr>
@@ -884,6 +884,8 @@ ganancia real       = valor aprobado − comprometido − administración − IV
   <h2><span class="num">11</span>Seguimiento · Banco de tareas</h2>
   <p class="lede">El tablero de trabajo del equipo. Tres columnas: Disponibles, En proceso, Terminadas pendientes de archivo.</p>
 
+  <div class="note">Arriba hay un filtro <strong>"Responsable: Todos / &lt;persona&gt;"</strong> (también en Actividades) para ver el tablero como si fuera solo de una persona. Es una preferencia de <strong>este navegador</strong>, no un permiso: todo el equipo ve siempre las mismas tareas por debajo. Para evitar que quede fijo en una persona y la siguiente sesión en ese navegador vea el tablero "vacío" sin entender por qué, <strong>se reinicia solo a "Todos" en cada inicio de sesión</strong>.</div>
+
   <h3>Los 5 pasos del flujo</h3>
   <ol>
     <li><strong>Revisa la tarea</strong> — abre "Ver detalles" para leer descripción, instrucciones y entregables.</li>
@@ -924,7 +926,8 @@ ganancia real       = valor aprobado − comprometido − administración − IV
     <thead><tr><th class="col">Columna</th><th>Qué es</th></tr></thead>
     <tbody>
       <tr><td class="col">Fecha</td><td>Fecha de la actividad.</td></tr>
-      <tr><td class="col">Cargo</td><td>Cargo del responsable.</td></tr>
+      <tr><td class="col">Cargo</td><td>Cargo del responsable (o "Profesional externo" si no es del equipo interno).</td></tr>
+      <tr><td class="col">Profesional</td><td>Nombre de quien la hizo — del equipo interno o del catálogo de Profesionales si es externo.</td></tr>
       <tr><td class="col">Actividad</td><td>Nombre de la tarea.</td></tr>
       <tr><td class="col">Cliente / Proyecto</td><td>Asociados.</td></tr>
       <tr><td class="col">Estado</td><td>Resultado de la actividad: <span class="pill v">Cumplida</span> · <span class="pill a">Pendiente/Parcial</span> · <span class="pill r">No cumplida</span>.</td></tr>
@@ -1151,6 +1154,9 @@ ganancia real       = valor aprobado − comprometido − administración − IV
     <li><strong>Compras ↔ Presupuestos (Fase 3)</strong>: el formulario de compra muestra plan / comprometido / disponible del presupuesto y de la línea elegida; aviso al guardar si la compra deja algo por encima de lo planeado.</li>
     <li><strong>Retención en la fuente e ICA editables por cotización</strong>: en el bloque "Efectivo neto esperado" se prellenan de la ficha del cliente al elegirlo, pero se pueden ajustar y quedan guardadas en cada cotización (no siempre se retiene lo mismo ni aplica la misma tarifa de ICA).</li>
     <li><strong>Este manual</strong>: publicado en app.dpingenieriaintegral.com/manual.html, con enlace en el menú (Administración → Manual de la plataforma) y buscador.</li>
+    <li><strong>Lista de Proyectos</strong>: nueva columna "Empresa atendida" junto a Cliente.</li>
+    <li><strong>Lista de Actividades</strong>: nueva columna "Profesional" con el nombre real del responsable (interno o externo), no solo el cargo.</li>
+    <li><strong>Filtro "Responsable: Todos / &lt;persona&gt;"</strong> (Banco de tareas y Actividades) ahora se reinicia a "Todos" en cada inicio de sesión, para que no quede fijo en una persona de una sesión anterior en el mismo navegador y otro usuario vea el tablero vacío sin saber por qué.</li>
   </ul>
 </section>
 
