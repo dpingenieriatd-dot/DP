@@ -17,7 +17,10 @@ const REPORTES = [
 export default async function ReportesPage() {
   const supabase = await createClient();
   const [{ data: proyectos }, { data: clientes }, { data: usuarios }] = await Promise.all([
-    supabase.from("proyectos").select("id, codigo, nombre").order("nombre"),
+    // Mismo criterio que el resto de la app (Banco de tareas, Actividades, Compras):
+    // el selector de proyecto de un reporte no debe listar archivados ni rechazados
+    // -incluye los 13 proyectos históricos migrados (PT###), que ya están archivados-.
+    supabase.from("proyectos").select("id, codigo, nombre").eq("archivado", false).neq("estado", "Rechazado").order("nombre"),
     supabase.from("clientes").select("id, nombre").order("nombre"),
     supabase.from("profiles").select("id, full_name, email").order("full_name"),
   ]);
