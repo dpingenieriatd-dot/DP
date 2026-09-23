@@ -119,7 +119,9 @@ export function calcularCotizacionItems(
 ) {
   const a = Number(opts.admin_pct ?? 15) / 100;
   const u = Number(opts.margen_pct ?? 30) / 100;
-  const factor = u >= 0.999 ? 1 + a : (1 + a) / (1 - u);
+  // Cotizaciones: la utilidad es un % SOBRE EL COSTO DIRECTO (sin IVA), no un
+  // margen sobre el precio de venta. Precio antes de impuestos = costo × (1 + admin% + utilidad%).
+  const factor = 1 + a + u;
 
   const direct = items.reduce((s, i) => s + Number(i.cantidad || 0) * Number(i.costo_unitario || 0), 0);
   const admin = direct * a;
@@ -154,7 +156,8 @@ export function calcularCotizacionItems(
   // cobra (clientSubtotal), no sobre el "a tarifa" (base). direct + admin +
   // utilidadReal = clientSubtotal siempre, así el desglose cuadra en pantalla.
   const utilidadReal = clientSubtotal - direct - admin;
-  const margenReal = clientSubtotal > 0 ? utilidadReal / clientSubtotal : 0;
+  // Se expresa sobre el costo directo, igual que el objetivo (margen_pct).
+  const margenReal = direct > 0 ? utilidadReal / direct : 0;
 
   return {
     direct,
