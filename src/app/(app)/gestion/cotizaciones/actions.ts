@@ -431,8 +431,9 @@ export async function aprobarYCrearProyecto(cotizacionId: string, aprobacion: Ap
   // Semilla el control de costos con los mismos ítems ya contemplados en la
   // cotización — quedan como filas normales, editables/eliminables igual que
   // cualquier otro costo del presupuesto.
+  // Se traen TODOS los ítems, incluso los de costo interno 0 (p. ej. un
+  // imprevisto que se cobra al cliente): si no, no aparecen en el selector de Compras.
   const itemsSemilla = (items ?? [])
-    .filter((i) => Number(i.cantidad) * Number(i.costo_unitario) > 0)
     .map((i, idx) => ({
       presupuesto_id: nuevoPresupuesto.id,
       categoria: CATEGORIA_POR_TIPO[i.tipo] ?? "Otros costos",

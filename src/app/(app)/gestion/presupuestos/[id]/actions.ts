@@ -110,7 +110,6 @@ export async function restaurarBase(presupuestoId: string) {
 
   const ordenBase = await siguienteOrden(supabase, presupuestoId);
   const filas = items
-    .filter((i) => Number(i.cantidad) * Number(i.costo_unitario) > 0)
     .map((i, idx) => ({
       presupuesto_id: presupuestoId,
       categoria: CATEGORIA_POR_TIPO[i.tipo] ?? "Otros costos",
@@ -119,8 +118,6 @@ export async function restaurarBase(presupuestoId: string) {
       origen: "Presupuesto",
       orden: ordenBase + idx,
     }));
-
-  if (filas.length === 0) return { error: "La cotización base no tiene costos internos para restaurar." };
 
   const { error } = await supabase.from("presupuesto_costos").insert(filas);
   if (error) return { error: error.message };
