@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfileLabel } from "@/lib/current-profile";
 import { getResponsableFiltro } from "@/lib/responsable-filtro";
+import { getDirectorioSeguimiento } from "@/lib/directorio-seguimiento";
 import { requiereAdmin } from "@/lib/auth";
 import { Topbar } from "@/components/topbar";
 import { ResponsableFiltro } from "@/components/responsable-filtro";
@@ -18,15 +19,16 @@ export default async function ProcesosPage() {
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
 
-  const [{ data: procesos }, { data: tareas }, { data: profiles }, userLabel, filtro, isAdmin] = await Promise.all([
+  const [{ data: procesos }, { data: tareas }, dir, userLabel, filtro, isAdmin] = await Promise.all([
     supabase.from("procesos").select("codigo, nombre, categoria").order("codigo"),
     supabase.from("tareas").select("proceso_codigo, estado, archivado, fecha_limite, responsable"),
-    supabase.from("profiles").select("id, full_name, email"),
+    getDirectorioSeguimiento(),
     getCurrentProfileLabel(),
     getResponsableFiltro(),
     requiereAdmin(),
   ]);
 
+  const profiles = dir.profiles;
   const tareasFiltradas = filtro ? (tareas ?? []).filter((t) => t.responsable === filtro) : tareas ?? [];
 
   const conteos = new Map<string, { abiertas: number; vencidas: number; archivadas: number; total: number }>();

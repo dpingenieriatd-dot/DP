@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requiereAdmin } from "@/lib/auth";
+import { getDirectorioSeguimiento, conNombres } from "@/lib/directorio-seguimiento";
 
 const PATH = "/seguimiento/agendas";
 
@@ -68,4 +69,15 @@ export async function actualizarPreferenciasRecordatorio(minutosAntes: number, s
   });
   if (error) return { error: error.message };
   revalidatePath(PATH);
+}
+
+/**
+ * Nombres de cliente/proyecto para el popup de recordatorio (corre en el navegador, donde el
+ * RLS no deja leer clientes/proyectos sin el módulo Gestión -- ver directorio-seguimiento.ts).
+ */
+export async function nombresClienteProyecto(
+  filas: { id: string; cliente_id: string | null; proyecto_id: string | null }[],
+) {
+  const dir = await getDirectorioSeguimiento();
+  return conNombres(filas, dir).map(({ id, clientes, proyectos }) => ({ id, clientes, proyectos }));
 }

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requiereAdmin } from "@/lib/auth";
 import { getCurrentProfileLabel } from "@/lib/current-profile";
 import { getResponsableFiltro } from "@/lib/responsable-filtro";
+import { getDirectorioSeguimiento, conNombres } from "@/lib/directorio-seguimiento";
 import { HistorialList } from "./list";
 
 export default async function HistorialPage({ searchParams }: { searchParams: Promise<{ proceso?: string; responsable?: string }> }) {
@@ -14,7 +15,7 @@ export default async function HistorialPage({ searchParams }: { searchParams: Pr
 
   let query = supabase
     .from("tareas")
-    .select("*, clientes(nombre), proyectos(nombre)")
+    .select("*")
     .eq("estado", "Terminada")
     .order("fecha_cierre", { ascending: false });
   if (proceso) query = query.eq("proceso_codigo", proceso);
@@ -24,34 +25,31 @@ export default async function HistorialPage({ searchParams }: { searchParams: Pr
     { data: tareas },
     isAdmin,
     userLabel,
-    { data: profiles },
-    { data: profesionales },
-    { data: empresas },
+    dir,
     { data: procesos },
     { data: actividadesCatalogo },
     { data: agendaBloques },
     { data: procesoInfo },
-    { data: responsableInfo },
   ] = await Promise.all([
     query,
     requiereAdmin(),
     getCurrentProfileLabel(),
-    supabase.from("profiles").select("id, full_name, email"),
-    supabase.from("profesionales").select("id, nombre, perfil, especialidad, ciudad, correo, telefono"),
-    supabase.from("empresas_atendidas").select("id, nombre, cliente_id"),
+    // Perfiles, profesionales, empresas y nombres de cliente/proyecto vía servidor
+    // (ver directorio-seguimiento.ts).
+    getDirectorioSeguimiento(),
     supabase.from("procesos").select("codigo, nombre"),
     supabase.from("catalogo_actividades").select("id, codigo, subproceso, descripcion, responsable_sugerido"),
     supabase.from("agenda_bloques").select("tarea_id, dia, hora_inicio"),
     proceso ? supabase.from("procesos").select("nombre").eq("codigo", proceso).single() : Promise.resolve({ data: null }),
-    responsableEfectivo ? supabase.from("profiles").select("full_name, email").eq("id", responsableEfectivo).single() : Promise.resolve({ data: null }),
   ]);
+  const responsableInfo = dir.profiles.find((p) => p.id === responsableEfectivo);
 
   return (
     <HistorialList
-      tareas={tareas ?? []}
-      profiles={profiles ?? []}
-      profesionales={profesionales ?? []}
-      empresas={empresas ?? []}
+      tareas={conNombres(tareas ?? [], dir)}
+      profiles={dir.profiles}
+      profesionales={dir.profesionales}
+      empresas={dir.empresas}
       procesos={procesos ?? []}
       actividadesCatalogo={actividadesCatalogo ?? []}
       agendaBloques={agendaBloques ?? []}

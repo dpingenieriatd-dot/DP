@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfileLabel } from "@/lib/current-profile";
 import { getResponsableFiltro } from "@/lib/responsable-filtro";
+import { getDirectorioSeguimiento } from "@/lib/directorio-seguimiento";
 import { requiereAdmin } from "@/lib/auth";
 import { semanaActual, toISODate } from "@/lib/week";
 import { Topbar } from "@/components/topbar";
@@ -21,10 +22,9 @@ export default async function Page() {
   const desde = toISODate(semana[0]);
   const hasta = toISODate(semana[6]);
 
-  const [{ data: profiles }, { data: bloques }, { data: tareas }, userLabel, filtro, isAdmin] = await Promise.all([
-    // Solo activos: alguien desactivado (ver Administración > Usuarios) ya no
-    // debe aparecer con carga/pendientes en el tablero de Equipo.
-    supabase.from("profiles").select("id, full_name, email, cargo, capacidad_semanal_horas").eq("activo", true).order("full_name"),
+  const [dir, { data: bloques }, { data: tareas }, userLabel, filtro, isAdmin] = await Promise.all([
+    // Perfiles vía servidor (ver directorio-seguimiento.ts).
+    getDirectorioSeguimiento(),
     supabase.from("agenda_bloques").select("usuario_id, horas").gte("dia", desde).lte("dia", hasta),
     supabase.from("tareas").select("responsable, estado, archivado, fecha_limite"),
     getCurrentProfileLabel(),
@@ -32,6 +32,9 @@ export default async function Page() {
     requiereAdmin(),
   ]);
 
+  // Solo activos: alguien desactivado (ver Administración > Usuarios) ya no
+  // debe aparecer con carga/pendientes en el tablero de Equipo.
+  const profiles = dir.profiles.filter((p) => p.activo);
   const profilesFiltrados = filtro ? (profiles ?? []).filter((p) => p.id === filtro) : profiles ?? [];
   const today = new Date().toISOString().slice(0, 10);
   const filas = profilesFiltrados.map((p) => {

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfileLabel } from "@/lib/current-profile";
 import { getResponsableFiltro } from "@/lib/responsable-filtro";
+import { getDirectorioSeguimiento, conNombres } from "@/lib/directorio-seguimiento";
 import { requiereAdmin } from "@/lib/auth";
 import { EfectividadList } from "./list";
 
@@ -10,7 +11,7 @@ export default async function Page() {
 
   let query = supabase
     .from("tareas")
-    .select("*, clientes(nombre), proyectos(nombre)")
+    .select("*")
     .eq("estado", "Terminada")
     .is("responsable_externo_id", null)
     .order("fecha_cierre", { ascending: false });
@@ -18,8 +19,7 @@ export default async function Page() {
 
   const [
     { data: tareas },
-    { data: profiles },
-    { data: empresas },
+    dir,
     { data: procesos },
     { data: actividadesCatalogo },
     { data: agendaBloques },
@@ -27,8 +27,8 @@ export default async function Page() {
     userLabel,
   ] = await Promise.all([
     query,
-    supabase.from("profiles").select("id, full_name, email"),
-    supabase.from("empresas_atendidas").select("id, nombre, cliente_id"),
+    // Perfiles, empresas y nombres de cliente/proyecto vía servidor (ver directorio-seguimiento.ts).
+    getDirectorioSeguimiento(),
     supabase.from("procesos").select("codigo, nombre"),
     supabase.from("catalogo_actividades").select("id, codigo, subproceso, descripcion, responsable_sugerido"),
     supabase.from("agenda_bloques").select("tarea_id, dia, hora_inicio"),
@@ -38,9 +38,9 @@ export default async function Page() {
 
   return (
     <EfectividadList
-      tareas={tareas ?? []}
-      profiles={profiles ?? []}
-      empresas={empresas ?? []}
+      tareas={conNombres(tareas ?? [], dir)}
+      profiles={dir.profiles}
+      empresas={dir.empresas}
       procesos={procesos ?? []}
       actividadesCatalogo={actividadesCatalogo ?? []}
       agendaBloques={agendaBloques ?? []}

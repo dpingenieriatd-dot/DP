@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfileLabel } from "@/lib/current-profile";
 import { getResponsableFiltro } from "@/lib/responsable-filtro";
+import { getDirectorioSeguimiento } from "@/lib/directorio-seguimiento";
 import { esActividad, resultadoActividad } from "@/lib/actividad-tarea";
 import { PieCard } from "@/components/charts";
 import { KpiCard } from "@/components/kpi-card";
@@ -21,16 +22,17 @@ export default async function SeguimientoInicioPage() {
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
 
-  const [{ data: tareas }, { data: proyectos }, { data: profiles }, userLabel, filtro] = await Promise.all([
+  const [{ data: tareas }, dir, userLabel, filtro] = await Promise.all([
     supabase
       .from("tareas")
       .select("id, titulo, cliente, proyecto_id, responsable, responsable_externo_id, estado, prioridad, fecha_limite, archivado, origen"),
-    supabase.from("proyectos").select("id, nombre"),
-    supabase.from("profiles").select("id, full_name, email"),
+    // Nombres de proyectos y responsables vía servidor (ver directorio-seguimiento.ts).
+    getDirectorioSeguimiento(),
     getCurrentProfileLabel(),
     getResponsableFiltro(),
   ]);
 
+  const { proyectos, profiles } = dir;
   const todas = (tareas ?? []).filter((t) => !filtro || t.responsable === filtro);
   const abiertas = todas.filter((t) => !t.archivado);
   const disponibles = abiertas.filter((t) => t.estado === "Disponible").length;

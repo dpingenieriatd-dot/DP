@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { descartarRecordatorio, posponerRecordatorio } from "@/app/(app)/seguimiento/agendas/actions";
+import { descartarRecordatorio, nombresClienteProyecto, posponerRecordatorio } from "@/app/(app)/seguimiento/agendas/actions";
 import { reproducirTimbreRecordatorio, desbloquearAudio } from "@/lib/chime";
 
 type Bloque = {
@@ -12,6 +12,8 @@ type Bloque = {
   horas: number;
   tarea: string | null;
   recordatorio_snooze_hasta: string | null;
+  cliente_id: string | null;
+  proyecto_id: string | null;
   clientes: { nombre: string } | null;
   proyectos: { nombre: string } | null;
 };
@@ -69,13 +71,13 @@ export function AgendaReminderPopup() {
 
     const { data: bloques } = await supabase
       .from("agenda_bloques")
-      .select("id, dia, hora_inicio, horas, tarea, recordatorio_snooze_hasta, clientes(nombre), proyectos(nombre)")
+      .select("id, dia, hora_inicio, horas, tarea, recordatorio_snooze_hasta, cliente_id, proyecto_id")
       .eq("usuario_id", user.id)
       .eq("dia", hoyLocalISO())
       .eq("recordatorio_estado", "pendiente");
 
     const ahora = Date.now();
-    const debidos = ((bloques ?? []) as unknown as Bloque[]).filter((b) => {
+    const debidos = ((bloques ?? []) as Omit<Bloque, "clientes" | "proyectos">[]).filter((b) => {
       const inicio = inicioBloque(b).getTime();
       const disparo = inicio - prefsRef.current.minutos * 60_000;
       if (ahora < disparo) return false;
@@ -104,8 +106,17 @@ export function AgendaReminderPopup() {
         return data && data.length > 0 ? b : null;
       }),
     );
-    const nuevos = resultados.filter((b): b is Bloque => b !== null);
-    if (!nuevos.length) return;
+    const reclamados = resultados.filter((b) => b !== null);
+    if (!reclamados.length) return;
+
+    // Si falla, el recordatorio igual sale -- solo sin cliente/proyecto.
+    const etiquetas = await nombresClienteProyecto(reclamados).catch(() => []);
+    const nombres = new Map(etiquetas.map((n) => [n.id, n]));
+    const nuevos: Bloque[] = reclamados.map((b) => ({
+      ...b,
+      clientes: nombres.get(b.id)?.clientes ?? null,
+      proyectos: nombres.get(b.id)?.proyectos ?? null,
+    }));
 
     colaRef.current = [...colaRef.current, ...nuevos];
     if (!activoRef.current) mostrarSiguiente();
