@@ -13,6 +13,7 @@ import {
   reanudarTarea,
   iniciarTiempo,
   calificarCalidad,
+  reabrirTarea,
 } from "./actions";
 import { reprogramarBloque } from "../agendas/actions";
 import { KpiCard } from "@/components/kpi-card";
@@ -51,6 +52,10 @@ export type Tarea = {
   proceso_codigo: string | null;
   catalogo_actividad_id: string | null;
   origen: string;
+  reabierta_at?: string | null;
+  reabierta_por?: string | null;
+  reabierta_motivo?: string | null;
+  reabierta_veces?: number;
 };
 
 export type Profile = { id: string; full_name: string | null; email: string | null };
@@ -130,6 +135,7 @@ export function TaskBoard({
   const [tomando, setTomando] = useState<Tarea | null>(null);
   const [reprogramando, setReprogramando] = useState<Tarea | null>(null);
   const [detalle, setDetalle] = useState<Tarea | null>(null);
+  const [reabriendo, setReabriendo] = useState<Tarea | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const disponibles = tareas.filter((t) => t.estado === "Disponible");
@@ -318,6 +324,17 @@ export function TaskBoard({
                 >
                   Ver detalles
                 </button>
+                {puedeReabrir(t, currentUserId, isAdmin) && (
+                  <button
+                    onClick={() => setReabriendo(t)}
+                    className="rounded-md border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-50"
+                  >
+                    Reabrir
+                  </button>
+                )}
+                {!isAdmin && t.responsable === currentUserId && !puedeReabrir(t, currentUserId, isAdmin) && (
+                  <span className="self-center text-[11px] text-neutral-400">Ya calificada: solo la Directora puede reabrirla</span>
+                )}
                 {isAdmin && (
                   <button
                     onClick={() => run(() => archivarTarea(t.id))}
@@ -399,6 +416,22 @@ export function TaskBoard({
         />
       )}
 
+      {reabriendo && (
+        <ReabrirModal
+          tarea={reabriendo}
+          isAdmin={isAdmin}
+          onClose={() => setReabriendo(null)}
+          onSubmit={(motivo) =>
+            startTransition(async () => {
+              const r = await reabrirTarea(reabriendo.id, motivo);
+              if (r?.error) setError(r.error);
+              else setReabriendo(null);
+            })
+          }
+          pending={pending}
+        />
+      )}
+
       {finishing && (
         <FinishModal
           tarea={finishing}
@@ -422,7 +455,7 @@ const PASOS = [
   { titulo: "Revisa la tarea", detalle: "Abre “Ver detalles” para consultar descripción, instrucciones, observaciones y entregables." },
   { titulo: "Toma y programa", detalle: "Al tomarla debes indicar fecha y hora; la Agenda se crea automáticamente." },
   { titulo: "Mide el tiempo", detalle: "El cronómetro funciona solamente cuando la tarea está En proceso. Si no puedes continuarla, puedes devolverla a Disponibles." },
-  { titulo: "Finaliza", detalle: "Al terminar se detiene el cronómetro y queda el tiempo consolidado." },
+  { titulo: "Finaliza", detalle: "Al terminar se detiene el cronómetro y queda el tiempo consolidado. Si la terminaste por error, usa “Reabrir” mientras no esté calificada." },
   { titulo: "Revisión y archivo", detalle: "La Directora revisa calidad y archiva. El historial queda en “Finalizadas y archivadas”." },
 ];
 
@@ -901,7 +934,7 @@ function FinishModal({
         </p>
         <label className="block text-sm">
           <span className="mb-1 block text-neutral-600">Entregable / soporte final</span>
-          <input name="entregable" defaultValue={tarea.entregable_soporte_url ?? ""} className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+          <input name="entregable" defaultValue={tarea.entregable ?? tarea.entregable_soporte_url ?? ""} className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
         </label>
         <div className="mt-5 flex justify-end gap-2">
           <button type="button" onClick={onClose} className="rounded-md px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-100">
@@ -913,6 +946,93 @@ function FinishModal({
             className="rounded-md bg-emerald-900 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
           >
             Marcar terminada
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+/** Misma regla que reabrirTarea (actions.ts) y el trigger de la migración 56. */
+export function puedeReabrir(t: Tarea, currentUserId: string | null, isAdmin: boolean) {
+  if (t.estado !== "Terminada") return false;
+  if (isAdmin) return true;
+  return !!currentUserId && t.responsable === currentUserId && !t.archivado && t.calidad_pct == null;
+}
+
+export function ReabrirModal({
+  tarea,
+  isAdmin,
+  onClose,
+  onSubmit,
+  pending,
+}: {
+  tarea: Tarea;
+  isAdmin: boolean;
+  onClose: () => void;
+  onSubmit: (motivo: string) => void;
+  pending: boolean;
+}) {
+  const [motivo, setMotivo] = useState("");
+  const calificada = tarea.calidad_pct != null;
+  return (
+    <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSubmit(motivo);
+        }}
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-[90vh] w-full max-w-lg overflow-auto rounded-lg bg-white p-6 shadow-lg"
+      >
+        <h2 className="mb-1 text-lg font-semibold text-emerald-900">Reabrir tarea</h2>
+        <p className="mb-4 text-sm text-neutral-500">{tarea.titulo}</p>
+
+        {calificada && (
+          <div className="mb-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+            <strong>Se borrará la calificación.</strong> Esta tarea ya fue calificada con {tarea.calidad_pct! / 20}/5 ({tarea.calidad_pct}%). Al
+            reabrirla la calificación se elimina y habrá que calificarla de nuevo cuando se vuelva a terminar.
+          </div>
+        )}
+        {tarea.archivado && (
+          <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            <strong>Esta tarea está archivada.</strong> Al reabrirla se desarchiva y vuelve al Banco de tareas.
+          </div>
+        )}
+
+        <p className="mb-2 text-sm text-neutral-700">
+          La tarea vuelve a <strong>En proceso</strong> con el mismo responsable. Al reabrirla:
+        </p>
+        <ul className="mb-3 list-disc space-y-1 pl-5 text-sm text-neutral-600">
+          <li>Se conservan las horas ya registradas y el entregable (queda prellenado para cuando se vuelva a terminar).</li>
+          <li>Se borra la fecha de cierre y su registro &ldquo;Cumplido&rdquo; en Actividades; se crea uno nuevo al terminarla otra vez.</li>
+          {!calificada && <li>Todavía no tiene calificación de calidad, así que no se pierde ninguna.</li>}
+          <li>El cronómetro no arranca solo: usa &ldquo;Iniciar&rdquo; cuando la retomes.</li>
+          <li>Se avisa a quien publicó la tarea{isAdmin ? " y a su responsable" : ""}.</li>
+          {!isAdmin && <li>Una vez calificada o archivada, solo la Directora de Proyectos puede reabrirla.</li>}
+        </ul>
+
+        <label className="block text-sm">
+          <span className="mb-1 block text-neutral-600">Motivo (obligatorio)</span>
+          <textarea
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            required
+            placeholder="Ej.: la marqué como terminada por error, falta el informe final"
+            className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+          />
+        </label>
+
+        <div className="mt-5 flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="rounded-md px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-100">
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={pending || !motivo.trim()}
+            className="rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
+          >
+            {calificada ? "Reabrir y borrar calificación" : "Sí, reabrir tarea"}
           </button>
         </div>
       </form>
@@ -993,6 +1113,14 @@ export function DetailModal({
           <DetailRow label="Estado" value={tarea.estado} />
           <DetailRow label="Tiempo consolidado / acumulado" value={`${Number(tarea.horas_reales).toFixed(1)}h`} />
           <DetailRow label="Calidad" value={calidad} />
+          <DetailRow
+            label={tarea.reabierta_veces && tarea.reabierta_veces > 1 ? `Reabierta (${tarea.reabierta_veces} veces, última)` : "Reabierta"}
+            value={
+              tarea.reabierta_at
+                ? `${new Date(tarea.reabierta_at).toLocaleString("es-CO", { dateStyle: "medium", timeStyle: "short" })} por ${nombreDe(profiles, tarea.reabierta_por ?? null) ?? "—"} · Motivo: ${tarea.reabierta_motivo ?? "—"}`
+                : null
+            }
+          />
           <DetailRow label="Origen" value="Banco de tareas" />
         </div>
         <div className="mt-5 flex justify-end">

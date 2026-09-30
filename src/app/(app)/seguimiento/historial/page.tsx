@@ -8,6 +8,9 @@ import { HistorialList } from "./list";
 export default async function HistorialPage({ searchParams }: { searchParams: Promise<{ proceso?: string; responsable?: string }> }) {
   const { proceso, responsable } = await searchParams;
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const filtroGlobal = await getResponsableFiltro();
   // El enlace "Ver archivadas" de una persona específica (?responsable=) manda sobre el filtro
   // global mientras esté presente en la URL; si no, se respeta el filtro global de la Topbar.
@@ -54,6 +57,7 @@ export default async function HistorialPage({ searchParams }: { searchParams: Pr
       actividadesCatalogo={actividadesCatalogo ?? []}
       agendaBloques={agendaBloques ?? []}
       isAdmin={isAdmin}
+      currentUserId={user?.id ?? null}
       filtroProceso={proceso ? { codigo: proceso, nombre: procesoInfo?.nombre ?? proceso } : null}
       filtroResponsable={responsableEfectivo ? { nombre: responsableInfo?.full_name || responsableInfo?.email || "—" } : null}
       filtroGlobal={filtroGlobal}

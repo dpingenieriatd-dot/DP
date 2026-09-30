@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import {
   DetailModal,
+  ReabrirModal,
+  puedeReabrir,
   isExternalTask,
   asignadoLabel,
   type Tarea,
@@ -14,7 +16,7 @@ import {
   type ActividadCatalogo,
   type AgendaBloque,
 } from "../tareas/board";
-import { calificarCalidad, archivarTarea } from "../tareas/actions";
+import { calificarCalidad, archivarTarea, reabrirTarea } from "../tareas/actions";
 import { KpiCard } from "@/components/kpi-card";
 import { Topbar } from "@/components/topbar";
 import { ResponsableFiltro } from "@/components/responsable-filtro";
@@ -36,6 +38,7 @@ export function HistorialList({
   actividadesCatalogo,
   agendaBloques,
   isAdmin,
+  currentUserId,
   filtroProceso,
   filtroResponsable,
   filtroGlobal,
@@ -49,6 +52,7 @@ export function HistorialList({
   actividadesCatalogo: ActividadCatalogo[];
   agendaBloques: AgendaBloque[];
   isAdmin: boolean;
+  currentUserId: string | null;
   filtroProceso: { codigo: string; nombre: string } | null;
   filtroResponsable: { nombre: string } | null;
   filtroGlobal: string;
@@ -57,6 +61,8 @@ export function HistorialList({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [detalle, setDetalle] = useState<Tarea | null>(null);
+  const [reabriendo, setReabriendo] = useState<Tarea | null>(null);
+  const esReabrible = (t: Tarea) => puedeReabrir(t, currentUserId, isAdmin);
 
   const pendientes = tareas.filter((t) => !t.archivado);
   const archivadas = tareas
@@ -129,6 +135,8 @@ export function HistorialList({
             })
           }
           onVerDetalle={setDetalle}
+          puedeReabrir={esReabrible}
+          onReabrir={setReabriendo}
           emptyLabel="No hay actividades finalizadas pendientes de archivo."
           archivadaCol={false}
         />
@@ -144,6 +152,8 @@ export function HistorialList({
             isAdmin={isAdmin}
             pending={pending}
             onVerDetalle={setDetalle}
+            puedeReabrir={esReabrible}
+            onReabrir={setReabriendo}
             emptyLabel="No hay actividades archivadas."
             archivadaCol
           />
@@ -160,6 +170,22 @@ export function HistorialList({
           actividadesCatalogo={actividadesCatalogo}
           agendaBloque={agendaBloques.find((b) => b.tarea_id === detalle.id) ?? null}
           onClose={() => setDetalle(null)}
+        />
+      )}
+
+      {reabriendo && (
+        <ReabrirModal
+          tarea={reabriendo}
+          isAdmin={isAdmin}
+          onClose={() => setReabriendo(null)}
+          onSubmit={(motivo) =>
+            startTransition(async () => {
+              const r = await reabrirTarea(reabriendo.id, motivo);
+              if (r?.error) setError(r.error);
+              else setReabriendo(null);
+            })
+          }
+          pending={pending}
         />
       )}
     </div>
@@ -229,6 +255,8 @@ function Tabla({
   onCalificar,
   onArchivar,
   onVerDetalle,
+  puedeReabrir,
+  onReabrir,
   emptyLabel,
   archivadaCol,
 }: {
@@ -243,6 +271,8 @@ function Tabla({
   onCalificar?: (id: string, calidad: number) => void;
   onArchivar?: (id: string) => void;
   onVerDetalle: (t: Tarea) => void;
+  puedeReabrir: (t: Tarea) => boolean;
+  onReabrir: (t: Tarea) => void;
   emptyLabel: string;
   archivadaCol: boolean;
 }) {
@@ -316,6 +346,15 @@ function Tabla({
                           className="rounded-md bg-emerald-900 px-2 py-1 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-50"
                         >
                           Archivar
+                        </button>
+                      )}
+                      {puedeReabrir(t) && (
+                        <button
+                          onClick={() => onReabrir(t)}
+                          disabled={pending}
+                          className="rounded-md border border-amber-300 px-2 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-50 disabled:opacity-50"
+                        >
+                          Reabrir
                         </button>
                       )}
                     </div>

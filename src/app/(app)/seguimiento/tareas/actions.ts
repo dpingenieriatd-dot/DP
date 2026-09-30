@@ -233,11 +233,92 @@ export async function terminarTarea(id: string, formData: FormData) {
       estado: "Cumplido",
       observaciones: [entregable, notas].filter(Boolean).join(" — ") || null,
       origen: "Banco de tareas",
+      // Para poder quitar este registro si la tarea se reabre (ver reabrirTarea).
+      tarea_id: id,
     });
   }
 
   revalidatePath(PATH);
   revalidatePath("/seguimiento/actividades");
+}
+
+/**
+ * Devuelve a "En proceso" una tarea Terminada (p. ej. alguien la terminó por error).
+ * - La persona responsable puede reabrir SU tarea mientras no esté calificada ni archivada.
+ * - La Directora (admin) puede reabrir cualquiera: se borra la calificación y se desarchiva.
+ * Se conservan horas, entregable y notas (quedan prellenados al volver a terminarla); se borran
+ * la fecha de cierre y el registro "Cumplido" que terminarTarea creó en Actividades, para que
+ * no cuente doble. El trigger guard_tareas_admin_columns (migración 56) aplica la misma regla
+ * en la base de datos.
+ */
+export async function reabrirTarea(id: string, motivo: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "No hay sesión activa." };
+
+  const motivoLimpio = motivo.trim();
+  if (!motivoLimpio) return { error: "Escribe el motivo por el que se reabre la tarea." };
+
+  const { data: tarea } = await supabase
+    .from("tareas")
+    .select("titulo, estado, responsable, calidad_pct, archivado, publicado_por, reabierta_veces")
+    .eq("id", id)
+    .single();
+  if (!tarea || tarea.estado !== "Terminada") return { error: "Solo se puede reabrir una tarea Terminada." };
+
+  const esAdmin = await requiereAdmin();
+  if (!esAdmin) {
+    if (tarea.responsable !== user.id) {
+      return { error: "Solo puedes reabrir una tarea que hayas terminado tú, o ser Directora de Proyectos." };
+    }
+    if (tarea.archivado || tarea.calidad_pct != null) {
+      return { error: "Esta tarea ya fue calificada o archivada: solo la Directora de Proyectos puede reabrirla." };
+    }
+  }
+
+  const { error } = await supabase
+    .from("tareas")
+    .update({
+      estado: "En proceso",
+      fecha_cierre: null,
+      calidad_pct: null,
+      archivado: false,
+      archivado_at: null,
+      reabierta_at: new Date().toISOString(),
+      reabierta_por: user.id,
+      reabierta_motivo: motivoLimpio,
+      reabierta_veces: (tarea.reabierta_veces ?? 0) + 1,
+    })
+    .eq("id", id)
+    .eq("estado", "Terminada");
+  if (error) return { error: error.message };
+
+  const { error: actividadError } = await supabase
+    .from("actividades")
+    .delete()
+    .eq("tarea_id", id)
+    .eq("origen", "Banco de tareas");
+  if (actividadError) return { error: `La tarea se reabrió, pero no se pudo quitar su registro de Actividades: ${actividadError.message}` };
+
+  const { data: quien } = await supabase.from("profiles").select("full_name, email").eq("id", user.id).single();
+  const nombre = quien?.full_name || quien?.email || "Alguien";
+  const avisar = new Set([tarea.publicado_por, tarea.responsable].filter((u): u is string => !!u && u !== user.id));
+  for (const usuarioId of avisar) {
+    await crearNotificacion(supabase, {
+      usuarioId,
+      tipo: "tarea_reabierta",
+      titulo: "Tarea reabierta",
+      mensaje: `${nombre} devolvió "${tarea.titulo}" a En proceso. Motivo: ${motivoLimpio}`,
+      enlace: PATH,
+    });
+  }
+
+  revalidatePath(PATH);
+  revalidatePath("/seguimiento/actividades");
+  revalidatePath("/seguimiento/historial");
+  revalidatePath("/seguimiento/efectividad");
 }
 
 const CALIDAD_VALIDA = [20, 40, 60, 80, 100];
