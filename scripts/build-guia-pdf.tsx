@@ -428,7 +428,8 @@ function Doc() {
         <H2>4.2 Módulos</H2>
         <P>
           Un miembro puede tener acceso a Seguimiento, a Gestión, a ambos o (temporalmente) a ninguno. Solo ve en el menú
-          los módulos que tiene. La Directora ve todo siempre.
+          los módulos que tiene. La Directora ve todo siempre. Quien tiene solo Seguimiento ve los clientes, empresas,
+          proyectos y compañeros que necesita para sus tareas, pero no la información financiera de Gestión.
         </P>
 
         <H2>4.3 Acciones exclusivas de la Directora</H2>
@@ -437,6 +438,7 @@ function Doc() {
             "Aprobar o rechazar una cotización (y con ello crear el proyecto y el presupuesto).",
             "Calificar la calidad del entregable de una tarea terminada.",
             "Archivar o eliminar tareas del Banco de tareas.",
+            "Reabrir cualquier tarea terminada, aunque ya esté calificada o archivada (la calificación se borra).",
             "Invitar usuarios y cambiar sus roles, cargos y módulos.",
             "Editar los Parámetros del negocio (porcentajes, umbrales de alerta) y el Tema visual.",
             "Consultar la Auditoría (quién cambió qué y cuándo, en Proyectos, Compras y Parámetros).",
@@ -532,11 +534,31 @@ function Doc() {
           ]}
         />
 
+        <H3>Reabrir una tarea terminada</H3>
+        <P>Si una tarea se terminó por error, se puede devolver a En proceso con el botón Reabrir (en Terminadas o en Finalizadas y archivadas).</P>
+        <Steps
+          items={[
+            "Usa Reabrir sobre la tarea terminada.",
+            "Lee el aviso: qué se conserva y qué se borra. Si la tarea ya tenía calificación, el aviso lo dice en rojo.",
+            "Escribe el motivo (obligatorio) y confirma. La tarea vuelve a En proceso con el mismo responsable.",
+          ]}
+        />
+        <Bullets
+          items={[
+            "Quién puede: la persona responsable, sobre su propia tarea, mientras no esté calificada ni archivada. La Directora, sobre cualquier tarea terminada.",
+            "Se conservan las horas registradas y el entregable (queda prellenado para cuando se vuelva a terminar).",
+            "Se borran la fecha de cierre, su registro en Actividades y, si la tenía, la calificación de calidad. Si estaba archivada, se desarchiva.",
+            "El cronómetro no arranca solo: usa Iniciar cuando la retomes.",
+            "Se avisa a quien publicó la tarea (y al responsable, si la reabre la Directora). El motivo queda visible en Ver detalles.",
+          ]}
+        />
+
         <H3>Acciones de la Directora sobre tareas</H3>
         <Bullets
           items={[
             "Calificar calidad: sobre una tarea Terminada, la Directora le pone una calificación de 1 a 5 (ver Efectividad).",
             "Archivar: guarda la tarea en el histórico. No se puede archivar sin haber calificado la calidad primero.",
+            "Reabrir: devuelve a En proceso cualquier tarea terminada, aunque ya esté calificada o archivada. La calificación se borra.",
             "Eliminar: borra la tarea por completo. Se usa solo para tareas creadas por error.",
             "Liberar / retirar: devuelve una tarea a Disponibles. Un miembro solo puede liberar una tarea que él mismo tomó.",
           ]}

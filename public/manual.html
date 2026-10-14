@@ -299,13 +299,14 @@
   <div class="tbl-wrap"><table>
     <thead><tr><th>Rol</th><th>Qué puede hacer</th></tr></thead>
     <tbody>
-      <tr><td class="col">Administrador</td><td>Todo lo de Miembro, más: sección Administración completa (usuarios, parámetros, temas, auditoría, soporte), acciones destructivas (eliminar/archivar proyectos, cotizaciones, actividades), calificar la calidad de las tareas, y ver información financiera consolidada.</td></tr>
-      <tr><td class="col">Miembro</td><td>Trabajar en los módulos que tenga asignados (Seguimiento y/o Gestión): crear y editar cotizaciones, presupuestos, compras, tareas; registrar tiempo; consultar sus pendientes.</td></tr>
+      <tr><td class="col">Administrador</td><td>Todo lo de Miembro, más: sección Administración completa (usuarios, parámetros, temas, auditoría, soporte), acciones destructivas (eliminar/archivar proyectos, cotizaciones, actividades), calificar la calidad de las tareas, reabrir cualquier tarea terminada (aunque esté calificada o archivada), y ver información financiera consolidada.</td></tr>
+      <tr><td class="col">Miembro</td><td>Trabajar en los módulos que tenga asignados (Seguimiento y/o Gestión): crear y editar cotizaciones, presupuestos, compras, tareas; registrar tiempo; consultar sus pendientes; reabrir sus propias tareas terminadas mientras no estén calificadas.</td></tr>
     </tbody>
   </table></div>
 
   <h3>Módulos</h3>
   <p>Independiente del rol, cada usuario tiene activados uno o ambos módulos (<code>seguimiento</code>, <code>gestion</code>). Si un módulo no está activado, ni siquiera aparece en el menú.</p>
+  <div class="note">Quien tiene <strong>solo Seguimiento</strong> ve los clientes, empresas atendidas, proyectos, profesionales y compañeros que necesita para publicar y trabajar tareas, pero <strong>no</strong> la información financiera de Gestión (valor del contrato, márgenes, retenciones, NIT).</div>
 
   <h3>Estado de la cuenta</h3>
   <p>Un usuario puede estar <span class="pill v">Activo</span> o <span class="pill n">Inactivo</span>. Al desactivarlo (Administración → Usuarios → Desactivar) se le revoca el acceso — no puede volver a iniciar sesión — pero <strong>su nombre se conserva</strong> en todo el historial (tareas, cotizaciones, auditoría). No se puede eliminar de verdad porque rompería ese historial. Se puede reactivar en cualquier momento. Los usuarios inactivos desaparecen de los selectores de "Responsable" y del tablero de Equipo.</p>
@@ -891,7 +892,7 @@ ganancia real       = valor aprobado − comprometido − administración − IV
     <li><strong>Revisa la tarea</strong> — abre "Ver detalles" para leer descripción, instrucciones y entregables.</li>
     <li><strong>Toma y programa</strong> — al tomarla, indica fecha y hora; la Agenda se crea automáticamente.</li>
     <li><strong>Mide el tiempo</strong> — el cronómetro corre solo cuando la tarea está En proceso.</li>
-    <li><strong>Finaliza</strong> — al terminar se detiene el cronómetro y el tiempo queda consolidado.</li>
+    <li><strong>Finaliza</strong> — al terminar se detiene el cronómetro y el tiempo queda consolidado. Si la terminaste por error, usa <strong>Reabrir</strong> (ver abajo).</li>
     <li><strong>Revisión y archivo</strong> — la Directora califica la calidad y archiva. Queda en "Finalizadas y archivadas".</li>
   </ol>
   <div class="note">Las acciones administrativas (eliminar, cambiar de estado a la fuerza, archivar) son solo de la Directora de Proyectos.</div>
@@ -916,6 +917,21 @@ ganancia real       = valor aprobado − comprometido − administración − IV
 
   <h3>Estados de una tarea</h3>
   <p><span class="pill n">Disponible</span> — nadie la ha tomado · <span class="pill a">En proceso</span> — alguien la está trabajando, el cronómetro corre · <span class="pill n">Pausada</span> — en pausa, el cronómetro detenido · <span class="pill v">Terminada</span> — hecha, pendiente de revisión y archivo.</p>
+
+  <h3>Reabrir una tarea terminada</h3>
+  <p>Si alguien termina una tarea por error, el botón <strong>Reabrir</strong> (en la columna Terminadas y en Finalizadas y archivadas) la devuelve a <span class="pill a">En proceso</span> con el mismo responsable.</p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th class="col">Tema</th><th>Cómo funciona</th></tr></thead>
+    <tbody>
+      <tr><td class="col">Quién puede</td><td>La persona responsable, sobre <strong>su propia</strong> tarea, mientras <strong>no esté calificada ni archivada</strong> (si ya está calificada ve "Ya calificada: solo la Directora puede reabrirla"). La Directora, sobre cualquier tarea terminada.</td></tr>
+      <tr><td class="col">Motivo</td><td>Obligatorio. Queda en "Ver detalles" junto con la fecha, quién la reabrió y cuántas veces.</td></tr>
+      <tr><td class="col">Se conserva</td><td>Las horas registradas y el entregable (queda prellenado para cuando se vuelva a terminar).</td></tr>
+      <tr><td class="col">Se borra</td><td>La fecha de cierre y su registro "Cumplido" en Actividades (se crea uno nuevo al volver a terminarla). Si estaba archivada, se desarchiva.</td></tr>
+      <tr><td class="col">Cronómetro</td><td>No arranca solo: usa "Iniciar" al retomarla.</td></tr>
+      <tr><td class="col">Avisos</td><td>Notificación a quien publicó la tarea, y al responsable si la reabre la Directora.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="warn"><span class="callout-strong">Se borra la calificación</span>Si la tarea ya tenía calificación de calidad, al reabrirla se elimina y habrá que calificarla de nuevo cuando se vuelva a terminar. La ventana de confirmación lo advierte en rojo y el botón dice "Reabrir y borrar calificación".</div>
 </section>
 
 <!-- ================= 12 ================= -->
@@ -1008,6 +1024,7 @@ ganancia real       = valor aprobado − comprometido − administración − IV
       <tr><td class="col">Calidad</td><td>Calificación final.</td></tr>
       <tr><td class="col">Entregable</td><td>Enlace o nota del entregable.</td></tr>
       <tr><td class="col">Archivada</td><td>Fecha de archivo (columna visible según filtro).</td></tr>
+      <tr><td class="col">Acciones</td><td>Ver detalles · Calificar y Archivar (Directora) · <strong>Reabrir</strong> (ver sección 11).</td></tr>
     </tbody>
   </table></div>
 </section>
