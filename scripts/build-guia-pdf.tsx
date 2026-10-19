@@ -470,8 +470,8 @@ function Doc() {
         />
         <P>Con el filtro de persona de arriba, puedes ver este resumen para ti o (si eres Directora) para cualquiera del equipo.</P>
         <Nota>
-          El filtro "Responsable: Todos / persona" (arriba, en Banco de tareas y Actividades) es una preferencia de este
-          navegador, no un permiso: todo el equipo ve siempre las mismas tareas. Se reinicia solo a "Todos" en cada
+          El filtro «Responsable: Todos / persona» (arriba, en Banco de tareas y Actividades) es una preferencia de este
+          navegador, no un permiso: todo el equipo ve siempre las mismas tareas. Se reinicia solo a «Todos» en cada
           inicio de sesión, para que no quede fijo en una persona de una sesión anterior en el mismo computador.
         </Nota>
 

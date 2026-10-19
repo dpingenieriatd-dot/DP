@@ -1,50 +1,43 @@
 # D&P Ingeniería Integral — Plataforma interna
 
-Fase 1 de la transformación digital de D&P Ingeniería Integral S.A.S.: Seguimiento operativo del equipo (tareas, agendas, capacidad, efectividad) y Gestión de proyectos (cotizaciones, presupuestos, compras, proveedores y catálogos), con datos centralizados y acceso por persona según su cargo.
+Plataforma web interna de D&P Ingeniería Integral S.A.S. (Fase 1 de la transformación digital): **Seguimiento** operativo del equipo (tareas, agendas, capacidad, efectividad, procesos, historial) y **Gestión** de proyectos (cotizaciones, proyectos, presupuestos, compras, proveedores y catálogos), con reportes en PDF, panel de administración y acceso por persona según su cargo.
 
-Next.js (App Router) + TypeScript + Tailwind CSS + Supabase (Postgres, Auth, Row Level Security).
+En producción: <https://app.dpingenieriaintegral.com>
 
-## Estado actual
-
-Esqueleto técnico: rutas y navegación creadas, sin lógica de negocio ni conexión real a datos todavía. Falta:
-
-- Proyecto de Supabase creado y llaves cargadas en `.env.local`.
-- Respuestas de la Solicitud de Información (`Documentacion_Proyecto/03_...`), en particular el modelo de roles/permisos y el objetivo del control de tiempo, antes de construir el panel de administración y el módulo de Efectividad.
-- Archivo `Seguimiento_V1.xlsx` con los datos reales del equipo, para reemplazar los datos de ejemplo.
+Next.js 16 (App Router) + React 19 + TypeScript + Tailwind CSS v4 + Supabase (Postgres, Auth, Row Level Security), desplegado en Vercel.
 
 ## Correr localmente
 
+Requisitos: Node.js 20.9 o superior y acceso a un proyecto de Supabase.
+
 ```bash
 npm install
-cp .env.example .env.local   # completar con los datos del proyecto de Supabase
+cp .env.example .env.local   # completar con las llaves (ver comentarios del archivo)
 npm run dev
 ```
 
-Abrir [http://localhost:3000](http://localhost:3000).
+Abrir <http://localhost:3000>.
 
-## Estructura
+Otros comandos:
 
-```
-src/
-  app/
-    login/                  Inicio de sesión (fuera del layout con menú)
-    (app)/                  Rutas autenticadas, con el menú lateral
-      admin/                Usuarios, parámetros del negocio
-      seguimiento/          Tareas, agendas, capacidad, efectividad
-      gestion/              Cotizaciones, proyectos, presupuestos, compras,
-                             proveedores, clientes, empresas, materiales,
-                             profesionales, insumos
-  lib/
-    supabase/
-      client.ts             Cliente de Supabase para Client Components
-      server.ts              Cliente de Supabase para Server Components
-      middleware.ts          Lógica de refresco de sesión, usada por proxy.ts
-proxy.ts                     Protege las rutas autenticadas (antes "middleware.ts";
-                              renombrado por el cambio de convención en Next.js 16)
-```
+| Comando | Para qué |
+|---|---|
+| `npm run build` | Compila la versión de producción (también revisa tipos). |
+| `npm run start` | Sirve la versión compilada. |
+| `npm run lint` | Revisa el código con ESLint. |
+
+## Documentación
+
+- **[`docs/DOCUMENTACION_TECNICA.md`](docs/DOCUMENTACION_TECNICA.md)** — arquitectura, modelo de datos, seguridad, variables de entorno, base de datos y migraciones, despliegue y operación. Es el documento de referencia para cualquier desarrollador que retome el proyecto.
+- **Manual de usuario** — publicado en la propia plataforma en `/manual.html` (fuente: `public/manual.html`).
+- **[`PENDIENTES.md`](PENDIENTES.md)** — decisiones de negocio abiertas que afectan el código.
 
 ## Notas técnicas
 
-- Este proyecto usa Next.js 16, que tiene cambios importantes de convención frente a versiones anteriores (por ejemplo `middleware.ts` → `proxy.ts`). Antes de asumir un patrón de una versión anterior, revisar `node_modules/next/dist/docs/`.
-- La anon key de Supabase es segura de exponer en el cliente (`NEXT_PUBLIC_...`); el aislamiento real de datos entre módulos y entre usuarios lo hace Row Level Security en la base de datos, no el secreto de esa llave.
-- El resto de la documentación del proyecto (propuesta firmada, actas, cronograma, checklist QAQC, registro de riesgos) está en `../Documentacion_Proyecto/`.
+- Este proyecto usa Next.js 16, que cambia varias convenciones frente a versiones anteriores (por ejemplo `middleware.ts` → `proxy.ts`). Antes de asumir un patrón de una versión anterior, revisar `node_modules/next/dist/docs/`.
+- La anon key de Supabase es segura de exponer en el navegador (`NEXT_PUBLIC_...`); el aislamiento real de datos lo hace Row Level Security en la base de datos. La `SUPABASE_SERVICE_ROLE_KEY` **nunca** debe llevar el prefijo `NEXT_PUBLIC_` ni subirse al repositorio.
+- Los archivos `.env*` (salvo `.env.example`) están excluidos del repositorio por `.gitignore`.
+
+## Propiedad
+
+Código desarrollado para D&P Ingeniería Integral S.A.S. por César Rivas. Ver el Acta de Entrega del Código Fuente para los términos de entrega y cesión.
